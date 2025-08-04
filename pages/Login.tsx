@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useNavigate, Link } from 'react-router-dom';
 import { Role, User } from '../types';
 import Spinner from '../components/Spinner';
+import GoogleSignIn from '../components/GoogleSignIn';
+import { decodeGoogleCredential, googleAuthLogin } from '../utils/googleAuth';
 import axios from 'axios';
 
 // Real API call for login
@@ -27,10 +29,10 @@ const Login: React.FC = () => {
         e.preventDefault();
         setError('');
         setLoading(true);
-        
+
         try {
             const response = await loginUser(email, password);
-            
+
             // Create user object from backend response
             const user: User = {
                 id: response.userId || 'user-citizen',
@@ -42,7 +44,7 @@ const Login: React.FC = () => {
                 token: response.token,
                 panchayath: response.panchayath || ''
             };
-            
+
             login(user);
             navigate('/citizen'); // Redirect to citizen dashboard
         } catch (err: any) {
@@ -55,6 +57,63 @@ const Login: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleGoogleSuccess = async (credential: string) => {
+        setError('');
+        setLoading(true);
+
+        try {
+            const response = await googleAuthLogin(credential);
+
+            // Create user object from backend response
+            const user: User = {
+                id: response.userId || 'user-citizen',
+                name: response.name || 'Citizen User',
+                email: response.email,
+                role: Role.CITIZEN,
+                ward: response.ward || 1,
+                approved: true,
+                token: response.token,
+                panchayath: response.panchayath || ''
+            };
+
+            login(user);
+            navigate('/citizen');
+        } catch (err: any) {
+            console.error(err);
+
+            // Check if this is a "no account found" error
+            if (err.message.includes('No account found') ||
+                (axios.isAxiosError(err) && err.response?.data?.error?.includes('No account found'))) {
+
+                // Decode Google credential to get user info
+                const userInfo = decodeGoogleCredential(credential);
+                if (userInfo) {
+                    // Redirect to complete profile page with Google user data
+                    navigate('/complete-profile', {
+                        state: {
+                            googleUserData: {
+                                email: userInfo.email,
+                                name: userInfo.name,
+                                picture: userInfo.picture,
+                                credential: credential
+                            }
+                        }
+                    });
+                    return;
+                }
+            }
+
+            setError('Google login failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleError = (error: any) => {
+        console.error('Google Sign-In Error:', error);
+        setError('Google Sign-In failed. Please try again.');
     };
 
     return (
@@ -105,12 +164,41 @@ const Login: React.FC = () => {
                         </button>
                     </div>
                 </form>
-                <p className="text-center text-gray-600 mt-6">
-                    Don't have an account?{' '}
-                    <Link to="/register" className="font-bold text-blue-600 hover:text-blue-800">
-                        Register as a Citizen
-                    </Link>
-                </p>
+
+                <div className="mt-6">
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300" />
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                        </div>
+                    </div>
+
+                    <div className="mt-6">
+                        <GoogleSignIn
+                            onSuccess={handleGoogleSuccess}
+                            onError={handleGoogleError}
+                            text="signin_with"
+                            theme="outline"
+                            size="large"
+                            width={384}
+                        />
+                    </div>
+                </div>
+
+                <div className="text-center mt-6">
+                    <p className="text-gray-600 mb-2">
+                        Don't have an account?{' '}
+                        <Link to="/register" className="font-bold text-blue-600 hover:text-blue-800">
+                            Register as a Citizen
+                        </Link>
+                    </p>
+                    <p className="text-sm text-gray-500">
+                        New users can also sign in with Google above to create an account automatically,
+                        or use the registration page for traditional signup.
+                    </p>
+                </div>
             </div>
         </div>
     );

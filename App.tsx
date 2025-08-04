@@ -4,6 +4,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import CompleteProfile from './pages/CompleteProfile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import CouncillorDashboard from './pages/councillor/CouncillorDashboard';
 import OfficerDashboard from './pages/officer/OfficerDashboard';
@@ -23,12 +24,13 @@ const AppRoutes: React.FC = () => {
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            
+            <Route path="/complete-profile" element={<CompleteProfile />} />
+
             <Route path="/admin" element={<ProtectedRoute allowedRoles={[Role.ADMIN]}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/councillor" element={<ProtectedRoute allowedRoles={[Role.COUNCILLOR]}><CouncillorDashboard /></ProtectedRoute>} />
             <Route path="/officer" element={<ProtectedRoute allowedRoles={[Role.OFFICER]}><OfficerDashboard /></ProtectedRoute>} />
             <Route path="/citizen" element={<ProtectedRoute allowedRoles={[Role.CITIZEN]}><CitizenDashboard /></ProtectedRoute>} />
-            
+
             <Route path="/" element={
                 user ? <Navigate to={`/${user.role}`} replace /> : <Landing />
             } />

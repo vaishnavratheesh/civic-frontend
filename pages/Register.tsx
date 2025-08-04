@@ -5,6 +5,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Role, User } from '../types';
 import { PANCHAYATH_NAMES, PANCHAYATH_DATA } from '../constants';
 import Spinner from '../components/Spinner';
+import GoogleSignIn from '../components/GoogleSignIn';
+import { decodeGoogleCredential, googleAuthRegister } from '../utils/googleAuth';
 import axios from 'axios';
 
 // Real API call for registration
@@ -74,6 +76,62 @@ const Register: React.FC = () => {
             setWard(PANCHAYATH_DATA[selectedPanchayath as keyof typeof PANCHAYATH_DATA][0]);
         }
     };
+
+    const handleGoogleSuccess = async (credential: string) => {
+        setError('');
+
+        if (!panchayath) {
+            setError('Please select a Panchayath/Municipality before signing up with Google.');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            // Use the complete registration endpoint that returns user data and token
+            const response = await axios.post('http://localhost:3001/api/google-register-complete', {
+                credential,
+                ward,
+                panchayath,
+            });
+
+            // Create user object and login immediately
+            const userInfo = decodeGoogleCredential(credential);
+            const user: User = {
+                id: response.data.userId,
+                name: userInfo?.name || 'Google User',
+                email: userInfo?.email || '',
+                role: Role.CITIZEN,
+                ward: ward,
+                approved: true,
+                token: response.data.token,
+                panchayath: panchayath
+            };
+
+            login(user);
+            navigate('/citizen'); // Direct redirect to citizen dashboard
+        } catch (err: any) {
+            console.error(err);
+            if (axios.isAxiosError(err) && err.response) {
+                if (err.response.data.error?.includes('already exists')) {
+                    setError('An account with this email already exists. Please try logging in instead.');
+                } else {
+                    setError(err.response.data.error || 'Google registration failed');
+                }
+            } else {
+                setError('Google registration failed. Please try again.');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleError = (error: any) => {
+        console.error('Google Sign-In Error:', error);
+        setError('Google Sign-In failed. Please try again.');
+    };
+
+
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -181,6 +239,35 @@ const Register: React.FC = () => {
                         </button>
                     </div>
                 </form>
+
+                <div className="mt-6">
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300" />
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                        </div>
+                    </div>
+
+                    <div className="mt-6">
+                        <GoogleSignIn
+                            onSuccess={handleGoogleSuccess}
+                            onError={handleGoogleError}
+                            text="signup_with"
+                            theme="outline"
+                            size="large"
+                            width={384}
+                        />
+                    </div>
+
+                    {!panchayath && (
+                        <p className="text-center text-sm text-amber-600 mt-2">
+                            Please select a Panchayath/Municipality above before using Google Sign-Up
+                        </p>
+                    )}
+                </div>
+
                 <p className="text-center text-gray-600 mt-6">
                     Already have an account?{' '}
                     <Link to="/login" className="font-bold text-blue-600 hover:text-blue-800">

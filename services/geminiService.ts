@@ -2,11 +2,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ISSUE_TYPES } from '../constants';
 
-if (!process.env.API_KEY) {
+const API_KEY = process.env.API_KEY;
+
+if (!API_KEY) {
   console.warn("API_KEY environment variable not set. Using mock data for Gemini service.");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+// Only create the GoogleGenAI instance if we have an API key
+const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
 interface GrievanceAnalysis {
   title: string;
@@ -27,7 +30,7 @@ const grievanceSchema = {
 };
 
 export const analyzeGrievance = async (description: string, imageBase64: string): Promise<GrievanceAnalysis> => {
-  if (!process.env.API_KEY) {
+  if (!ai) {
     // Mock response for environments without an API key
     return new Promise(resolve => setTimeout(() => resolve({
       title: "Mock: Leaking Pipe Reported",
@@ -77,7 +80,7 @@ const welfareSchema = {
 };
 
 export const scoreWelfareApplication = async (reason: string, familyIncome: number, dependents: number): Promise<WelfareScore> => {
-    if (!process.env.API_KEY) {
+    if (!ai) {
         return new Promise(resolve => setTimeout(() => resolve({
             score: Math.floor(Math.random() * 40) + 60,
             justification: "Mock analysis: The applicant demonstrates significant need based on the provided details."
@@ -101,7 +104,7 @@ export const scoreWelfareApplication = async (reason: string, familyIncome: numb
 };
 
 export const askAboutWard = async (question: string, wardNumber: number): Promise<string> => {
-    if (!process.env.API_KEY) {
+    if (!ai) {
         return new Promise(resolve => setTimeout(() => resolve(
             "Mock Answer: The next garbage collection for Ward " + wardNumber + " is scheduled for Wednesday at 8 AM. Please ensure your bins are placed on the curb by 7:30 AM. For more details, you can visit the municipal website's waste management section."
         ), 1500));
