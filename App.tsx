@@ -4,6 +4,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyOTP from './pages/VerifyOTP';
 import CompleteProfile from './pages/CompleteProfile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import CouncillorDashboard from './pages/councillor/CouncillorDashboard';
@@ -24,6 +25,7 @@ const AppRoutes: React.FC = () => {
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route path="/complete-profile" element={<CompleteProfile />} />
 
             <Route path="/admin" element={<ProtectedRoute allowedRoles={[Role.ADMIN]}><AdminDashboard /></ProtectedRoute>} />

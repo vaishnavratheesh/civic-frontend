@@ -7,6 +7,16 @@ import { PANCHAYATH_NAMES, PANCHAYATH_DATA } from '../constants';
 import Spinner from '../components/Spinner';
 import GoogleSignIn from '../components/GoogleSignIn';
 import { decodeGoogleCredential, googleAuthRegister } from '../utils/googleAuth';
+import {
+    validateName,
+    validateEmailForRegistration,
+    validatePassword,
+    validateConfirmPassword,
+    validatePanchayath,
+    validateWard,
+    ValidationErrors,
+    hasValidationErrors
+} from '../utils/formValidation';
 import axios from 'axios';
 
 // Real API call for registration
@@ -30,94 +40,250 @@ const Register: React.FC = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+    const [isValidating, setIsValidating] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
 
     // Get available wards based on selected panchayath
     const availableWards = panchayath ? PANCHAYATH_DATA[panchayath as keyof typeof PANCHAYATH_DATA] || [] : [];
 
+    // Real-time validation handlers
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newName = e.target.value;
+        setName(newName);
+
+        // Clear previous errors
+        setValidationErrors(prev => ({ ...prev, name: undefined }));
+        setError('');
+
+        // Validate name in real-time
+        if (newName) {
+            const validation = validateName(newName);
+            if (!validation.isValid) {
+                setValidationErrors(prev => ({ ...prev, name: validation.error }));
+            }
+        }
+    };
+
+    const handleEmailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newEmail = e.target.value;
+        setEmail(newEmail);
+
+        // Clear previous errors
+        setValidationErrors(prev => ({ ...prev, email: undefined }));
+        setError('');
+
+        // Validate email in real-time (with debounce effect)
+        if (newEmail && newEmail.includes('@')) {
+            setIsValidating(true);
+            try {
+                const validation = await validateEmailForRegistration(newEmail);
+                if (!validation.isValid) {
+                    setValidationErrors(prev => ({ ...prev, email: validation.error }));
+                }
+            } catch (error) {
+                console.error('Email validation error:', error);
+            } finally {
+                setIsValidating(false);
+            }
+        }
+    };
+
+    const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newPassword = e.target.value;
+        setPassword(newPassword);
+
+        // Clear previous errors
+        setValidationErrors(prev => ({ ...prev, password: undefined, confirmPassword: undefined }));
+        setError('');
+
+        // Validate password in real-time
+        if (newPassword) {
+            const validation = validatePassword(newPassword);
+            if (!validation.isValid) {
+                setValidationErrors(prev => ({ ...prev, password: validation.error }));
+            }
+        }
+
+        // Re-validate confirm password if it exists
+        if (confirmPassword) {
+            const confirmValidation = validateConfirmPassword(newPassword, confirmPassword);
+            if (!confirmValidation.isValid) {
+                setValidationErrors(prev => ({ ...prev, confirmPassword: confirmValidation.error }));
+            }
+        }
+    };
+
+    const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newConfirmPassword = e.target.value;
+        setConfirmPassword(newConfirmPassword);
+
+        // Clear previous errors
+        setValidationErrors(prev => ({ ...prev, confirmPassword: undefined }));
+        setError('');
+
+        // Validate confirm password in real-time
+        if (newConfirmPassword) {
+            const validation = validateConfirmPassword(password, newConfirmPassword);
+            if (!validation.isValid) {
+                setValidationErrors(prev => ({ ...prev, confirmPassword: validation.error }));
+            }
+        }
+    };
+
+    const handlePanchayathChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newPanchayath = e.target.value;
+        setPanchayath(newPanchayath);
+        setWard(1); // Reset ward when panchayath changes
+
+        // Clear previous errors
+        setValidationErrors(prev => ({ ...prev, panchayath: undefined, ward: undefined }));
+        setError('');
+
+        // Validate panchayath
+        const validation = validatePanchayath(newPanchayath);
+        if (!validation.isValid) {
+            setValidationErrors(prev => ({ ...prev, panchayath: validation.error }));
+        }
+    };
+
+    const handleWardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newWard = parseInt(e.target.value);
+        setWard(newWard);
+
+        // Clear previous errors
+        setValidationErrors(prev => ({ ...prev, ward: undefined }));
+        setError('');
+
+        // Validate ward
+        const validation = validateWard(newWard, availableWards);
+        if (!validation.isValid) {
+            setValidationErrors(prev => ({ ...prev, ward: validation.error }));
+        }
+    };
+
+    // Comprehensive form validation
+    const validateForm = async (): Promise<boolean> => {
+        const errors: ValidationErrors = {};
+
+        // Validate all fields
+        const nameValidation = validateName(name);
+        if (!nameValidation.isValid) {
+            errors.name = nameValidation.error;
+        }
+
+        const emailValidation = await validateEmailForRegistration(email);
+        if (!emailValidation.isValid) {
+            errors.email = emailValidation.error;
+        }
+
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            errors.password = passwordValidation.error;
+        }
+
+        const confirmPasswordValidation = validateConfirmPassword(password, confirmPassword);
+        if (!confirmPasswordValidation.isValid) {
+            errors.confirmPassword = confirmPasswordValidation.error;
+        }
+
+        const panchayathValidation = validatePanchayath(panchayath);
+        if (!panchayathValidation.isValid) {
+            errors.panchayath = panchayathValidation.error;
+        }
+
+        const wardValidation = validateWard(ward, availableWards);
+        if (!wardValidation.isValid) {
+            errors.ward = wardValidation.error;
+        }
+
+        setValidationErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setValidationErrors({});
 
-        if (password !== confirmPassword) {
-            setError('Passwords do not match.');
-            return;
-        }
-        if (password.length < 6) {
-            setError('Password must be at least 6 characters long.');
-            return;
-        }
-        if (!panchayath) {
-            setError('Please select a Panchayath/Municipality.');
+        // Validate form before submission
+        setIsValidating(true);
+        const isValid = await validateForm();
+        setIsValidating(false);
+
+        if (!isValid) {
             return;
         }
 
         setLoading(true);
         try {
             await registerUser(name, email, ward, password, panchayath);
-            navigate('/login');
+
+            // Redirect to OTP verification page with email
+            navigate('/verify-otp', {
+                state: { email: email }
+            });
         } catch (err: any) {
             console.error(err);
             if (axios.isAxiosError(err) && err.response) {
-                setError(err.response.data.error || 'Registration failed');
+                const errorMessage = err.response.data.error || 'Registration failed';
+
+                // Provide specific error messages
+                if (errorMessage.includes('already exists') || errorMessage.includes('Email already')) {
+                    setError('An account with this email already exists. Please use a different email or try logging in.');
+                } else if (errorMessage.includes('invalid email')) {
+                    setError('Please enter a valid email address.');
+                } else if (errorMessage.includes('password')) {
+                    setError('Password does not meet requirements. Please check and try again.');
+                } else {
+                    setError(errorMessage);
+                }
             } else {
-                setError('Registration failed');
+                setError('Registration failed. Please check your internet connection and try again.');
             }
         } finally {
             setLoading(false);
         }
     };
 
-    // Reset ward when panchayath changes
-    const handlePanchayathChange = (selectedPanchayath: string) => {
-        setPanchayath(selectedPanchayath);
-        if (selectedPanchayath && PANCHAYATH_DATA[selectedPanchayath as keyof typeof PANCHAYATH_DATA]) {
-            setWard(PANCHAYATH_DATA[selectedPanchayath as keyof typeof PANCHAYATH_DATA][0]);
-        }
-    };
-
     const handleGoogleSuccess = async (credential: string) => {
         setError('');
-
-        if (!panchayath) {
-            setError('Please select a Panchayath/Municipality before signing up with Google.');
-            return;
-        }
-
         setLoading(true);
 
         try {
-            // Use the complete registration endpoint that returns user data and token
-            const response = await axios.post('http://localhost:3001/api/google-register-complete', {
-                credential,
-                ward,
-                panchayath,
+            // Decode Google credential to get user info
+            const userInfo = decodeGoogleCredential(credential);
+            if (!userInfo) {
+                setError('Failed to process Google authentication. Please try again.');
+                return;
+            }
+
+            // Check if user already exists
+            const checkResponse = await axios.post('http://localhost:3001/api/check-google-user', {
+                email: userInfo.email
             });
 
-            // Create user object and login immediately
-            const userInfo = decodeGoogleCredential(credential);
-            const user: User = {
-                id: response.data.userId,
-                name: userInfo?.name || 'Google User',
-                email: userInfo?.email || '',
-                role: Role.CITIZEN,
-                ward: ward,
-                approved: true,
-                token: response.data.token,
-                panchayath: panchayath
-            };
+            if (checkResponse.data.exists) {
+                setError('An account with this email already exists. Please try logging in instead.');
+                return;
+            }
 
-            login(user);
-            navigate('/citizen'); // Direct redirect to citizen dashboard
+            // Redirect to profile completion page with Google user data
+            navigate('/complete-profile', {
+                state: {
+                    googleUserData: {
+                        email: userInfo.email,
+                        name: userInfo.name,
+                        picture: userInfo.picture,
+                        credential: credential
+                    }
+                }
+            });
         } catch (err: any) {
             console.error(err);
             if (axios.isAxiosError(err) && err.response) {
-                if (err.response.data.error?.includes('already exists')) {
-                    setError('An account with this email already exists. Please try logging in instead.');
-                } else {
-                    setError(err.response.data.error || 'Google registration failed');
-                }
+                setError(err.response.data.error || 'Google registration failed');
             } else {
                 setError('Google registration failed. Please try again.');
             }
@@ -133,6 +299,8 @@ const Register: React.FC = () => {
 
 
 
+
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
             <div className="max-w-md w-full bg-white rounded-xl shadow-2xl p-8 m-4">
@@ -142,7 +310,26 @@ const Register: React.FC = () => {
                 <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">Create Citizen Account</h2>
                 <p className="text-center text-gray-500 mb-8">Join CivicBrain+ to make your voice heard.</p>
                 {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{error}</div>}
-                <form onSubmit={handleSubmit} className="space-y-4">
+
+                {/* Validation Summary */}
+                {hasValidationErrors(validationErrors) && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center mb-2">
+                            <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                            <span className="text-red-700 font-medium text-sm">Please fix the following errors:</span>
+                        </div>
+                        <ul className="text-red-600 text-xs space-y-1">
+                            {validationErrors.name && <li>• {validationErrors.name}</li>}
+                            {validationErrors.email && <li>• {validationErrors.email}</li>}
+                            {validationErrors.password && <li>• {validationErrors.password}</li>}
+                            {validationErrors.confirmPassword && <li>• {validationErrors.confirmPassword}</li>}
+                            {validationErrors.panchayath && <li>• {validationErrors.panchayath}</li>}
+                            {validationErrors.ward && <li>• {validationErrors.ward}</li>}
+                        </ul>
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
                     <div>
                         <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
                             Full Name
@@ -151,11 +338,21 @@ const Register: React.FC = () => {
                             id="name"
                             type="text"
                             value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="John Doe"
+                            onChange={handleNameChange}
+                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
+                                validationErrors.name
+                                    ? 'border-red-500 focus:ring-red-500'
+                                    : 'focus:ring-blue-500'
+                            }`}
+                            placeholder="Enter your full name"
                             required
                         />
+                        {validationErrors.name && (
+                            <p className="text-red-500 text-xs italic mt-1">
+                                <i className="fas fa-exclamation-circle mr-1"></i>
+                                {validationErrors.name}
+                            </p>
+                        )}
                     </div>
                      <div>
                         <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
@@ -165,11 +362,28 @@ const Register: React.FC = () => {
                             id="email"
                             type="email"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="your@email.com"
+                            onChange={handleEmailChange}
+                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
+                                validationErrors.email
+                                    ? 'border-red-500 focus:ring-red-500'
+                                    : 'focus:ring-blue-500'
+                            }`}
+                            autoComplete="new-email"
+                            placeholder="Enter your email address"
                             required
                         />
+                        {validationErrors.email && (
+                            <p className="text-red-500 text-xs italic mt-1">
+                                <i className="fas fa-exclamation-circle mr-1"></i>
+                                {validationErrors.email}
+                            </p>
+                        )}
+                        {isValidating && email && !validationErrors.email && (
+                            <p className="text-blue-500 text-xs italic mt-1">
+                                <i className="fas fa-spinner fa-spin mr-1"></i>
+                                Checking email availability...
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="panchayath">
@@ -178,13 +392,23 @@ const Register: React.FC = () => {
                         <select
                             id="panchayath"
                             value={panchayath}
-                            onChange={(e) => handlePanchayathChange(e.target.value)}
-                            className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            onChange={handlePanchayathChange}
+                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 bg-white ${
+                                validationErrors.panchayath
+                                    ? 'border-red-500 focus:ring-red-500'
+                                    : 'focus:ring-blue-500'
+                            }`}
                             required
                         >
                             <option value="">Select Panchayath/Municipality</option>
                             {PANCHAYATH_NAMES.map(p => <option key={p} value={p}>{p}</option>)}
                         </select>
+                        {validationErrors.panchayath && (
+                            <p className="text-red-500 text-xs italic mt-1">
+                                <i className="fas fa-exclamation-circle mr-1"></i>
+                                {validationErrors.panchayath}
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ward">
@@ -193,13 +417,29 @@ const Register: React.FC = () => {
                         <select
                             id="ward"
                             value={ward}
-                            onChange={(e) => setWard(Number(e.target.value))}
-                            className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            onChange={handleWardChange}
+                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 bg-white ${
+                                validationErrors.ward
+                                    ? 'border-red-500 focus:ring-red-500'
+                                    : 'focus:ring-blue-500'
+                            }`}
                             required
                             disabled={!panchayath}
                         >
                             {availableWards.map(w => <option key={w} value={w}>Ward {w}</option>)}
                         </select>
+                        {validationErrors.ward && (
+                            <p className="text-red-500 text-xs italic mt-1">
+                                <i className="fas fa-exclamation-circle mr-1"></i>
+                                {validationErrors.ward}
+                            </p>
+                        )}
+                        {!panchayath && (
+                            <p className="text-gray-500 text-xs italic mt-1">
+                                <i className="fas fa-info-circle mr-1"></i>
+                                Please select a Panchayath/Municipality first
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
@@ -209,11 +449,28 @@ const Register: React.FC = () => {
                             id="password"
                             type="password"
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="******************"
+                            onChange={handlePasswordChange}
+                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
+                                validationErrors.password
+                                    ? 'border-red-500 focus:ring-red-500'
+                                    : 'focus:ring-blue-500'
+                            }`}
+                            autoComplete="new-password"
+                            placeholder="Enter a secure password"
                             required
                         />
+                        {validationErrors.password && (
+                            <p className="text-red-500 text-xs italic mt-1">
+                                <i className="fas fa-exclamation-circle mr-1"></i>
+                                {validationErrors.password}
+                            </p>
+                        )}
+                        {!validationErrors.password && password && (
+                            <p className="text-green-600 text-xs italic mt-1">
+                                <i className="fas fa-check-circle mr-1"></i>
+                                Password meets requirements
+                            </p>
+                        )}
                     </div>
                      <div>
                         <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirm-password">
@@ -223,19 +480,52 @@ const Register: React.FC = () => {
                             id="confirm-password"
                             type="password"
                             value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="******************"
+                            onChange={handleConfirmPasswordChange}
+                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
+                                validationErrors.confirmPassword
+                                    ? 'border-red-500 focus:ring-red-500'
+                                    : 'focus:ring-blue-500'
+                            }`}
+                            autoComplete="new-password"
+                            placeholder="Confirm your password"
                             required
                         />
+                        {validationErrors.confirmPassword && (
+                            <p className="text-red-500 text-xs italic mt-1">
+                                <i className="fas fa-exclamation-circle mr-1"></i>
+                                {validationErrors.confirmPassword}
+                            </p>
+                        )}
+                        {!validationErrors.confirmPassword && confirmPassword && password === confirmPassword && (
+                            <p className="text-green-600 text-xs italic mt-1">
+                                <i className="fas fa-check-circle mr-1"></i>
+                                Passwords match
+                            </p>
+                        )}
                     </div>
                     <div className="pt-2">
                         <button
                             type="submit"
-                            disabled={loading}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 disabled:bg-blue-300"
+                            disabled={loading || isValidating || hasValidationErrors(validationErrors)}
+                            className={`w-full font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 ${
+                                loading || isValidating || hasValidationErrors(validationErrors)
+                                    ? 'bg-gray-400 cursor-not-allowed text-gray-600'
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            }`}
                         >
-                            {loading ? <Spinner size="sm" /> : 'Register'}
+                            {loading ? (
+                                <div className="flex items-center justify-center">
+                                    <Spinner size="sm" />
+                                    <span className="ml-2">Creating Account...</span>
+                                </div>
+                            ) : isValidating ? (
+                                <div className="flex items-center justify-center">
+                                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                                    <span>Validating...</span>
+                                </div>
+                            ) : (
+                                'Create Account'
+                            )}
                         </button>
                     </div>
                 </form>
@@ -260,12 +550,6 @@ const Register: React.FC = () => {
                             width={384}
                         />
                     </div>
-
-                    {!panchayath && (
-                        <p className="text-center text-sm text-amber-600 mt-2">
-                            Please select a Panchayath/Municipality above before using Google Sign-Up
-                        </p>
-                    )}
                 </div>
 
                 <p className="text-center text-gray-600 mt-6">
