@@ -1,4 +1,4 @@
-# CivicBrain+ Frontend
+# Civic+ Frontend
 
 A React-based frontend application for civic engagement and municipal services.
 

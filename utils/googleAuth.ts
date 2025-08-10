@@ -42,7 +42,7 @@ export const decodeGoogleCredential = (credential: string): GoogleUserInfo | nul
 };
 
 export const googleAuthLogin = async (credential: string) => {
-  const response = await fetch('http://localhost:3001/api/google-login', {
+  const response = await fetch('http://localhost:3002/api/google-login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ export const googleAuthLogin = async (credential: string) => {
 };
 
 export const googleAuthRegister = async (credential: string, ward: number, panchayath: string) => {
-  const response = await fetch('http://localhost:3001/api/google-register', {
+  const response = await fetch('http://localhost:3002/api/google-register', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -15,9 +15,11 @@ import {
 } from '../utils/formValidation';
 import axios from 'axios';
 
+/// <reference types="vite/client" />
+
 // Real API call for login
 const loginUser = async (email: string, password: string) => {
-    const response = await axios.post('http://localhost:3001/api/login', {
+    const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002'}/api/login`, {
         email,
         password,
     });
@@ -122,6 +124,9 @@ const Login: React.FC = () => {
 
             const response = await loginUser(email, password);
 
+            // Debug: Log the response
+            console.log('🔍 Login response:', response);
+
             // Create user object from backend response
             const user: User = {
                 id: response.userId || 'user-citizen',
@@ -131,8 +136,12 @@ const Login: React.FC = () => {
                 ward: response.ward || 1,
                 approved: true,
                 token: response.token,
-                panchayath: response.panchayath || ''
+                panchayath: response.panchayath || '',
+                profilePicture: response.profilePicture || ''
             };
+
+            // Debug: Log the user object
+            console.log('🔍 User object created:', user);
 
             login(user);
             navigate('/citizen'); // Redirect to citizen dashboard
@@ -167,6 +176,9 @@ const Login: React.FC = () => {
         try {
             const response = await googleAuthLogin(credential);
 
+            // Debug: Log the Google login response
+            console.log('🔍 Google login response:', response);
+
             // Create user object from backend response
             const user: User = {
                 id: response.userId || 'user-citizen',
@@ -176,8 +188,12 @@ const Login: React.FC = () => {
                 ward: response.ward || 1,
                 approved: true,
                 token: response.token,
-                panchayath: response.panchayath || ''
+                panchayath: response.panchayath || '',
+                profilePicture: response.profilePicture || ''
             };
+
+            // Debug: Log the user object
+            console.log('🔍 Google user object created:', user);
 
             login(user);
             navigate('/citizen');
@@ -218,148 +234,195 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-            <div className="max-w-md w-full bg-white rounded-xl shadow-2xl p-8 m-4">
-                <div className="flex justify-center mb-6">
-                     <i className="fas fa-brain text-6xl text-blue-600"></i>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
+            <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-8 py-6 text-center">
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <i className="fas fa-shield-alt text-blue-800 text-2xl"></i>
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-1">Government Portal Access</h2>
+                    <p className="text-blue-100 text-sm">Civic+ - Official Citizen Platform</p>
                 </div>
-                <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">Welcome to CivicBrain+</h2>
-                <p className="text-center text-gray-500 mb-8">Sign in to your account</p>
-                {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{error}</div>}
-                <form onSubmit={handleSubmit} autoComplete="off" key={formKey}>
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
-                            Email Address
-                        </label>
-                        <input
-                            id="email"
-                            type="email"
-                            value={email}
-                            onChange={handleEmailChange}
-                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
-                                validationErrors.email
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'focus:ring-blue-500'
-                            }`}
-                            autoComplete="nope"
-                            data-lpignore="true"
-                            data-form-type="other"
-                            placeholder="Enter your email address"
-                            required
-                        />
-                        {validationErrors.email && (
-                            <p className="text-red-500 text-xs italic mt-1">
-                                <i className="fas fa-exclamation-circle mr-1"></i>
-                                {validationErrors.email}
-                            </p>
-                        )}
-                        {isValidating && email && !validationErrors.email && (
-                            <p className="text-blue-500 text-xs italic mt-1">
-                                <i className="fas fa-spinner fa-spin mr-1"></i>
-                                Validating email...
-                            </p>
-                        )}
+
+                {/* Form */}
+                <div className="p-8">
+                    <div className="text-center mb-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">Sign In to Your Account</h3>
+                        <p className="text-gray-600 text-sm">Access government services and civic engagement tools</p>
                     </div>
-                    <div className="mb-6">
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-                            Password
-                        </label>
-                        <input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={handlePasswordChange}
-                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
-                                validationErrors.password
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'focus:ring-blue-500'
-                            }`}
-                            autoComplete="new-password"
-                            data-lpignore="true"
-                            data-form-type="other"
-                            placeholder="Enter your password"
-                            required
-                        />
-                        {validationErrors.password && (
-                            <p className="text-red-500 text-xs italic mt-1">
-                                <i className="fas fa-exclamation-circle mr-1"></i>
-                                {validationErrors.password}
-                            </p>
-                        )}
-                    </div>
-                    {/* Validation Summary */}
-                    {hasValidationErrors(validationErrors) && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <div className="flex items-center mb-2">
-                                <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
-                                <span className="text-red-700 font-medium text-sm">Please fix the following errors:</span>
+
+                    {error && (
+                        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6" role="alert">
+                            <div className="flex items-center">
+                                <i className="fas fa-exclamation-triangle mr-3"></i>
+                                <div>
+                                    <p className="font-medium">Authentication Error</p>
+                                    <p className="text-sm mt-1">{error}</p>
+                                </div>
                             </div>
-                            <ul className="text-red-600 text-xs space-y-1">
-                                {validationErrors.email && <li>• {validationErrors.email}</li>}
-                                {validationErrors.password && <li>• {validationErrors.password}</li>}
-                            </ul>
                         </div>
                     )}
 
-                    <div className="flex items-center justify-between">
-                        <button
-                            type="submit"
-                            disabled={loading || isValidating || hasValidationErrors(validationErrors)}
-                            className={`w-full font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 ${
-                                loading || isValidating || hasValidationErrors(validationErrors)
-                                    ? 'bg-gray-400 cursor-not-allowed text-gray-600'
-                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                            }`}
-                        >
-                            {loading ? (
-                                <div className="flex items-center justify-center">
-                                    <Spinner size="sm" />
-                                    <span className="ml-2">Signing In...</span>
-                                </div>
-                            ) : isValidating ? (
-                                <div className="flex items-center justify-center">
-                                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                                    <span>Validating...</span>
-                                </div>
-                            ) : (
-                                'Sign In'
+                    <form onSubmit={handleSubmit} autoComplete="off" key={formKey} className="space-y-6">
+                        <div>
+                            <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="email">
+                                <i className="fas fa-envelope mr-2 text-blue-600"></i>
+                                Email Address
+                            </label>
+                            <input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={handleEmailChange}
+                                className={`w-full px-4 py-3 border rounded-xl text-gray-700 leading-tight focus:outline-none focus:ring-2 transition-all duration-200 ${
+                                    validationErrors.email
+                                        ? 'border-red-500 focus:ring-red-500 bg-red-50'
+                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                }`}
+                                autoComplete="nope"
+                                data-lpignore="true"
+                                data-form-type="other"
+                                placeholder="Enter your registered email"
+                                required
+                            />
+                            {validationErrors.email && (
+                                <p className="text-red-500 text-xs mt-2 flex items-center">
+                                    <i className="fas fa-exclamation-circle mr-1"></i>
+                                    {validationErrors.email}
+                                </p>
                             )}
-                        </button>
-                    </div>
-                </form>
-
-                <div className="mt-6">
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-300" />
+                            {isValidating && email && !validationErrors.email && (
+                                <p className="text-blue-500 text-xs mt-2 flex items-center">
+                                    <i className="fas fa-spinner fa-spin mr-1"></i>
+                                    Validating email...
+                                </p>
+                            )}
                         </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+
+                        <div>
+                            <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="password">
+                                <i className="fas fa-lock mr-2 text-blue-600"></i>
+                                Password
+                            </label>
+                            <input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={handlePasswordChange}
+                                className={`w-full px-4 py-3 border rounded-xl text-gray-700 leading-tight focus:outline-none focus:ring-2 transition-all duration-200 ${
+                                    validationErrors.password
+                                        ? 'border-red-500 focus:ring-red-500 bg-red-50'
+                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                }`}
+                                autoComplete="new-password"
+                                data-lpignore="true"
+                                data-form-type="other"
+                                placeholder="Enter your password"
+                                required
+                            />
+                            {validationErrors.password && (
+                                <p className="text-red-500 text-xs mt-2 flex items-center">
+                                    <i className="fas fa-exclamation-circle mr-1"></i>
+                                    {validationErrors.password}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Validation Summary */}
+                        {hasValidationErrors(validationErrors) && (
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                                <div className="flex items-center mb-3">
+                                    <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                                    <span className="text-red-700 font-semibold text-sm">Please fix the following errors:</span>
+                                </div>
+                                <ul className="text-red-600 text-xs space-y-1">
+                                    {validationErrors.email && <li>• {validationErrors.email}</li>}
+                                    {validationErrors.password && <li>• {validationErrors.password}</li>}
+                                </ul>
+                            </div>
+                        )}
+
+                        <div className="pt-2">
+                            <button
+                                type="submit"
+                                disabled={loading || isValidating || hasValidationErrors(validationErrors)}
+                                className={`w-full font-bold py-3 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 ${
+                                    loading || isValidating || hasValidationErrors(validationErrors)
+                                        ? 'bg-gray-400 cursor-not-allowed text-gray-600'
+                                        : 'bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                                }`}
+                            >
+                                {loading ? (
+                                    <div className="flex items-center justify-center">
+                                        <Spinner size="sm" />
+                                        <span className="ml-2">Authenticating...</span>
+                                    </div>
+                                ) : isValidating ? (
+                                    <div className="flex items-center justify-center">
+                                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                                        <span>Validating...</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center">
+                                        <i className="fas fa-sign-in-alt mr-2"></i>
+                                        <span>Sign In to Portal</span>
+                                    </div>
+                                )}
+                            </button>
+                        </div>
+                    </form>
+
+                    <div className="mt-6 text-center">
+                        <Link to="/forgot-password" className="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors">
+                            <i className="fas fa-key mr-1"></i>
+                            Forgot Password?
+                        </Link>
+                    </div>
+
+                    <div className="mt-8">
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-gray-300" />
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="px-4 bg-white text-gray-500 font-medium">Or continue with</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-6">
+                            <GoogleSignIn
+                                onSuccess={handleGoogleSuccess}
+                                onError={handleGoogleError}
+                                text="continue_with"
+                                theme="outline"
+                                size="large"
+                                width={384}
+                            />
                         </div>
                     </div>
 
-                    <div className="mt-6">
-                        <GoogleSignIn
-                            onSuccess={handleGoogleSuccess}
-                            onError={handleGoogleError}
-                            text="continue_with"
-                            theme="outline"
-                            size="large"
-                            width={384}
-                        />
+                    <div className="text-center mt-8 pt-6 border-t border-gray-200">
+                        <p className="text-gray-600 mb-3">
+                            Don't have an account?{' '}
+                            <Link to="/register" className="font-bold text-blue-600 hover:text-blue-800 transition-colors">
+                                Register as Citizen
+                            </Link>
+                        </p>
+                        <p className="text-xs text-gray-500 leading-relaxed">
+                            New users can also use Google Sign-In above to create an account quickly.
+                            You'll be asked to provide your location details during the process.
+                        </p>
                     </div>
                 </div>
 
-                <div className="text-center mt-6">
-                    <p className="text-gray-600 mb-2">
-                        Don't have an account?{' '}
-                        <Link to="/register" className="font-bold text-blue-600 hover:text-blue-800">
-                            Register as a Citizen
-                        </Link>
-                    </p>
-                    <p className="text-sm text-gray-500">
-                        New users can also use Google Sign-In above to create an account quickly.
-                        You'll be asked to provide your location details during the process.
+                {/* Footer */}
+                <div className="bg-gray-50 px-8 py-4 text-center">
+                    <p className="text-xs text-gray-500">
+                        <i className="fas fa-shield-alt mr-1 text-blue-600"></i>
+                        Secure Government Portal | 
+                        <Link to="#" className="text-blue-600 hover:text-blue-800 ml-2">Privacy Policy</Link> | 
+                        <Link to="#" className="text-blue-600 hover:text-blue-800 ml-2">Terms of Service</Link>
                     </p>
                 </div>
             </div>

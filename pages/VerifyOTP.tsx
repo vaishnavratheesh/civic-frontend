@@ -60,7 +60,7 @@ const VerifyOTP: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/verify-otp', {
+      const response = await axios.post('http://localhost:3002/api/verify-otp', {
         email,
         otp,
       });
@@ -88,7 +88,7 @@ const VerifyOTP: React.FC = () => {
     setSuccessMessage('');
 
     try {
-      await axios.post('http://localhost:3001/api/resend-otp', { email });
+      await axios.post('http://localhost:3002/api/resend-otp', { email });
       setTimer(600); // Reset timer to 10 minutes
       setSuccessMessage('New OTP sent to your email! Please check your inbox.');
 

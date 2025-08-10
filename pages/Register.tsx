@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate, Link } from 'react-router-dom';
 import { Role, User } from '../types';
-import { PANCHAYATH_NAMES, PANCHAYATH_DATA } from '../constants';
+import { WARD_NUMBERS } from '../constants';
 import Spinner from '../components/Spinner';
 import GoogleSignIn from '../components/GoogleSignIn';
 import { decodeGoogleCredential, googleAuthRegister } from '../utils/googleAuth';
@@ -12,7 +12,6 @@ import {
     validateEmailForRegistration,
     validatePassword,
     validateConfirmPassword,
-    validatePanchayath,
     validateWard,
     ValidationErrors,
     hasValidationErrors
@@ -20,13 +19,13 @@ import {
 import axios from 'axios';
 
 // Real API call for registration
-const registerUser = async (name: string, email: string, ward: number, password: string, panchayath: string) => {
-    const response = await axios.post('http://localhost:3001/api/register', {
+const registerUser = async (name: string, email: string, ward: number, password: string) => {
+    const response = await axios.post('http://localhost:3002/api/register', {
         name,
         email,
         ward,
         password,
-        panchayath,
+        panchayath: 'Erumeli Panchayath', // Automatically set to Erumeli Panchayath
     });
     return response.data;
 };
@@ -34,7 +33,6 @@ const registerUser = async (name: string, email: string, ward: number, password:
 const Register: React.FC = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [panchayath, setPanchayath] = useState('');
     const [ward, setWard] = useState<number>(1);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -44,9 +42,6 @@ const Register: React.FC = () => {
     const [isValidating, setIsValidating] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
-
-    // Get available wards based on selected panchayath
-    const availableWards = panchayath ? PANCHAYATH_DATA[panchayath as keyof typeof PANCHAYATH_DATA] || [] : [];
 
     // Real-time validation handlers
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,9 +103,9 @@ const Register: React.FC = () => {
 
         // Re-validate confirm password if it exists
         if (confirmPassword) {
-            const confirmValidation = validateConfirmPassword(newPassword, confirmPassword);
-            if (!confirmValidation.isValid) {
-                setValidationErrors(prev => ({ ...prev, confirmPassword: confirmValidation.error }));
+            const validation = validateConfirmPassword(newPassword, confirmPassword);
+            if (!validation.isValid) {
+                setValidationErrors(prev => ({ ...prev, confirmPassword: validation.error }));
             }
         }
     };
@@ -132,22 +127,6 @@ const Register: React.FC = () => {
         }
     };
 
-    const handlePanchayathChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newPanchayath = e.target.value;
-        setPanchayath(newPanchayath);
-        setWard(1); // Reset ward when panchayath changes
-
-        // Clear previous errors
-        setValidationErrors(prev => ({ ...prev, panchayath: undefined, ward: undefined }));
-        setError('');
-
-        // Validate panchayath
-        const validation = validatePanchayath(newPanchayath);
-        if (!validation.isValid) {
-            setValidationErrors(prev => ({ ...prev, panchayath: validation.error }));
-        }
-    };
-
     const handleWardChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newWard = parseInt(e.target.value);
         setWard(newWard);
@@ -156,47 +135,33 @@ const Register: React.FC = () => {
         setValidationErrors(prev => ({ ...prev, ward: undefined }));
         setError('');
 
-        // Validate ward
-        const validation = validateWard(newWard, availableWards);
-        if (!validation.isValid) {
-            setValidationErrors(prev => ({ ...prev, ward: validation.error }));
+        // Validate ward in real-time
+        if (newWard) {
+            const validation = validateWard(newWard);
+            if (!validation.isValid) {
+                setValidationErrors(prev => ({ ...prev, ward: validation.error }));
+            }
         }
     };
 
-    // Comprehensive form validation
     const validateForm = async (): Promise<boolean> => {
         const errors: ValidationErrors = {};
 
         // Validate all fields
         const nameValidation = validateName(name);
-        if (!nameValidation.isValid) {
-            errors.name = nameValidation.error;
-        }
+        if (!nameValidation.isValid) errors.name = nameValidation.error;
 
         const emailValidation = await validateEmailForRegistration(email);
-        if (!emailValidation.isValid) {
-            errors.email = emailValidation.error;
-        }
+        if (!emailValidation.isValid) errors.email = emailValidation.error;
 
         const passwordValidation = validatePassword(password);
-        if (!passwordValidation.isValid) {
-            errors.password = passwordValidation.error;
-        }
+        if (!passwordValidation.isValid) errors.password = passwordValidation.error;
 
         const confirmPasswordValidation = validateConfirmPassword(password, confirmPassword);
-        if (!confirmPasswordValidation.isValid) {
-            errors.confirmPassword = confirmPasswordValidation.error;
-        }
+        if (!confirmPasswordValidation.isValid) errors.confirmPassword = confirmPasswordValidation.error;
 
-        const panchayathValidation = validatePanchayath(panchayath);
-        if (!panchayathValidation.isValid) {
-            errors.panchayath = panchayathValidation.error;
-        }
-
-        const wardValidation = validateWard(ward, availableWards);
-        if (!wardValidation.isValid) {
-            errors.ward = wardValidation.error;
-        }
+        const wardValidation = validateWard(ward);
+        if (!wardValidation.isValid) errors.ward = wardValidation.error;
 
         setValidationErrors(errors);
         return Object.keys(errors).length === 0;
@@ -218,7 +183,7 @@ const Register: React.FC = () => {
 
         setLoading(true);
         try {
-            await registerUser(name, email, ward, password, panchayath);
+            await registerUser(name, email, ward, password);
 
             // Redirect to OTP verification page with email
             navigate('/verify-otp', {
@@ -260,7 +225,7 @@ const Register: React.FC = () => {
             }
 
             // Check if user already exists
-            const checkResponse = await axios.post('http://localhost:3001/api/check-google-user', {
+            const checkResponse = await axios.post('http://localhost:3002/api/check-google-user', {
                 email: userInfo.email
             });
 
@@ -297,267 +262,253 @@ const Register: React.FC = () => {
         setError('Google Sign-In failed. Please try again.');
     };
 
-
-
-
-
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-            <div className="max-w-md w-full bg-white rounded-xl shadow-2xl p-8 m-4">
-                <div className="flex justify-center mb-6">
-                     <i className="fas fa-user-plus text-6xl text-blue-600"></i>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
+            <div className="max-w-lg w-full bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-8 py-6 text-center">
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <i className="fas fa-user-plus text-blue-800 text-2xl"></i>
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-1">Citizen Registration</h2>
+                    <p className="text-blue-100 text-sm">Join Civic+ - Erumeli Panchayath Platform</p>
                 </div>
-                <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">Create Citizen Account</h2>
-                <p className="text-center text-gray-500 mb-8">Join CivicBrain+ to make your voice heard.</p>
-                {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{error}</div>}
 
-                {/* Validation Summary */}
-                {hasValidationErrors(validationErrors) && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-center mb-2">
-                            <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
-                            <span className="text-red-700 font-medium text-sm">Please fix the following errors:</span>
+                {/* Form */}
+                <div className="p-8">
+                    <div className="text-center mb-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">Create Your Citizen Account</h3>
+                        <p className="text-gray-600 text-sm">Register to access Erumeli Panchayath services and civic engagement tools</p>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6" role="alert">
+                            <div className="flex items-center">
+                                <i className="fas fa-exclamation-triangle mr-3"></i>
+                                <div>
+                                    <p className="font-medium">Registration Error</p>
+                                    <p className="text-sm mt-1">{error}</p>
+                                </div>
+                            </div>
                         </div>
-                        <ul className="text-red-600 text-xs space-y-1">
-                            {validationErrors.name && <li>• {validationErrors.name}</li>}
-                            {validationErrors.email && <li>• {validationErrors.email}</li>}
-                            {validationErrors.password && <li>• {validationErrors.password}</li>}
-                            {validationErrors.confirmPassword && <li>• {validationErrors.confirmPassword}</li>}
-                            {validationErrors.panchayath && <li>• {validationErrors.panchayath}</li>}
-                            {validationErrors.ward && <li>• {validationErrors.ward}</li>}
-                        </ul>
-                    </div>
-                )}
+                    )}
 
-                <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
-                    <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
-                            Full Name
-                        </label>
-                        <input
-                            id="name"
-                            type="text"
-                            value={name}
-                            onChange={handleNameChange}
-                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
-                                validationErrors.name
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'focus:ring-blue-500'
-                            }`}
-                            placeholder="Enter your full name"
-                            required
-                        />
-                        {validationErrors.name && (
-                            <p className="text-red-500 text-xs italic mt-1">
-                                <i className="fas fa-exclamation-circle mr-1"></i>
-                                {validationErrors.name}
-                            </p>
-                        )}
-                    </div>
-                     <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
-                            Email Address
-                        </label>
-                        <input
-                            id="email"
-                            type="email"
-                            value={email}
-                            onChange={handleEmailChange}
-                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
-                                validationErrors.email
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'focus:ring-blue-500'
-                            }`}
-                            autoComplete="new-email"
-                            placeholder="Enter your email address"
-                            required
-                        />
-                        {validationErrors.email && (
-                            <p className="text-red-500 text-xs italic mt-1">
-                                <i className="fas fa-exclamation-circle mr-1"></i>
-                                {validationErrors.email}
-                            </p>
-                        )}
-                        {isValidating && email && !validationErrors.email && (
-                            <p className="text-blue-500 text-xs italic mt-1">
-                                <i className="fas fa-spinner fa-spin mr-1"></i>
-                                Checking email availability...
-                            </p>
-                        )}
-                    </div>
-                    <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="panchayath">
-                            Panchayath/Municipality
-                        </label>
-                        <select
-                            id="panchayath"
-                            value={panchayath}
-                            onChange={handlePanchayathChange}
-                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 bg-white ${
-                                validationErrors.panchayath
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'focus:ring-blue-500'
-                            }`}
-                            required
-                        >
-                            <option value="">Select Panchayath/Municipality</option>
-                            {PANCHAYATH_NAMES.map(p => <option key={p} value={p}>{p}</option>)}
-                        </select>
-                        {validationErrors.panchayath && (
-                            <p className="text-red-500 text-xs italic mt-1">
-                                <i className="fas fa-exclamation-circle mr-1"></i>
-                                {validationErrors.panchayath}
-                            </p>
-                        )}
-                    </div>
-                    <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="ward">
-                            Ward Number
-                        </label>
-                        <select
-                            id="ward"
-                            value={ward}
-                            onChange={handleWardChange}
-                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 bg-white ${
-                                validationErrors.ward
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'focus:ring-blue-500'
-                            }`}
-                            required
-                            disabled={!panchayath}
-                        >
-                            {availableWards.map(w => <option key={w} value={w}>Ward {w}</option>)}
-                        </select>
-                        {validationErrors.ward && (
-                            <p className="text-red-500 text-xs italic mt-1">
-                                <i className="fas fa-exclamation-circle mr-1"></i>
-                                {validationErrors.ward}
-                            </p>
-                        )}
-                        {!panchayath && (
-                            <p className="text-gray-500 text-xs italic mt-1">
+                    {/* Validation Summary */}
+                    {hasValidationErrors(validationErrors) && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                            <div className="flex items-center mb-3">
+                                <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                                <span className="text-red-700 font-semibold text-sm">Please fix the following errors:</span>
+                            </div>
+                            <ul className="text-red-600 text-xs space-y-1">
+                                {validationErrors.name && <li>• {validationErrors.name}</li>}
+                                {validationErrors.email && <li>• {validationErrors.email}</li>}
+                                {validationErrors.password && <li>• {validationErrors.password}</li>}
+                                {validationErrors.confirmPassword && <li>• {validationErrors.confirmPassword}</li>}
+                                {validationErrors.ward && <li>• {validationErrors.ward}</li>}
+                            </ul>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
+                        <div>
+                            <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="name">
+                                <i className="fas fa-user mr-2 text-blue-600"></i>
+                                Full Name
+                            </label>
+                            <input
+                                id="name"
+                                type="text"
+                                value={name}
+                                onChange={handleNameChange}
+                                className={`w-full px-4 py-3 border rounded-xl text-gray-700 leading-tight focus:outline-none focus:ring-2 transition-all duration-200 ${
+                                    validationErrors.name
+                                        ? 'border-red-500 focus:ring-red-500 bg-red-50'
+                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                }`}
+                                placeholder="Enter your full name"
+                                required
+                            />
+                            {validationErrors.name && (
+                                <p className="text-red-500 text-xs mt-2 flex items-center">
+                                    <i className="fas fa-exclamation-circle mr-1"></i>
+                                    {validationErrors.name}
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="email">
+                                <i className="fas fa-envelope mr-2 text-blue-600"></i>
+                                Email Address
+                            </label>
+                            <input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={handleEmailChange}
+                                className={`w-full px-4 py-3 border rounded-xl text-gray-700 leading-tight focus:outline-none focus:ring-2 transition-all duration-200 ${
+                                    validationErrors.email
+                                        ? 'border-red-500 focus:ring-red-500 bg-red-50'
+                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                }`}
+                                autoComplete="new-email"
+                                placeholder="Enter your email address"
+                                required
+                            />
+                            {validationErrors.email && (
+                                <p className="text-red-500 text-xs mt-2 flex items-center">
+                                    <i className="fas fa-exclamation-circle mr-1"></i>
+                                    {validationErrors.email}
+                                </p>
+                            )}
+                            {isValidating && email && !validationErrors.email && (
+                                <p className="text-blue-500 text-xs mt-2 flex items-center">
+                                    <i className="fas fa-spinner fa-spin mr-1"></i>
+                                    Checking email availability...
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="ward">
+                                <i className="fas fa-map-marker-alt mr-2 text-blue-600"></i>
+                                Ward Number
+                            </label>
+                            <select
+                                id="ward"
+                                value={ward}
+                                onChange={handleWardChange}
+                                className={`w-full px-4 py-3 border rounded-xl text-gray-700 leading-tight focus:outline-none focus:ring-2 transition-all duration-200 bg-white ${
+                                    validationErrors.ward
+                                        ? 'border-red-500 focus:ring-red-500 bg-red-50'
+                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                }`}
+                                required
+                            >
+                                <option value="">Select Your Ward</option>
+                                {WARD_NUMBERS.map(w => <option key={w} value={w}>Ward {w}</option>)}
+                            </select>
+                            {validationErrors.ward && (
+                                <p className="text-red-500 text-xs mt-2 flex items-center">
+                                    <i className="fas fa-exclamation-circle mr-1"></i>
+                                    {validationErrors.ward}
+                                </p>
+                            )}
+                            <p className="text-gray-500 text-xs mt-2 flex items-center">
                                 <i className="fas fa-info-circle mr-1"></i>
-                                Please select a Panchayath/Municipality first
+                                Erumeli Panchayath has 23 wards
                             </p>
-                        )}
-                    </div>
-                    <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-                            Password
-                        </label>
-                        <input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={handlePasswordChange}
-                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
-                                validationErrors.password
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'focus:ring-blue-500'
-                            }`}
-                            autoComplete="new-password"
-                            placeholder="Enter a secure password"
-                            required
-                        />
-                        {validationErrors.password && (
-                            <p className="text-red-500 text-xs italic mt-1">
-                                <i className="fas fa-exclamation-circle mr-1"></i>
-                                {validationErrors.password}
-                            </p>
-                        )}
-                        {!validationErrors.password && password && (
-                            <p className="text-green-600 text-xs italic mt-1">
-                                <i className="fas fa-check-circle mr-1"></i>
-                                Password meets requirements
-                            </p>
-                        )}
-                    </div>
-                     <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirm-password">
-                           Confirm Password
-                        </label>
-                        <input
-                            id="confirm-password"
-                            type="password"
-                            value={confirmPassword}
-                            onChange={handleConfirmPasswordChange}
-                            className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
-                                validationErrors.confirmPassword
-                                    ? 'border-red-500 focus:ring-red-500'
-                                    : 'focus:ring-blue-500'
-                            }`}
-                            autoComplete="new-password"
-                            placeholder="Confirm your password"
-                            required
-                        />
-                        {validationErrors.confirmPassword && (
-                            <p className="text-red-500 text-xs italic mt-1">
-                                <i className="fas fa-exclamation-circle mr-1"></i>
-                                {validationErrors.confirmPassword}
-                            </p>
-                        )}
-                        {!validationErrors.confirmPassword && confirmPassword && password === confirmPassword && (
-                            <p className="text-green-600 text-xs italic mt-1">
-                                <i className="fas fa-check-circle mr-1"></i>
-                                Passwords match
-                            </p>
-                        )}
-                    </div>
-                    <div className="pt-2">
+                        </div>
+
+                        <div>
+                            <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="password">
+                                <i className="fas fa-lock mr-2 text-blue-600"></i>
+                                Password
+                            </label>
+                            <input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={handlePasswordChange}
+                                className={`w-full px-4 py-3 border rounded-xl text-gray-700 leading-tight focus:outline-none focus:ring-2 transition-all duration-200 ${
+                                    validationErrors.password
+                                        ? 'border-red-500 focus:ring-red-500 bg-red-50'
+                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                }`}
+                                autoComplete="new-password"
+                                placeholder="Enter a secure password"
+                                required
+                            />
+                            {validationErrors.password && (
+                                <p className="text-red-500 text-xs mt-2 flex items-center">
+                                    <i className="fas fa-exclamation-circle mr-1"></i>
+                                    {validationErrors.password}
+                                </p>
+                            )}
+                            {!validationErrors.password && password && (
+                                <div className="mt-2">
+                                    <div className="flex space-x-1">
+                                        <div className={`h-1 flex-1 rounded-full ${password.length >= 8 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                        <div className={`h-1 flex-1 rounded-full ${/[a-z]/.test(password) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                        <div className={`h-1 flex-1 rounded-full ${/[A-Z]/.test(password) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                        <div className={`h-1 flex-1 rounded-full ${/[0-9]/.test(password) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                    </div>
+                                    <p className="text-green-600 text-xs mt-1">Password strength indicator</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="confirmPassword">
+                                <i className="fas fa-lock mr-2 text-blue-600"></i>
+                                Confirm Password
+                            </label>
+                            <input
+                                id="confirmPassword"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={handleConfirmPasswordChange}
+                                className={`w-full px-4 py-3 border rounded-xl text-gray-700 leading-tight focus:outline-none focus:ring-2 transition-all duration-200 ${
+                                    validationErrors.confirmPassword
+                                        ? 'border-red-500 focus:ring-red-500 bg-red-50'
+                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                }`}
+                                autoComplete="new-password"
+                                placeholder="Confirm your password"
+                                required
+                            />
+                            {validationErrors.confirmPassword && (
+                                <p className="text-red-500 text-xs mt-2 flex items-center">
+                                    <i className="fas fa-exclamation-circle mr-1"></i>
+                                    {validationErrors.confirmPassword}
+                                </p>
+                            )}
+                        </div>
+
                         <button
                             type="submit"
-                            disabled={loading || isValidating || hasValidationErrors(validationErrors)}
-                            className={`w-full font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 ${
-                                loading || isValidating || hasValidationErrors(validationErrors)
-                                    ? 'bg-gray-400 cursor-not-allowed text-gray-600'
-                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            disabled={loading || isValidating}
+                            className={`w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 ${
+                                loading || isValidating
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg'
                             }`}
                         >
                             {loading ? (
                                 <div className="flex items-center justify-center">
-                                    <Spinner size="sm" />
+                                    <Spinner />
                                     <span className="ml-2">Creating Account...</span>
                                 </div>
-                            ) : isValidating ? (
-                                <div className="flex items-center justify-center">
-                                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                                    <span>Validating...</span>
-                                </div>
                             ) : (
-                                'Create Account'
+                                <div className="flex items-center justify-center">
+                                    <i className="fas fa-user-plus mr-2"></i>
+                                    Create Account
+                                </div>
                             )}
                         </button>
-                    </div>
-                </form>
+                    </form>
 
-                <div className="mt-6">
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-300" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-gray-500">Or continue with</span>
-                        </div>
+                    {/* Divider */}
+                    <div className="my-6 flex items-center">
+                        <div className="flex-1 border-t border-gray-300"></div>
+                        <span className="px-4 text-gray-500 text-sm">or</span>
+                        <div className="flex-1 border-t border-gray-300"></div>
                     </div>
 
-                    <div className="mt-6">
-                        <GoogleSignIn
-                            onSuccess={handleGoogleSuccess}
-                            onError={handleGoogleError}
-                            text="signup_with"
-                            theme="outline"
-                            size="large"
-                            width={384}
-                        />
+                    {/* Google Sign-In */}
+                    <GoogleSignIn onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+
+                    {/* Login Link */}
+                    <div className="mt-6 text-center">
+                        <p className="text-gray-600 text-sm">
+                            Already have an account?{' '}
+                            <Link to="/login" className="text-blue-600 hover:text-blue-800 font-semibold transition-colors">
+                                Sign In
+                            </Link>
+                        </p>
                     </div>
                 </div>
-
-                <p className="text-center text-gray-600 mt-6">
-                    Already have an account?{' '}
-                    <Link to="/login" className="font-bold text-blue-600 hover:text-blue-800">
-                        Sign In
-                    </Link>
-                </p>
             </div>
         </div>
     );

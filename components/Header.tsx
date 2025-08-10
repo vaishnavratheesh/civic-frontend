@@ -25,7 +25,7 @@ const Header: React.FC = () => {
             <div className="container mx-auto px-6 py-4 flex justify-between items-center">
                 <div className="flex items-center space-x-2">
                     <i className="fas fa-brain text-3xl text-blue-600"></i>
-                    <h1 className="text-2xl font-bold text-gray-800">CivicBrain+</h1>
+                    <h1 className="text-2xl font-bold text-gray-800">Civic+</h1>
                 </div>
                 {user && (
                     <div className="flex items-center space-x-4">

@@ -20,24 +20,12 @@ export const ISSUE_TYPES = [
   'Other',
 ];
 
-export const WARD_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+// Erumeli Panchayath has 23 wards
+export const WARD_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
 
-// Panchayath/Municipality data with their corresponding wards
+// Only Erumeli Panchayath data
 export const PANCHAYATH_DATA = {
-  'Thiruvananthapuram Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  'Kochi Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-  'Kozhikode Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-  'Thrissur Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
-  'Kollam Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  'Alappuzha Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  'Palakkad Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  'Kannur Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  'Kottayam Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  'Malappuram Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  'Pathanamthitta Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  'Idukki Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  'Wayanad Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  'Kasaragod Municipality': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  'Erumeli Panchayath': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
 };
 
 export const PANCHAYATH_NAMES = Object.keys(PANCHAYATH_DATA);
