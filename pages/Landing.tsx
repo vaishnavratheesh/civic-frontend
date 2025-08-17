@@ -19,7 +19,10 @@ const Landing: React.FC = () => {
                     </div>
                     <nav className="flex items-center space-x-6">
                         <Link to="/login" className="text-gray-700 hover:text-blue-800 font-semibold transition-colors duration-200">
-                            Sign In
+                            Citizen Login
+                        </Link>
+                        <Link to="/councillor-login" className="text-gray-700 hover:text-blue-800 font-semibold transition-colors duration-200">
+                            Councillor Login
                         </Link>
                         <Link to="/register" className="bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
                             Register Now

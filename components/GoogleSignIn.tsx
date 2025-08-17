@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { config } from '../src/config/config';
 
 interface GoogleSignInProps {
   onSuccess: (credential: string) => void;
@@ -37,7 +38,7 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({
     const initializeGoogleSignIn = () => {
       if (window.google && googleButtonRef.current) {
         window.google.accounts.id.initialize({
-          client_id: process.env.GOOGLE_CLIENT_ID || 'your-google-client-id',
+          client_id: config.GOOGLE_CLIENT_ID,
           callback: (response: any) => {
             if (response.credential) {
               onSuccess(response.credential);

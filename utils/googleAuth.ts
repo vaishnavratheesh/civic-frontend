@@ -1,3 +1,5 @@
+import { API_ENDPOINTS } from '../src/config/config';
+
 export interface GoogleUserInfo {
   email: string;
   name: string;
@@ -42,7 +44,7 @@ export const decodeGoogleCredential = (credential: string): GoogleUserInfo | nul
 };
 
 export const googleAuthLogin = async (credential: string) => {
-  const response = await fetch('http://localhost:3002/api/google-login', {
+  const response = await fetch(API_ENDPOINTS.GOOGLE_LOGIN, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -58,7 +60,7 @@ export const googleAuthLogin = async (credential: string) => {
 };
 
 export const googleAuthRegister = async (credential: string, ward: number, panchayath: string) => {
-  const response = await fetch('http://localhost:3002/api/google-register', {
+  const response = await fetch(API_ENDPOINTS.GOOGLE_REGISTER, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

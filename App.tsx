@@ -3,9 +3,12 @@ import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Login from './pages/Login';
+import CouncillorLogin from './pages/CouncillorLogin';
 import Register from './pages/Register';
 import VerifyOTP from './pages/VerifyOTP';
 import CompleteProfile from './pages/CompleteProfile';
+import CompleteCouncillorProfile from './pages/councillor/CompleteCouncillorProfile';
+import EditCouncillorProfile from './pages/councillor/EditCouncillorProfile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import CouncillorDashboard from './pages/councillor/CouncillorDashboard';
 import OfficerDashboard from './pages/officer/OfficerDashboard';
@@ -27,14 +30,18 @@ const AppRoutes: React.FC = () => {
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/councillor-login" element={<CouncillorLogin />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route path="/complete-profile" element={<CompleteProfile />} />
+            <Route path="/councillor/complete-profile" element={<ProtectedRoute allowedRoles={[Role.COUNCILLOR]}><CompleteCouncillorProfile /></ProtectedRoute>} />
+            <Route path="/councillor/edit-profile" element={<ProtectedRoute allowedRoles={[Role.COUNCILLOR]}><EditCouncillorProfile /></ProtectedRoute>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
             <Route path="/admin" element={<ProtectedRoute allowedRoles={[Role.ADMIN]}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/councillor" element={<ProtectedRoute allowedRoles={[Role.COUNCILLOR]}><CouncillorDashboard /></ProtectedRoute>} />
+            <Route path="/councillor/dashboard" element={<ProtectedRoute allowedRoles={[Role.COUNCILLOR]}><CouncillorDashboard /></ProtectedRoute>} />
             <Route path="/officer" element={<ProtectedRoute allowedRoles={[Role.OFFICER]}><OfficerDashboard /></ProtectedRoute>} />
             <Route path="/citizen" element={<ProtectedRoute allowedRoles={[Role.CITIZEN]}><CitizenDashboard /></ProtectedRoute>} />
             <Route path="/citizen/edit-profile" element={<ProtectedRoute allowedRoles={[Role.CITIZEN]}><EditProfile /></ProtectedRoute>} />

@@ -6,6 +6,7 @@ import { Role, User } from '../types';
 import { WARD_NUMBERS } from '../constants';
 import Spinner from '../components/Spinner';
 import GoogleSignIn from '../components/GoogleSignIn';
+import PasswordInput from '../components/PasswordInput';
 import { decodeGoogleCredential, googleAuthRegister } from '../utils/googleAuth';
 import {
     validateName,
@@ -17,10 +18,11 @@ import {
     hasValidationErrors
 } from '../utils/formValidation';
 import axios from 'axios';
+import { API_ENDPOINTS } from '../src/config/config';
 
 // Real API call for registration
 const registerUser = async (name: string, email: string, ward: number, password: string) => {
-    const response = await axios.post('http://localhost:3002/api/register', {
+    const response = await axios.post(API_ENDPOINTS.REGISTER, {
         name,
         email,
         ward,
@@ -225,7 +227,7 @@ const Register: React.FC = () => {
             }
 
             // Check if user already exists
-            const checkResponse = await axios.post('http://localhost:3002/api/check-google-user', {
+            const checkResponse = await axios.post(API_ENDPOINTS.CHECK_GOOGLE_USER, {
                 email: userInfo.email
             });
 
@@ -406,26 +408,15 @@ const Register: React.FC = () => {
                                 <i className="fas fa-lock mr-2 text-blue-600"></i>
                                 Password
                             </label>
-                            <input
+                            <PasswordInput
                                 id="password"
-                                type="password"
                                 value={password}
                                 onChange={handlePasswordChange}
-                                className={`w-full px-4 py-3 border rounded-xl text-gray-700 leading-tight focus:outline-none focus:ring-2 transition-all duration-200 ${
-                                    validationErrors.password
-                                        ? 'border-red-500 focus:ring-red-500 bg-red-50'
-                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                                }`}
-                                autoComplete="new-password"
                                 placeholder="Enter a secure password"
+                                error={validationErrors.password}
                                 required
+                                className="w-full"
                             />
-                            {validationErrors.password && (
-                                <p className="text-red-500 text-xs mt-2 flex items-center">
-                                    <i className="fas fa-exclamation-circle mr-1"></i>
-                                    {validationErrors.password}
-                                </p>
-                            )}
                             {!validationErrors.password && password && (
                                 <div className="mt-2">
                                     <div className="flex space-x-1">
@@ -444,26 +435,15 @@ const Register: React.FC = () => {
                                 <i className="fas fa-lock mr-2 text-blue-600"></i>
                                 Confirm Password
                             </label>
-                            <input
+                            <PasswordInput
                                 id="confirmPassword"
-                                type="password"
                                 value={confirmPassword}
                                 onChange={handleConfirmPasswordChange}
-                                className={`w-full px-4 py-3 border rounded-xl text-gray-700 leading-tight focus:outline-none focus:ring-2 transition-all duration-200 ${
-                                    validationErrors.confirmPassword
-                                        ? 'border-red-500 focus:ring-red-500 bg-red-50'
-                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                                }`}
-                                autoComplete="new-password"
                                 placeholder="Confirm your password"
+                                error={validationErrors.confirmPassword}
                                 required
+                                className="w-full"
                             />
-                            {validationErrors.confirmPassword && (
-                                <p className="text-red-500 text-xs mt-2 flex items-center">
-                                    <i className="fas fa-exclamation-circle mr-1"></i>
-                                    {validationErrors.confirmPassword}
-                                </p>
-                            )}
                         </div>
 
                         <button

@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import PasswordInput from '../components/PasswordInput';
 import { validatePassword, validateConfirmPassword } from '../utils/formValidation';
 
 const ResetPassword: React.FC = () => {
@@ -145,62 +146,30 @@ const ResetPassword: React.FC = () => {
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
                 New Password
               </label>
-              <input
+              <PasswordInput
                 id="password"
-                type="password"
                 value={password}
                 onChange={handlePasswordChange}
-                className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
-                  passwordError
-                    ? 'border-red-500 focus:ring-red-500'
-                    : 'focus:ring-blue-500'
-                }`}
                 placeholder="Enter your new password"
+                error={passwordError}
+                success={!passwordError && password ? "Password meets requirements" : undefined}
                 required
               />
-              {passwordError && (
-                <p className="text-red-500 text-xs italic mt-1">
-                  <i className="fas fa-exclamation-circle mr-1"></i>
-                  {passwordError}
-                </p>
-              )}
-              {!passwordError && password && (
-                <p className="text-green-600 text-xs italic mt-1">
-                  <i className="fas fa-check-circle mr-1"></i>
-                  Password meets requirements
-                </p>
-              )}
             </div>
 
             <div>
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirmPassword">
                 Confirm New Password
               </label>
-              <input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 value={confirmPassword}
                 onChange={handleConfirmPasswordChange}
-                className={`shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 ${
-                  confirmPasswordError
-                    ? 'border-red-500 focus:ring-red-500'
-                    : 'focus:ring-blue-500'
-                }`}
                 placeholder="Confirm your new password"
+                error={confirmPasswordError}
+                success={!confirmPasswordError && confirmPassword && password === confirmPassword ? "Passwords match" : undefined}
                 required
               />
-              {confirmPasswordError && (
-                <p className="text-red-500 text-xs italic mt-1">
-                  <i className="fas fa-exclamation-circle mr-1"></i>
-                  {confirmPasswordError}
-                </p>
-              )}
-              {!confirmPasswordError && confirmPassword && password === confirmPassword && (
-                <p className="text-green-600 text-xs italic mt-1">
-                  <i className="fas fa-check-circle mr-1"></i>
-                  Passwords match
-                </p>
-              )}
             </div>
 
             <button

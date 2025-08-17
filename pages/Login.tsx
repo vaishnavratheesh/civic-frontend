@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Role, User } from '../types';
 import Spinner from '../components/Spinner';
 import GoogleSignIn from '../components/GoogleSignIn';
+import PasswordInput from '../components/PasswordInput';
 import { decodeGoogleCredential, googleAuthLogin } from '../utils/googleAuth';
 import {
     validateEmail,
@@ -14,12 +15,13 @@ import {
     hasValidationErrors
 } from '../utils/formValidation';
 import axios from 'axios';
+import { API_ENDPOINTS } from '../src/config/config';
 
 /// <reference types="vite/client" />
 
 // Real API call for login
 const loginUser = async (email: string, password: string) => {
-    const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002'}/api/login`, {
+    const response = await axios.post(API_ENDPOINTS.LOGIN, {
         email,
         password,
     });
@@ -124,9 +126,6 @@ const Login: React.FC = () => {
 
             const response = await loginUser(email, password);
 
-            // Debug: Log the response
-            console.log('🔍 Login response:', response);
-
             // Create user object from backend response
             const user: User = {
                 id: response.userId || 'user-citizen',
@@ -139,9 +138,6 @@ const Login: React.FC = () => {
                 panchayath: response.panchayath || '',
                 profilePicture: response.profilePicture || ''
             };
-
-            // Debug: Log the user object
-            console.log('🔍 User object created:', user);
 
             login(user);
             navigate('/citizen'); // Redirect to citizen dashboard
@@ -176,9 +172,6 @@ const Login: React.FC = () => {
         try {
             const response = await googleAuthLogin(credential);
 
-            // Debug: Log the Google login response
-            console.log('🔍 Google login response:', response);
-
             // Create user object from backend response
             const user: User = {
                 id: response.userId || 'user-citizen',
@@ -191,9 +184,6 @@ const Login: React.FC = () => {
                 panchayath: response.panchayath || '',
                 profilePicture: response.profilePicture || ''
             };
-
-            // Debug: Log the user object
-            console.log('🔍 Google user object created:', user);
 
             login(user);
             navigate('/citizen');
@@ -305,28 +295,15 @@ const Login: React.FC = () => {
                                 <i className="fas fa-lock mr-2 text-blue-600"></i>
                                 Password
                             </label>
-                            <input
+                            <PasswordInput
                                 id="password"
-                                type="password"
                                 value={password}
                                 onChange={handlePasswordChange}
-                                className={`w-full px-4 py-3 border rounded-xl text-gray-700 leading-tight focus:outline-none focus:ring-2 transition-all duration-200 ${
-                                    validationErrors.password
-                                        ? 'border-red-500 focus:ring-red-500 bg-red-50'
-                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                                }`}
-                                autoComplete="new-password"
-                                data-lpignore="true"
-                                data-form-type="other"
                                 placeholder="Enter your password"
+                                error={validationErrors.password}
                                 required
+                                className="w-full"
                             />
-                            {validationErrors.password && (
-                                <p className="text-red-500 text-xs mt-2 flex items-center">
-                                    <i className="fas fa-exclamation-circle mr-1"></i>
-                                    {validationErrors.password}
-                                </p>
-                            )}
                         </div>
 
                         {/* Validation Summary */}

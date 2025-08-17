@@ -21,7 +21,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
-        console.log('🔍 Retrieved user data from localStorage:', parsedUser);
         setUser(parsedUser);
       }
     } catch (error) {
@@ -33,7 +32,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = (userData: User) => {
-    console.log('🔍 Storing user data in localStorage:', userData);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
   };

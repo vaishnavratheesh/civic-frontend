@@ -74,7 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ items, className = '', onItemClick, a
           {/* Navigation */}
           <nav className="flex-1 p-4">
             <div className="space-y-2">
-              {items.map((item) => {
+              {items && items.length > 0 ? items.map((item) => {
                 const isActive = activeTab === item.id || location.pathname === item.path;
                 return (
                   <button
@@ -101,7 +101,12 @@ const Sidebar: React.FC<SidebarProps> = ({ items, className = '', onItemClick, a
                     )}
                   </button>
                 );
-              })}
+              }) : (
+                <div className="text-center py-8 text-gray-500">
+                  <i className="fas fa-info-circle text-2xl mb-2"></i>
+                  <p>No navigation items available</p>
+                </div>
+              )}
             </div>
           </nav>
 

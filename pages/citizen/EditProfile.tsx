@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import Sidebar from '../../components/Sidebar';
 import Navbar from '../../components/Navbar';
 import LocationPicker from '../../components/LocationPicker';
+import PasswordInput from '../../components/PasswordInput';
 import { useNavigate } from 'react-router-dom';
 import { validateName, validatePassword } from '../../utils/formValidation';
 import { WARD_NUMBERS, PANCHAYATH_NAMES } from '../../constants';
@@ -645,54 +646,42 @@ const EditProfile: React.FC = () => {
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Current Password *
                         </label>
-                        <input
-                          type="password"
-                          name="currentPassword"
+                        <PasswordInput
+                          id="currentPassword"
                           value={formData.currentPassword}
-                          onChange={handleInputChange}
-                          className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 ${
-                            errors.currentPassword ? 'border-red-300' : 'border-gray-300'
-                          }`}
+                          onChange={(e) => handleInputChange({ ...e, target: { ...e.target, name: 'currentPassword' } })}
+                          placeholder="Enter your current password"
+                          error={errors.currentPassword}
+                          required
                         />
-                        {errors.currentPassword && (
-                          <p className="text-red-600 text-sm mt-1">{errors.currentPassword}</p>
-                        )}
                       </div>
 
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           New Password *
                         </label>
-                        <input
-                          type="password"
-                          name="newPassword"
+                        <PasswordInput
+                          id="newPassword"
                           value={formData.newPassword}
-                          onChange={handleInputChange}
-                          className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 ${
-                            errors.newPassword ? 'border-red-300' : 'border-gray-300'
-                          }`}
+                          onChange={(e) => handleInputChange({ ...e, target: { ...e.target, name: 'newPassword' } })}
+                          placeholder="Enter your new password"
+                          error={errors.newPassword}
+                          required
                         />
-                        {errors.newPassword && (
-                          <p className="text-red-600 text-sm mt-1">{errors.newPassword}</p>
-                        )}
                       </div>
 
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Confirm New Password *
                         </label>
-                        <input
-                          type="password"
-                          name="confirmPassword"
+                        <PasswordInput
+                          id="confirmPassword"
                           value={formData.confirmPassword}
-                          onChange={handleInputChange}
-                          className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 ${
-                            errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                          }`}
+                          onChange={(e) => handleInputChange({ ...e, target: { ...e.target, name: 'confirmPassword' } })}
+                          placeholder="Confirm your new password"
+                          error={errors.confirmPassword}
+                          required
                         />
-                        {errors.confirmPassword && (
-                          <p className="text-red-600 text-sm mt-1">{errors.confirmPassword}</p>
-                        )}
                       </div>
 
                       <div className="flex justify-end">
