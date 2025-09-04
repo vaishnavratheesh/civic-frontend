@@ -268,12 +268,19 @@ const Register: React.FC = () => {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
             <div className="max-w-lg w-full bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-8 py-6 text-center">
-                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <i className="fas fa-user-plus text-blue-800 text-2xl"></i>
+                <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-8 py-6 text-white text-center">
+                    <div className="flex items-center justify-between mb-4">
+                        <Link 
+                            to="/" 
+                            className="flex items-center text-blue-100 hover:text-white transition-colors duration-200"
+                        >
+                            <i className="fas fa-arrow-left mr-2"></i>
+                            <span className="text-sm font-medium">Back to Landing</span>
+                        </Link>
+                        <div className="flex-1"></div>
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-1">Citizen Registration</h2>
-                    <p className="text-blue-100 text-sm">Join Civic+ - Erumeli Panchayath Platform</p>
+                    <h1 className="text-3xl font-bold mb-2">Create Account</h1>
+                    <p className="text-blue-100">Join Civic+ to access government services</p>
                 </div>
 
                 {/* Form */}

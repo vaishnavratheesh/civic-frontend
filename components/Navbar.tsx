@@ -93,7 +93,7 @@ const Navbar: React.FC<NavbarProps> = ({ title = 'Dashboard', className = '', on
             {showUserMenu && (
               <div className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-50 animate-in slide-in-from-top-2 duration-200">
                 <Link
-                  to="/citizen/edit-profile"
+                  to={user?.role === 'councillor' ? '/councillor/edit-profile' : '/citizen/edit-profile'}
                   className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                   onClick={() => setShowUserMenu(false)}
                 >

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
+import Sidebar from '../../components/Sidebar';
 import Spinner from '../../components/Spinner';
 import PasswordInput from '../../components/PasswordInput';
 import { validateName, validatePassword } from '../../utils/formValidation';
@@ -30,6 +31,7 @@ const EditCouncillorProfile: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [formData, setFormData] = useState<CouncillorProfileData>({
     name: user?.name || '',
@@ -50,9 +52,25 @@ const EditCouncillorProfile: React.FC = () => {
 
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
 
+  const councillorSidebarItems = [
+    { id: 'dashboard', name: 'Dashboard', icon: 'fa-tachometer-alt', path: '/councillor' },
+    { id: 'complaints', name: 'Complaints', icon: 'fa-exclamation-triangle', path: '/councillor' },
+    { id: 'welfare', name: 'Welfare Applications', icon: 'fa-hands-helping', path: '/councillor' },
+    { id: 'add-schemes', name: 'Add Schemes', icon: 'fa-plus-circle', path: '/councillor' },
+    { id: 'edit-profile', name: 'Edit Profile', icon: 'fa-user-edit', path: '/councillor/edit-profile' },
+  ];
+
+  const handleSidebarNavigation = (itemId: string) => {
+    if (itemId === 'edit-profile') {
+      navigate('/councillor/edit-profile');
+    } else {
+      navigate('/councillor');
+    }
+  };
+
   useEffect(() => {
     if (!user) {
-      navigate('/councillor-login');
+      navigate('/login');
       return;
     }
 
@@ -188,12 +206,21 @@ const EditCouncillorProfile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <Navbar />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <Sidebar 
+        items={councillorSidebarItems}
+        onItemClick={handleSidebarNavigation}
+        activeTab={'edit-profile'}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isSidebarOpen ? 'ml-80' : 'ml-0'}`}>
+        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
+
+        <main className="flex-1 overflow-y-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Councillor Profile</h1>
@@ -515,6 +542,7 @@ const EditCouncillorProfile: React.FC = () => {
             </form>
           </div>
         </div>
+        </main>
       </div>
     </div>
   );

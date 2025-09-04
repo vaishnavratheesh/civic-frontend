@@ -8,6 +8,9 @@ export const config = {
   // Google OAuth Configuration
   GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID || '289773391020-da1s5ueqalq5v2ppe01ujm9m0ordiomg.apps.googleusercontent.com',
   
+  // Google Maps Configuration
+  GOOGLE_MAPS_API_KEY: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBvaAFVs6SkzyL2inovZqFYgcpjPLhO8I8',
+  
   // Application Configuration
   APP_NAME: 'Civic+',
   APP_DESCRIPTION: 'Erumeli Panchayath Digital Platform',
@@ -48,6 +51,18 @@ export const API_ENDPOINTS = {
   USER_UPDATE_PROFILE: `${config.API_BASE_URL}/api/users`,
   USER_PROFILE_PICTURE: `${config.API_BASE_URL}/api/users`,
   USER_CHANGE_PASSWORD: `${config.API_BASE_URL}/api/users`,
+  WARD_STATS: `${config.API_BASE_URL}/api/wards`,
+  
+  // Admin
+  ADMIN_DASHBOARD_STATS: `${config.API_BASE_URL}/api/admin/dashboard-stats`,
+  ADMIN_USERS: `${config.API_BASE_URL}/api/admin/users`,
+  ADMIN_USER_BY_ID: `${config.API_BASE_URL}/api/admin/users`,
+  ADMIN_UPDATE_USER: `${config.API_BASE_URL}/api/admin/users`,
+  ADMIN_DELETE_USER: `${config.API_BASE_URL}/api/admin/users`,
+  ADMIN_BULK_APPROVE_USERS: `${config.API_BASE_URL}/api/admin/users/bulk-approve`,
+  ADMIN_COUNCILLORS: `${config.API_BASE_URL}/api/admin/councillors`,
+  ADMIN_UPDATE_COUNCILLOR: `${config.API_BASE_URL}/api/admin/councillors`,
+  ADMIN_WARD_USERS: `${config.API_BASE_URL}/api/admin/wards`,
   
   // Test
   TEST: `${config.API_BASE_URL}/api/test`

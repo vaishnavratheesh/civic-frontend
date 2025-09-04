@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import Navbar from '../../components/Navbar';
 import { Complaint, ComplaintStatus, WelfareScheme, ApplicationStatus, WelfareApplication } from '../../types';
@@ -10,6 +10,7 @@ import Spinner from '../../components/Spinner';
 import CommunityGrievances from './CommunityGrievances';
 import WelfareApplicationForm from './WelfareApplicationForm';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../../src/config/config';
 
 // Mock Data
 const mockMyComplaints: Complaint[] = [
@@ -191,6 +192,7 @@ const MyWardInfo: React.FC = () => {
     const [answer, setAnswer] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [wardPopulation, setWardPopulation] = useState<number | null>(null);
 
     const handleAsk = async () => {
         if (!question.trim() || !user) return;
@@ -208,6 +210,26 @@ const MyWardInfo: React.FC = () => {
         }
     };
 
+    useEffect(() => {
+        const fetchWardStats = async () => {
+            if (!user?.ward) return;
+            try {
+                const res = await fetch(`${API_ENDPOINTS.WARD_STATS}/${user.ward}/stats`);
+                const data = await res.json();
+                if (res.ok) {
+                    const population = (data && data.stats && typeof data.stats.totalUsers === 'number')
+                        ? data.stats.totalUsers
+                        : 0;
+                    setWardPopulation(population);
+                } else setWardPopulation(0);
+            } catch (e) {
+                setWardPopulation(0);
+                console.error('Failed to fetch ward stats', e);
+            }
+        };
+        fetchWardStats();
+    }, [user?.ward]);
+
     return (
         <div className="space-y-8">
             {/* Ward Overview Card */}
@@ -223,8 +245,8 @@ const MyWardInfo: React.FC = () => {
                                 <i className="fas fa-users text-white text-xl"></i>
                             </div>
                             <h4 className="font-bold text-blue-900 mb-2">Population</h4>
-                            <p className="text-2xl font-bold text-blue-800">12,450</p>
-                            <p className="text-blue-600 text-sm">Registered Citizens</p>
+                            <p className="text-2xl font-bold text-blue-800">{wardPopulation !== null ? wardPopulation.toLocaleString() : '0'}</p>
+                            <p className="text-blue-600 text-sm">Registered Users</p>
                         </div>
                         
                         <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">

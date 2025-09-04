@@ -131,7 +131,7 @@ const Login: React.FC = () => {
                 id: response.userId || 'user-citizen',
                 name: response.name || 'Citizen User',
                 email: email,
-                role: Role.CITIZEN, // Default to citizen role for now
+                role: response.role || Role.CITIZEN, // Use role from backend response
                 ward: response.ward || 1,
                 approved: true,
                 token: response.token,
@@ -140,7 +140,27 @@ const Login: React.FC = () => {
             };
 
             login(user);
-            navigate('/citizen'); // Redirect to citizen dashboard
+            try {
+                if (response.token) {
+                    localStorage.setItem('token', response.token);
+                }
+            } catch {}
+            
+            // Redirect based on role
+            switch (user.role) {
+                case Role.ADMIN:
+                    navigate('/admin');
+                    break;
+                case Role.COUNCILLOR:
+                    navigate('/councillor');
+                    break;
+                case Role.OFFICER:
+                    navigate('/officer');
+                    break;
+                default:
+                    navigate('/citizen');
+                    break;
+            }
         } catch (err: any) {
             console.error(err);
             if (axios.isAxiosError(err) && err.response) {
@@ -177,7 +197,7 @@ const Login: React.FC = () => {
                 id: response.userId || 'user-citizen',
                 name: response.name || 'Citizen User',
                 email: response.email,
-                role: Role.CITIZEN,
+                role: response.role || Role.CITIZEN, // Use role from backend response
                 ward: response.ward || 1,
                 approved: true,
                 token: response.token,
@@ -186,7 +206,27 @@ const Login: React.FC = () => {
             };
 
             login(user);
-            navigate('/citizen');
+            try {
+                if (response.token) {
+                    localStorage.setItem('token', response.token);
+                }
+            } catch {}
+            
+            // Redirect based on role
+            switch (user.role) {
+                case Role.ADMIN:
+                    navigate('/admin');
+                    break;
+                case Role.COUNCILLOR:
+                    navigate('/councillor');
+                    break;
+                case Role.OFFICER:
+                    navigate('/officer');
+                    break;
+                default:
+                    navigate('/citizen');
+                    break;
+            }
         } catch (err: any) {
             console.error(err);
 
@@ -227,12 +267,19 @@ const Login: React.FC = () => {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
             <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-8 py-6 text-center">
-                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <i className="fas fa-shield-alt text-blue-800 text-2xl"></i>
+                <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-8 py-6 text-white text-center">
+                    <div className="flex items-center justify-between mb-4">
+                        <Link 
+                            to="/" 
+                            className="flex items-center text-blue-100 hover:text-white transition-colors duration-200"
+                        >
+                            <i className="fas fa-arrow-left mr-2"></i>
+                            <span className="text-sm font-medium">Back to Landing</span>
+                        </Link>
+                        <div className="flex-1"></div>
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-1">Government Portal Access</h2>
-                    <p className="text-blue-100 text-sm">Civic+ - Official Citizen Platform</p>
+                    <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
+                    <p className="text-blue-100">Sign in to access your Civic+ account</p>
                 </div>
 
                 {/* Form */}

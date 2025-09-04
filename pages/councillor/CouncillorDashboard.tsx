@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import Sidebar from '../../components/Sidebar';
 import Navbar from '../../components/Navbar';
@@ -8,11 +9,13 @@ import { STATUS_COLORS } from '../../constants';
 import { scoreWelfareApplication } from '../../services/geminiService';
 import Spinner from '../../components/Spinner';
 
+
 // Councillor sidebar navigation items
 const councillorSidebarItems = [
     { id: 'dashboard', name: 'Dashboard', icon: 'fa-tachometer-alt', path: '/councillor' },
     { id: 'complaints', name: 'Complaints', icon: 'fa-exclamation-triangle', path: '/councillor/complaints' },
-    { id: 'welfare', name: 'Welfare Schemes', icon: 'fa-hands-helping', path: '/councillor/welfare' },
+    { id: 'welfare', name: 'Welfare Applications', icon: 'fa-hands-helping', path: '/councillor/welfare' },
+    { id: 'add-schemes', name: 'Add Schemes', icon: 'fa-plus-circle', path: '/councillor/add-schemes' },
     { id: 'edit-profile', name: 'Edit Profile', icon: 'fa-user-edit', path: '/councillor/edit-profile' },
 ];
 
@@ -26,10 +29,11 @@ const mockWelfareApplications: WelfareApplication[] = [
     { id: 'app-2', schemeId: 'sch-1', schemeTitle: 'Free Sewing Machines', userId: 'user-4', userName: 'Sunita Kumari', address: '45, Old Town, Ward 5', phoneNumber: '9876543212', rationCardNumber: 'RC54321', aadharNumber: '4444-5555-6666', ward: 5, reason: 'I have tailoring skills but cannot afford a machine.', isHandicapped: false, isSingleWoman: false, familyIncome: 90000, dependents: 1, status: ApplicationStatus.PENDING, createdAt: '2023-10-28T11:30:00Z' },
 ];
 
-type Tab = 'complaints' | 'welfare';
+type Tab = 'complaints' | 'welfare' | 'add-schemes';
 
 const CouncillorDashboard: React.FC = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<Tab>('complaints');
     const [loading, setLoading] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -37,7 +41,7 @@ const CouncillorDashboard: React.FC = () => {
     const handleSidebarNavigation = (itemId: string) => {
         if (itemId === 'edit-profile') {
             // Navigate to edit profile page
-            window.location.href = '/councillor/edit-profile';
+            navigate('/councillor/edit-profile');
         } else {
             setActiveTab(itemId as Tab);
         }
@@ -145,8 +149,8 @@ const CouncillorDashboard: React.FC = () => {
                                     }`}
                                 >
                                     <i className="fas fa-exclamation-triangle mr-2"></i>
-                                    Ward Complaints
-                                </button>
+                            Ward Complaints
+                        </button>
                                 <button 
                                     onClick={() => setActiveTab('welfare')} 
                                     className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
@@ -156,15 +160,28 @@ const CouncillorDashboard: React.FC = () => {
                                     }`}
                                 >
                                     <i className="fas fa-hands-helping mr-2"></i>
-                                    Welfare Applications
-                                </button>
-                            </nav>
-                        </div>
+                            Welfare Applications
+                        </button>
+                                <button 
+                                    onClick={() => setActiveTab('add-schemes')} 
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                                        activeTab === 'add-schemes' 
+                                            ? 'border-blue-500 text-blue-600' 
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <i className="fas fa-plus-circle mr-2"></i>
+                                    Add Schemes
+                        </button>
+                    </nav>
+                </div>
                         <div className="p-6">
-                            {activeTab === 'complaints' ? <WardComplaints /> : <WelfareQueue />}
+                            {activeTab === 'complaints' && <WardComplaints />}
+                            {activeTab === 'welfare' && <WelfareQueue />}
+                            {activeTab === 'add-schemes' && <AddSchemes />}
                         </div>
                     </div>
-                </main>
+            </main>
             </div>
         </div>
     );
@@ -289,7 +306,7 @@ const WelfareQueue: React.FC = () => {
                                         <span className="text-gray-500">Status:</span>
                                         <span className="font-medium ml-1">{app.isSingleWoman ? 'Single Woman' : 'Married'}</span>
                                     </div>
-                                    <div>
+                            <div>
                                         <span className="text-gray-500">Address:</span>
                                         <span className="font-medium ml-1">{app.address}</span>
                                     </div>
@@ -342,9 +359,388 @@ const WelfareQueue: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                        </div>
                 ))}
             </div>
+        </div>
+    );
+};
+
+const AddSchemes: React.FC = () => {
+    const { user, logout } = useAuth();
+    const [formData, setFormData] = useState({
+        title: '',
+        description: '',
+        category: '',
+        eligibilityCriteria: '',
+        benefits: '',
+        documentsRequired: '',
+        totalSlots: '',
+        applicationDeadline: '',
+        startDate: '',
+        endDate: '',
+        additionalDetails: ''
+    });
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
+    const [tokenValid, setTokenValid] = useState(true);
+
+    // Simple token check - just verify it exists
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setTokenValid(false);
+            setError('Please login to create schemes.');
+        } else {
+            setTokenValid(true);
+            setError('');
+        }
+    }, []);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setMessage('');
+        setError('');
+
+        try {
+            const token = localStorage.getItem('token');
+            console.log('Form submission started');
+            console.log('Token exists:', !!token);
+            console.log('User data:', user);
+            console.log('Form data:', formData);
+            
+            if (!token) {
+                setError('Please login to create schemes.');
+                return;
+            }
+
+            const requestData = {
+                ...formData,
+                totalSlots: parseInt(formData.totalSlots),
+                documentsRequired: formData.documentsRequired.split(',').map(doc => doc.trim()).filter(doc => doc),
+                scope: 'ward',
+                ward: user?.ward,
+                createdBy: 'councillor',
+                creatorId: user?.id,
+                creatorName: user?.name,
+                status: 'inactive'
+            };
+
+            console.log('Sending request to:', 'http://localhost:3002/api/welfare/schemes');
+            console.log('Request data:', requestData);
+
+            const response = await fetch('http://localhost:3002/api/welfare/schemes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+
+            const data = await response.json();
+            console.log('Response data:', data);
+
+            if (response.ok) {
+                console.log('Success! Scheme created');
+                setMessage('Scheme created successfully! You can now publish it to make it visible to citizens.');
+                setFormData({
+                    title: '',
+                    description: '',
+                    category: '',
+                    eligibilityCriteria: '',
+                    benefits: '',
+                    documentsRequired: '',
+                    totalSlots: '',
+                    applicationDeadline: '',
+                    startDate: '',
+                    endDate: '',
+                    additionalDetails: ''
+                });
+            } else {
+                console.log('Error response:', data);
+                setError(data.error || data.message || 'Failed to create scheme');
+            }
+        } catch (err) {
+            console.log('Network error:', err);
+            setError('Network error. Please check your connection and try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div>
+            <div className="mb-6">
+                <h3 className="font-bold text-xl text-gray-800 mb-2">Create New Welfare Scheme</h3>
+                <p className="text-gray-600">Create a new welfare scheme for your ward. Citizens will be able to see and apply for it once you publish it.</p>
+            </div>
+
+            {message && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center">
+                        <i className="fas fa-check-circle text-green-500 mr-3"></i>
+                        <p className="text-green-700 font-medium">{message}</p>
+                    </div>
+                </div>
+            )}
+
+            {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center">
+                        <i className="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                        <p className="text-red-700 font-medium">{error}</p>
+                    </div>
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {!tokenValid && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <i className="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                                <p className="text-red-700 font-medium">{error}</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    logout();
+                                    window.location.href = '/login';
+                                }}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                            >
+                                Login Again
+                            </button>
+                        </div>
+                    </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Scheme Title *
+                        </label>
+                        <input
+                            type="text"
+                            name="title"
+                            value={formData.title}
+                            onChange={handleInputChange}
+                            required
+                            disabled={!tokenValid}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            placeholder="e.g., Free Sewing Machines for Women"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Category *
+                        </label>
+                        <select
+                            name="category"
+                            value={formData.category}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            <option value="">Select Category</option>
+                            <option value="Education">Education</option>
+                            <option value="Healthcare">Healthcare</option>
+                            <option value="Employment">Employment</option>
+                            <option value="Housing">Housing</option>
+                            <option value="Women Empowerment">Women Empowerment</option>
+                            <option value="Senior Citizens">Senior Citizens</option>
+                            <option value="Disability Support">Disability Support</option>
+                            <option value="Agriculture">Agriculture</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Description *
+                    </label>
+                    <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleInputChange}
+                        required
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Describe the scheme in detail..."
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Eligibility Criteria *
+                    </label>
+                    <textarea
+                        name="eligibilityCriteria"
+                        value={formData.eligibilityCriteria}
+                        onChange={handleInputChange}
+                        required
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Who is eligible for this scheme?"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Benefits *
+                    </label>
+                    <textarea
+                        name="benefits"
+                        value={formData.benefits}
+                        onChange={handleInputChange}
+                        required
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="What benefits will recipients receive?"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Documents Required
+                    </label>
+                    <input
+                        type="text"
+                        name="documentsRequired"
+                        value={formData.documentsRequired}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g., Aadhar Card, Ration Card, Income Certificate (separate with commas)"
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Total Slots *
+                        </label>
+                        <input
+                            type="number"
+                            name="totalSlots"
+                            value={formData.totalSlots}
+                            onChange={handleInputChange}
+                            required
+                            min="1"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Number of beneficiaries"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Application Deadline *
+                        </label>
+                        <input
+                            type="date"
+                            name="applicationDeadline"
+                            value={formData.applicationDeadline}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Start Date *
+                        </label>
+                        <input
+                            type="date"
+                            name="startDate"
+                            value={formData.startDate}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        End Date *
+                    </label>
+                    <input
+                        type="date"
+                        name="endDate"
+                        value={formData.endDate}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Additional Details (Optional)
+                    </label>
+                    <textarea
+                        name="additionalDetails"
+                        value={formData.additionalDetails}
+                        onChange={handleInputChange}
+                        rows={4}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Any additional information, special instructions, or notes..."
+                    />
+                </div>
+
+                <div className="flex justify-end space-x-4">
+                    <button
+                        type="button"
+                        onClick={() => setFormData({
+                            title: '',
+                            description: '',
+                            category: '',
+                            eligibilityCriteria: '',
+                            benefits: '',
+                            documentsRequired: '',
+                            totalSlots: '',
+                            applicationDeadline: '',
+                            startDate: '',
+                            endDate: '',
+                            additionalDetails: ''
+                        })}
+                        className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                    >
+                        Clear Form
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={loading || !tokenValid}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-blue-300 disabled:cursor-not-allowed"
+                    >
+                        {loading ? (
+                            <div className="flex items-center">
+                                <Spinner size="sm" />
+                                <span className="ml-2">Creating Scheme...</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center">
+                                <i className="fas fa-plus mr-2"></i>
+                                Create Scheme
+                            </div>
+                        )}
+                    </button>
+                </div>
+            </form>
         </div>
     );
 };
