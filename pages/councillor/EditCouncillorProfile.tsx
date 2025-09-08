@@ -56,6 +56,7 @@ const EditCouncillorProfile: React.FC = () => {
     { id: 'dashboard', name: 'Dashboard', icon: 'fa-tachometer-alt', path: '/councillor' },
     { id: 'complaints', name: 'Complaints', icon: 'fa-exclamation-triangle', path: '/councillor' },
     { id: 'welfare', name: 'Welfare Applications', icon: 'fa-hands-helping', path: '/councillor' },
+    { id: 'view-schemes', name: 'View Schemes', icon: 'fa-list-alt', path: '/councillor' },
     { id: 'add-schemes', name: 'Add Schemes', icon: 'fa-plus-circle', path: '/councillor' },
     { id: 'edit-profile', name: 'Edit Profile', icon: 'fa-user-edit', path: '/councillor/edit-profile' },
   ];
@@ -88,12 +89,26 @@ const EditCouncillorProfile: React.FC = () => {
       });
 
       if (response.ok) {
-        const profileData = await response.json();
+        const responseData = await response.json();
+        const profileData = responseData.councillor || responseData; // Handle both response structures
+        
         setFormData(prev => ({
           ...prev,
-          ...profileData,
-          appointmentDate: profileData.appointmentDate ? new Date(profileData.appointmentDate).toISOString().split('T')[0] : '',
-          endDate: profileData.endDate ? new Date(profileData.endDate).toISOString().split('T')[0] : ''
+          name: profileData.name || prev.name,
+          ward: profileData.ward || prev.ward,
+          contactNumber: profileData.contactNumber || prev.contactNumber,
+          address: profileData.address || prev.address,
+          partyAffiliation: profileData.partyAffiliation || prev.partyAffiliation,
+          educationalQualification: profileData.educationalQualification || prev.educationalQualification,
+          previousExperience: profileData.previousExperience || prev.previousExperience,
+          emergencyContact: profileData.emergencyContact || prev.emergencyContact,
+          emergencyContactRelation: profileData.emergencyContactRelation || prev.emergencyContactRelation,
+          appointmentDate: profileData.appointmentDate ? new Date(profileData.appointmentDate).toISOString().split('T')[0] : prev.appointmentDate,
+          endDate: profileData.endDate ? new Date(profileData.endDate).toISOString().split('T')[0] : prev.endDate,
+          // Keep password fields empty for security
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
         }));
       }
     } catch (error) {
@@ -164,6 +179,13 @@ const EditCouncillorProfile: React.FC = () => {
     }
 
     try {
+      console.log('Submitting form data:', formData);
+      console.log('Password fields:', {
+        currentPassword: formData.currentPassword ? '***' : 'empty',
+        newPassword: formData.newPassword ? '***' : 'empty',
+        confirmPassword: formData.confirmPassword ? '***' : 'empty'
+      });
+
       const response = await fetch(API_ENDPOINTS.COUNCILLOR_UPDATE_PROFILE, {
         method: 'PUT',
         headers: {
@@ -173,8 +195,12 @@ const EditCouncillorProfile: React.FC = () => {
         body: JSON.stringify(formData)
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       if (response.ok) {
         const result = await response.json();
+        console.log('Success response:', result);
         setMessage('Profile updated successfully!');
         
         // Update local user data
@@ -192,6 +218,7 @@ const EditCouncillorProfile: React.FC = () => {
         }));
       } else {
         const errorData = await response.json();
+        console.log('Error response:', errorData);
         setError(errorData.error || 'Failed to update profile');
       }
     } catch (error) {
@@ -469,6 +496,7 @@ const EditCouncillorProfile: React.FC = () => {
                       Current Password
                     </label>
                     <PasswordInput
+                      id="currentPassword"
                       name="currentPassword"
                       value={formData.currentPassword || ''}
                       onChange={handleInputChange}
@@ -483,6 +511,7 @@ const EditCouncillorProfile: React.FC = () => {
                       New Password
                     </label>
                     <PasswordInput
+                      id="newPassword"
                       name="newPassword"
                       value={formData.newPassword || ''}
                       onChange={handleInputChange}
@@ -497,6 +526,7 @@ const EditCouncillorProfile: React.FC = () => {
                       Confirm New Password
                     </label>
                     <PasswordInput
+                      id="confirmPassword"
                       name="confirmPassword"
                       value={formData.confirmPassword || ''}
                       onChange={handleInputChange}

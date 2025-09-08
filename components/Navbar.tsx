@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
+import { notificationService, Notification } from '../services/notificationService';
+import NotificationDropdown from './NotificationDropdown';
 
 interface NavbarProps {
   title?: string;
@@ -13,6 +15,8 @@ const Navbar: React.FC<NavbarProps> = ({ title = 'Dashboard', className = '', on
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,10 +32,51 @@ const Navbar: React.FC<NavbarProps> = ({ title = 'Dashboard', className = '', on
     };
   }, []);
 
+  // Update notification count
+  useEffect(() => {
+    const updateNotificationCount = () => {
+      if (user?.id) {
+        setNotificationCount(notificationService.getUnreadCount(user.id));
+      }
+    };
+
+    // Initial count
+    updateNotificationCount();
+
+    // Check for new schemes periodically (every 30 seconds)
+    const interval = setInterval(async () => {
+      if (user?.ward && user?.role === 'citizen' && user?.id) {
+        await notificationService.checkForNewSchemes(user.id, user.ward);
+        updateNotificationCount();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [user?.ward, user?.role]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
     setShowUserMenu(false);
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (notification.type === 'new_scheme') {
+      // Navigate to welfare schemes tab
+      navigate('/citizen');
+      // You could also trigger a tab change event here
+    }
+    // Update notification count after clicking
+    if (user?.id) {
+      setNotificationCount(notificationService.getUnreadCount(user.id));
+    }
+  };
+
+  const handleNotificationUpdate = () => {
+    // Update notification count when notifications are modified
+    if (user?.id) {
+      setNotificationCount(notificationService.getUnreadCount(user.id));
+    }
   };
 
   return (
@@ -56,12 +101,30 @@ const Navbar: React.FC<NavbarProps> = ({ title = 'Dashboard', className = '', on
         {/* Right side - User info and actions */}
         <div className="flex items-center space-x-4">
           {/* Notifications */}
-          <button className="relative p-3 text-gray-600 hover:text-gray-800 transition-all duration-200 hover:bg-gray-50 rounded-xl">
-            <i className="fas fa-bell text-xl"></i>
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
-              3
-            </span>
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-3 text-gray-600 hover:text-gray-800 transition-all duration-200 hover:bg-gray-50 rounded-xl"
+            >
+              <i className="fas fa-bell text-xl"></i>
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
+                  {notificationCount}
+                </span>
+              )}
+            </button>
+            
+            {/* Notification Dropdown */}
+            {user?.id && (
+              <NotificationDropdown
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                onNotificationClick={handleNotificationClick}
+                onNotificationUpdate={handleNotificationUpdate}
+                userId={user.id}
+              />
+            )}
+          </div>
 
           {/* User Profile */}
           <div className="relative" ref={menuRef}>

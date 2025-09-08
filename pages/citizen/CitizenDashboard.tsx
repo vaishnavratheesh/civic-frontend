@@ -8,9 +8,10 @@ import { useAuth } from '../../hooks/useAuth';
 import { askAboutWard } from '../../services/geminiService';
 import Spinner from '../../components/Spinner';
 import CommunityGrievances from './CommunityGrievances';
-import WelfareApplicationForm from './WelfareApplicationForm';
+import WelfareApplicationForm from '../../components/WelfareApplicationForm';
 import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../../src/config/config';
+import { notificationService } from '../../services/notificationService';
 
 // Mock Data
 const mockMyComplaints: Complaint[] = [
@@ -46,10 +47,122 @@ const CitizenDashboard: React.FC = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('my-ward');
     const [myComplaints, setMyComplaints] = useState<Complaint[]>(mockMyComplaints);
-    const [myApplications, setMyApplications] = useState<WelfareApplication[]>(mockMyApplications);
+    const [myApplications, setMyApplications] = useState<WelfareApplication[]>([]);
+    const [availableSchemes, setAvailableSchemes] = useState<WelfareScheme[]>([]);
+    const [schemesLoading, setSchemesLoading] = useState(false);
     const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
     const [selectedScheme, setSelectedScheme] = useState<WelfareScheme | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    // Fetch user's applications
+    const fetchMyApplications = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:3002/api/welfare/applications/user', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const mapped = (data.applications || []).map((a: any) => ({
+                    id: a._id,
+                    schemeId: typeof a.schemeId === 'object' ? (a.schemeId._id || a.schemeId.id) : a.schemeId,
+                    schemeTitle: a.schemeTitle,
+                    userId: a.userId,
+                    userName: a.userName,
+                    address: a.personalDetails?.address || '',
+                    phoneNumber: a.personalDetails?.phoneNumber || '',
+                    rationCardNumber: a.personalDetails?.rationCardNumber || '',
+                    aadharNumber: a.personalDetails?.aadharNumber || '',
+                    ward: a.userWard,
+                    reason: a.reason,
+                    isHandicapped: a.personalDetails?.isHandicapped || false,
+                    isSingleWoman: a.personalDetails?.isSingleWoman || false,
+                    familyIncome: a.personalDetails?.familyIncome || 0,
+                    dependents: a.personalDetails?.dependents || 0,
+                    status: (a.status || 'pending') as ApplicationStatus,
+                    createdAt: a.appliedAt,
+                    score: a.score,
+                    justification: a.justification,
+                }));
+                setMyApplications(mapped);
+            } else {
+                console.error('Failed to fetch applications:', response.statusText);
+                setMyApplications([]);
+            }
+        } catch (err) {
+            console.error('Error fetching applications:', err);
+            setMyApplications([]);
+        }
+    };
+
+    useEffect(() => {
+        fetchMyApplications();
+    }, []);
+
+    // Fetch available welfare schemes for the citizen's ward
+    useEffect(() => {
+        const fetchAvailableSchemes = async () => {
+            if (!user?.ward) return;
+            
+            setSchemesLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`http://localhost:3002/api/welfare/schemes/citizens/${user.ward}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Fetched schemes for citizen:', data);
+                    console.log('Number of schemes received:', data.schemes?.length || 0);
+                    
+                    // Map the schemes to include id field
+                    const mappedSchemes = data.schemes?.map((s: any) => ({
+                        id: s._id,
+                        title: s.title,
+                        description: s.description,
+                        ward: s.ward,
+                        scope: s.scope,
+                        status: s.status,
+                        approved: s.approved,
+                        applicationDeadline: s.applicationDeadline,
+                        totalSlots: s.totalSlots,
+                        availableSlots: s.availableSlots,
+                        creatorName: s.creatorName,
+                        category: s.category,
+                        eligibilityCriteria: s.eligibilityCriteria,
+                        benefits: s.benefits,
+                        documentsRequired: s.documentsRequired,
+                        startDate: s.startDate,
+                        endDate: s.endDate,
+                        createdAt: s.createdAt
+                    })) || [];
+                    
+                    console.log('Mapped schemes:', mappedSchemes);
+                    setAvailableSchemes(mappedSchemes);
+                    
+                    // Check for new schemes and create notifications
+                    await notificationService.checkForNewSchemes(user.id, user.ward);
+                } else {
+                    console.error('Failed to fetch schemes:', response.statusText);
+                    setAvailableSchemes([]);
+                }
+            } catch (error) {
+                console.error('Error fetching schemes:', error);
+                setAvailableSchemes([]);
+            } finally {
+                setSchemesLoading(false);
+            }
+        };
+
+        fetchAvailableSchemes();
+    }, [user?.ward]);
 
     // Sidebar navigation items
     const sidebarItems = [
@@ -83,13 +196,22 @@ const CitizenDashboard: React.FC = () => {
         setMyComplaints(prev => [newComplaint, ...prev]);
     };
     
+    const hasAppliedForScheme = (schemeId: string) => {
+        return myApplications.some(app => app.schemeId === schemeId);
+    };
+
     const handleApplyClick = (scheme: WelfareScheme) => {
+        if (hasAppliedForScheme(scheme.id)) {
+            alert('You have already applied for this scheme.');
+            return;
+        }
         setSelectedScheme(scheme);
         setIsApplicationFormOpen(true);
     };
 
-    const handleApplicationSubmitted = (newApplication: WelfareApplication) => {
-        setMyApplications(prev => [newApplication, ...prev]);
+    const handleApplicationSubmitted = () => {
+        // Refresh applications list
+        fetchMyApplications();
         setIsApplicationFormOpen(false);
     };
 
@@ -102,7 +224,7 @@ const CitizenDashboard: React.FC = () => {
             case 'community-grievances':
                 return <CommunityGrievances complaints={[...mockMyComplaints, ...mockCommunityComplaints]} />;
             case 'welfare-schemes':
-                return <WelfareSchemesTab schemes={mockWelfareSchemes} applications={myApplications} onApplyClick={handleApplyClick} />;
+                return <WelfareSchemesTab schemes={availableSchemes} applications={myApplications} onApplyClick={handleApplyClick} loading={schemesLoading} />;
             default:
                 return null;
         }
@@ -177,9 +299,10 @@ const CitizenDashboard: React.FC = () => {
 
             {isApplicationFormOpen && selectedScheme && (
                 <WelfareApplicationForm
-                    scheme={selectedScheme}
+                    schemeId={selectedScheme.id}
+                    schemeTitle={selectedScheme.title}
                     onClose={() => setIsApplicationFormOpen(false)}
-                    onSubmit={handleApplicationSubmitted}
+                    onSuccess={handleApplicationSubmitted}
                 />
             )}
         </div>
@@ -442,7 +565,7 @@ const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted:
     );
 };
 
-const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: WelfareApplication[], onApplyClick: (scheme: WelfareScheme) => void }> = ({ schemes, applications, onApplyClick }) => (
+const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: WelfareApplication[], onApplyClick: (scheme: WelfareScheme) => void, loading?: boolean }> = ({ schemes, applications, onApplyClick, loading = false }) => (
     <div className="space-y-8 animate-fade-in">
         {/* Available Schemes */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
@@ -451,7 +574,14 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                 <p className="text-green-100">Government assistance programs for eligible citizens</p>
             </div>
             <div className="p-8">
-                {schemes.length > 0 ? (
+                {loading ? (
+                    <div className="flex items-center justify-center py-16">
+                        <div className="flex items-center">
+                            <Spinner size="lg" />
+                            <span className="ml-3 text-gray-600">Loading available schemes...</span>
+                        </div>
+                    </div>
+                ) : schemes.length > 0 ? (
                     <div className="grid md:grid-cols-2 gap-6">
                         {schemes.map(s => (
                             <div key={s.id} className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200">
@@ -470,19 +600,20 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                                 <div className="flex items-center justify-between mb-4">
                                     <span className="text-sm text-green-700">
                                         <i className="fas fa-building mr-1"></i>
-                                        {s.postedBy}
+                                        {s.creatorName}
                                     </span>
                                     <span className="text-sm text-green-700">
                                         <i className="fas fa-users mr-1"></i>
-                                        {s.totalItems} slots available
+                                        {s.availableSlots} slots available
                                     </span>
                                 </div>
                                 <button 
                                     onClick={() => onApplyClick(s)} 
-                                    className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold py-3 px-6 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg shadow-green-500/25 flex items-center justify-center"
+                                    disabled={applications.some(a => a.schemeId === s.id)}
+                                    className={`w-full text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center ${applications.some(a => a.schemeId === s.id) ? 'bg-gray-300 cursor-not-allowed' : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-green-500/25'}`}
                                 >
                                     <i className="fas fa-edit mr-2"></i>
-                                    Apply Now
+                                    {applications.some(a => a.schemeId === s.id) ? 'Already Applied' : 'Apply Now'}
                                 </button>
                             </div>
                         ))}

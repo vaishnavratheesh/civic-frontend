@@ -15,6 +15,7 @@ const councillorSidebarItems = [
     { id: 'dashboard', name: 'Dashboard', icon: 'fa-tachometer-alt', path: '/councillor' },
     { id: 'complaints', name: 'Complaints', icon: 'fa-exclamation-triangle', path: '/councillor/complaints' },
     { id: 'welfare', name: 'Welfare Applications', icon: 'fa-hands-helping', path: '/councillor/welfare' },
+    { id: 'view-schemes', name: 'View Schemes', icon: 'fa-list-alt', path: '/councillor/view-schemes' },
     { id: 'add-schemes', name: 'Add Schemes', icon: 'fa-plus-circle', path: '/councillor/add-schemes' },
     { id: 'edit-profile', name: 'Edit Profile', icon: 'fa-user-edit', path: '/councillor/edit-profile' },
 ];
@@ -29,7 +30,8 @@ const mockWelfareApplications: WelfareApplication[] = [
     { id: 'app-2', schemeId: 'sch-1', schemeTitle: 'Free Sewing Machines', userId: 'user-4', userName: 'Sunita Kumari', address: '45, Old Town, Ward 5', phoneNumber: '9876543212', rationCardNumber: 'RC54321', aadharNumber: '4444-5555-6666', ward: 5, reason: 'I have tailoring skills but cannot afford a machine.', isHandicapped: false, isSingleWoman: false, familyIncome: 90000, dependents: 1, status: ApplicationStatus.PENDING, createdAt: '2023-10-28T11:30:00Z' },
 ];
 
-type Tab = 'complaints' | 'welfare' | 'add-schemes';
+
+type Tab = 'complaints' | 'welfare' | 'view-schemes' | 'add-schemes';
 
 const CouncillorDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -163,6 +165,17 @@ const CouncillorDashboard: React.FC = () => {
                             Welfare Applications
                         </button>
                                 <button 
+                                    onClick={() => setActiveTab('view-schemes')} 
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                                        activeTab === 'view-schemes' 
+                                            ? 'border-blue-500 text-blue-600' 
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <i className="fas fa-list-alt mr-2"></i>
+                                    View Schemes
+                        </button>
+                                <button 
                                     onClick={() => setActiveTab('add-schemes')} 
                                     className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                                         activeTab === 'add-schemes' 
@@ -178,6 +191,7 @@ const CouncillorDashboard: React.FC = () => {
                         <div className="p-6">
                             {activeTab === 'complaints' && <WardComplaints />}
                             {activeTab === 'welfare' && <WelfareQueue />}
+                            {activeTab === 'view-schemes' && <ViewSchemes />}
                             {activeTab === 'add-schemes' && <AddSchemes />}
                         </div>
                     </div>
@@ -245,8 +259,66 @@ const WardComplaints: React.FC = () => (
 );
 
 const WelfareQueue: React.FC = () => {
-    const [applications, setApplications] = useState<WelfareApplication[]>(mockWelfareApplications.map(app => ({...app, score: undefined})));
+    const { user } = useAuth();
+    const [applications, setApplications] = useState<WelfareApplication[]>([]);
     const [loadingScores, setLoadingScores] = useState<{[key: string]: boolean}>({});
+
+    // Fetch real applications for councillor's ward from backend
+    useEffect(() => {
+        const fetchApplications = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const url = user?.ward
+                    ? `http://localhost:3002/api/welfare/applications?ward=${user.ward}`
+                    : 'http://localhost:3002/api/welfare/applications';
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const statusMap: Record<string, ApplicationStatus> = {
+                        pending: ApplicationStatus.PENDING,
+                        approved: ApplicationStatus.APPROVED,
+                        rejected: ApplicationStatus.REJECTED,
+                    };
+                    const mapped: WelfareApplication[] = (data.applications || []).map((a: any) => ({
+                        id: a._id,
+                        schemeId: typeof a.schemeId === 'object' ? a.schemeId._id || a.schemeId.id : a.schemeId,
+                        schemeTitle: a.schemeTitle || (typeof a.schemeId === 'object' ? a.schemeId.title : ''),
+                        userId: typeof a.userId === 'object' ? a.userId._id || a.userId.id : a.userId,
+                        userName: a.userName,
+                        address: a.personalDetails?.address || '',
+                        phoneNumber: a.personalDetails?.phoneNumber || '',
+                        rationCardNumber: a.personalDetails?.rationCardNumber || '',
+                        aadharNumber: a.personalDetails?.aadharNumber || '',
+                        ward: a.userWard,
+                        reason: a.reason,
+                        isHandicapped: !!a.personalDetails?.isHandicapped,
+                        isSingleWoman: !!a.personalDetails?.isSingleWoman,
+                        familyIncome: a.personalDetails?.familyIncome ?? 0,
+                        dependents: a.personalDetails?.dependents ?? 0,
+                        status: statusMap[(a.status || 'pending').toLowerCase()] || ApplicationStatus.PENDING,
+                        createdAt: a.appliedAt,
+                        score: a.score,
+                        justification: a.justification,
+                    }));
+                    setApplications(mapped);
+                } else {
+                    console.error('Failed to fetch applications:', response.statusText);
+                    setApplications([]);
+                }
+            } catch (err) {
+                console.error('Error fetching applications:', err);
+                setApplications([]);
+            }
+        };
+
+        fetchApplications();
+    }, [user?.id, user?.ward]);
 
     const handleGetScore = async (appId: string) => {
         const app = applications.find(a => a.id === appId);
@@ -741,6 +813,318 @@ const AddSchemes: React.FC = () => {
                     </button>
                 </div>
             </form>
+        </div>
+    );
+};
+
+const ViewSchemes: React.FC = () => {
+    const { user } = useAuth();
+    const [schemes, setSchemes] = useState<WelfareScheme[]>([]);
+    const [applicationCounts, setApplicationCounts] = useState<{[key: string]: number}>({});
+    const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(true);
+    const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
+
+    // Fetch schemes created by this councillor
+    useEffect(() => {
+        const fetchSchemes = async () => {
+            if (!user?.ward) {
+                console.log('No ward found for user:', user);
+                return;
+            }
+            
+            setFetching(true);
+            try {
+                const token = localStorage.getItem('token');
+                console.log('Fetching schemes for user:', user);
+                console.log('Using token:', token ? 'Present' : 'Missing');
+                
+                const response = await fetch(`http://localhost:3002/api/welfare/schemes`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Fetched schemes data:', data);
+                    setSchemes(data.schemes || []);
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to fetch schemes:', response.status, errorText);
+                    setSchemes([]);
+                }
+            } catch (error) {
+                console.error('Error fetching schemes:', error);
+                setSchemes([]);
+            } finally {
+                setFetching(false);
+            }
+        };
+
+        fetchSchemes();
+    }, [user?.ward, user?.id]);
+
+    // Fetch application counts for each scheme
+    useEffect(() => {
+        const fetchApplicationCounts = async () => {
+            if (schemes.length === 0) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const counts: {[key: string]: number} = {};
+                
+                // Fetch application counts for each scheme
+                for (const scheme of schemes) {
+                    const response = await fetch(`http://localhost:3002/api/welfare/applications?schemeId=${scheme.id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        counts[scheme.id] = data.applications?.length || 0;
+                    } else {
+                        counts[scheme.id] = 0;
+                    }
+                }
+                
+                setApplicationCounts(counts);
+            } catch (error) {
+                console.error('Error fetching application counts:', error);
+            }
+        };
+
+        fetchApplicationCounts();
+    }, [schemes]);
+
+    // Filter schemes based on status
+    const activeSchemes = schemes.filter(scheme => 
+        scheme.status === 'active' || scheme.status === 'draft'
+    );
+    
+    const completedSchemes = schemes.filter(scheme => 
+        scheme.status === 'completed' || scheme.status === 'expired'
+    );
+
+    const currentSchemes = activeTab === 'active' ? activeSchemes : completedSchemes;
+
+    const handlePublishScheme = async (schemeId: string) => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: 'active' })
+            });
+
+            if (response.ok) {
+                // Update local state
+                setSchemes(prev => prev.map(scheme => 
+                    scheme.id === schemeId 
+                        ? { ...scheme, status: 'active' }
+                        : scheme
+                ));
+            } else {
+                console.error('Failed to publish scheme:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error publishing scheme:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteScheme = async (schemeId: string) => {
+        if (window.confirm('Are you sure you want to delete this scheme?')) {
+            setLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    // Remove from local state
+                    setSchemes(prev => prev.filter(scheme => scheme.id !== schemeId));
+                } else {
+                    console.error('Failed to delete scheme:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error deleting scheme:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    if (fetching) {
+        return (
+            <div className="flex items-center justify-center py-16">
+                <div className="flex items-center">
+                    <Spinner size="lg" />
+                    <span className="ml-3 text-gray-600">Loading your schemes...</span>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-xl text-gray-800">Your Created Schemes</h3>
+                <div className="flex space-x-2">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                        <i className="fas fa-download mr-2"></i>
+                        Export Schemes
+                    </button>
+                    <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                        <i className="fas fa-chart-bar mr-2"></i>
+                        View Analytics
+                    </button>
+                </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="border-b border-gray-200 mb-6">
+                <nav className="-mb-px flex space-x-8">
+                    <button
+                        onClick={() => setActiveTab('active')}
+                        className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                            activeTab === 'active'
+                                ? 'border-green-500 text-green-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                    >
+                        <i className="fas fa-play-circle mr-2"></i>
+                        Active Schemes ({activeSchemes.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('completed')}
+                        className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                            activeTab === 'completed'
+                                ? 'border-gray-500 text-gray-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                    >
+                        <i className="fas fa-check-circle mr-2"></i>
+                        Completed Schemes ({completedSchemes.length})
+                    </button>
+                </nav>
+            </div>
+            
+            <div className="space-y-4">
+                {currentSchemes.length > 0 ? (
+                    currentSchemes.map((scheme, index) => (
+                        <div key={scheme.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center mb-3">
+                                        <h4 className="font-bold text-lg text-gray-800 mr-4">{scheme.title}</h4>
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                            scheme.status === 'active' 
+                                                ? 'bg-green-100 text-green-800' 
+                                                : 'bg-yellow-100 text-yellow-800'
+                                        }`}>
+                                            {scheme.status === 'active' ? 'Published' : 'Draft'}
+                                        </span>
+                                    </div>
+                                    <p className="text-gray-600 mb-4">{scheme.description}</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                        <div>
+                                            <span className="text-gray-500">Total Slots:</span>
+                                            <span className="font-medium ml-1">{scheme.totalSlots}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">Created:</span>
+                                            <span className="font-medium ml-1">{new Date(scheme.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">Ward:</span>
+                                            <span className="font-medium ml-1">{scheme.ward}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">Applications:</span>
+                                            <span className="font-medium ml-1">{applicationCounts[scheme.id] || 0}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="ml-6 flex flex-col space-y-2">
+                                    {scheme.status === 'draft' && (
+                                        <button 
+                                            onClick={() => handlePublishScheme(scheme.id)}
+                                            disabled={loading}
+                                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:bg-green-300"
+                                        >
+                                            <i className="fas fa-eye mr-2"></i>
+                                            Publish
+                                        </button>
+                                    )}
+                                    {scheme.status !== 'completed' && scheme.status !== 'expired' && (
+                                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                            <i className="fas fa-edit mr-2"></i>
+                                            Edit
+                                        </button>
+                                    )}
+                                    {scheme.status !== 'completed' && scheme.status !== 'expired' && (
+                                        <button 
+                                            onClick={() => handleDeleteScheme(scheme.id)}
+                                            disabled={loading}
+                                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:bg-red-300"
+                                        >
+                                            <i className="fas fa-trash mr-2"></i>
+                                            Delete
+                                        </button>
+                                    )}
+                                    {scheme.status === 'completed' && (
+                                        <button className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                            <i className="fas fa-eye mr-2"></i>
+                                            View Details
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center py-16">
+                        <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i className={`fas ${activeTab === 'active' ? 'fa-play-circle' : 'fa-check-circle'} text-3xl text-gray-400`}></i>
+                        </div>
+                        <h4 className="text-xl font-bold text-gray-700 mb-2">
+                            {activeTab === 'active' ? 'No Active Schemes' : 'No Completed Schemes'}
+                        </h4>
+                        <p className="text-gray-500 mb-6">
+                            {activeTab === 'active' 
+                                ? 'You don\'t have any active welfare schemes at the moment.'
+                                : 'You don\'t have any completed welfare schemes yet.'
+                            }
+                        </p>
+                        {activeTab === 'active' && (
+                            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
+                                <p className="text-blue-800 text-sm">
+                                    <i className="fas fa-info-circle mr-2"></i>
+                                    Create your first welfare scheme using the "Add Schemes" tab to get started.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
