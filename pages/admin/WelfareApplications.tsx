@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import AdminSidebar from '../../components/AdminSidebar';
 import Spinner from '../../components/Spinner';
+import AdminTopNav from '../../components/AdminTopNav';
 
 interface WelfareApplication {
   _id: string;
@@ -163,7 +164,7 @@ const AdminWelfareApplications: React.FC = () => {
         setReviewData({ status: 'pending', reviewComments: '' });
       }
     } catch (error) {
-      alert('Failed to review application');
+      console.error('Failed to review application');
     }
   };
 

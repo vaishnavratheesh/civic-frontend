@@ -113,7 +113,7 @@ const WelfareApplicationManager: React.FC<WelfareApplicationManagerProps> = ({ o
         setReviewData({ status: 'pending', reviewComments: '' });
       }
     } catch (error) {
-      alert('Failed to review application');
+      console.error('Failed to review application');
     }
   };
 

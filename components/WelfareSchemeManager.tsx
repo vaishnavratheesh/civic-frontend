@@ -64,10 +64,6 @@ const WelfareSchemeManager: React.FC<WelfareSchemeManagerProps> = ({ onSchemeCre
   };
 
   const deleteScheme = async (schemeId: string) => {
-    if (!window.confirm('Are you sure you want to delete this scheme? This action cannot be undone.')) {
-      return;
-    }
-
     try {
       const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}`, {
         method: 'DELETE',
@@ -79,11 +75,10 @@ const WelfareSchemeManager: React.FC<WelfareSchemeManagerProps> = ({ onSchemeCre
       if (response.ok) {
         setSchemes(prev => prev.filter(scheme => scheme._id !== schemeId));
       } else {
-        const data = await response.json();
-        alert(data.message || 'Failed to delete scheme');
+        console.error('Failed to delete scheme');
       }
     } catch (error) {
-      alert('Network error. Please try again.');
+      console.error('Network error. Please try again.');
     }
   };
 
@@ -104,7 +99,7 @@ const WelfareSchemeManager: React.FC<WelfareSchemeManagerProps> = ({ onSchemeCre
         ));
       }
     } catch (error) {
-      alert('Failed to update scheme status');
+      console.error('Failed to update scheme status');
     }
   };
 

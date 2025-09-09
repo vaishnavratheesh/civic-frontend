@@ -36,8 +36,15 @@ const Login: React.FC = () => {
     const [formKey, setFormKey] = useState(Date.now()); // Force fresh form
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
     const [isValidating, setIsValidating] = useState(false);
-    const { login } = useAuth();
+    const { login, user } = useAuth();
     const navigate = useNavigate();
+
+    // If already authenticated, redirect away from login
+    useEffect(() => {
+        if (user) {
+            navigate(`/${user.role}`, { replace: true });
+        }
+    }, [user, navigate]);
 
     // Force clear fields on component mount
     useEffect(() => {
@@ -127,7 +134,7 @@ const Login: React.FC = () => {
             const response = await loginUser(email, password);
 
             // Create user object from backend response
-            const user: User = {
+            const userObj: User = {
                 id: response.userId || 'user-citizen',
                 name: response.name || 'Citizen User',
                 email: email,
@@ -139,26 +146,26 @@ const Login: React.FC = () => {
                 profilePicture: response.profilePicture || ''
             };
 
-            login(user);
+            login(userObj);
             try {
                 if (response.token) {
                     localStorage.setItem('token', response.token);
                 }
             } catch {}
             
-            // Redirect based on role
-            switch (user.role) {
+            // Redirect based on role using replace to prevent back to login
+            switch (userObj.role) {
                 case Role.ADMIN:
-                    navigate('/admin');
+                    navigate('/admin', { replace: true });
                     break;
                 case Role.COUNCILLOR:
-                    navigate('/councillor');
+                    navigate('/councillor', { replace: true });
                     break;
                 case Role.OFFICER:
-                    navigate('/officer');
+                    navigate('/officer', { replace: true });
                     break;
                 default:
-                    navigate('/citizen');
+                    navigate('/citizen', { replace: true });
                     break;
             }
         } catch (err: any) {
@@ -193,7 +200,7 @@ const Login: React.FC = () => {
             const response = await googleAuthLogin(credential);
 
             // Create user object from backend response
-            const user: User = {
+            const userObj: User = {
                 id: response.userId || 'user-citizen',
                 name: response.name || 'Citizen User',
                 email: response.email,
@@ -205,7 +212,7 @@ const Login: React.FC = () => {
                 profilePicture: response.profilePicture || ''
             };
 
-            login(user);
+            login(userObj);
             try {
                 if (response.token) {
                     localStorage.setItem('token', response.token);
@@ -213,18 +220,18 @@ const Login: React.FC = () => {
             } catch {}
             
             // Redirect based on role
-            switch (user.role) {
+            switch (userObj.role) {
                 case Role.ADMIN:
-                    navigate('/admin');
+                    navigate('/admin', { replace: true });
                     break;
                 case Role.COUNCILLOR:
-                    navigate('/councillor');
+                    navigate('/councillor', { replace: true });
                     break;
                 case Role.OFFICER:
-                    navigate('/officer');
+                    navigate('/officer', { replace: true });
                     break;
                 default:
-                    navigate('/citizen');
+                    navigate('/citizen', { replace: true });
                     break;
             }
         } catch (err: any) {
@@ -246,7 +253,8 @@ const Login: React.FC = () => {
                                 picture: userInfo.picture,
                                 credential: credential
                             }
-                        }
+                        },
+                        replace: true
                     });
                     return;
                 }

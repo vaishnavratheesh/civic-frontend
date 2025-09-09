@@ -66,8 +66,7 @@ const VerifyOTP: React.FC = () => {
       });
 
       if (response.data.success) {
-        // Show success message and redirect to login
-        alert('Registration completed successfully! You can now login.');
+        // Redirect silently to login on success
         navigate('/login');
       }
     } catch (err: any) {

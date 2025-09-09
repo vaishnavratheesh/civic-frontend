@@ -5,6 +5,7 @@ import Navbar from '../../components/Navbar';
 import AdminSidebar from '../../components/AdminSidebar';
 import CreateWelfareScheme from '../../components/CreateWelfareScheme';
 import Spinner from '../../components/Spinner';
+import AdminTopNav from '../../components/AdminTopNav';
 
 interface WelfareScheme {
   _id: string;
@@ -135,15 +136,11 @@ const AdminWelfareSchemes: React.FC = () => {
         fetchStats(); // Refresh stats
       }
     } catch (error) {
-      alert('Failed to update scheme status');
+      console.error('Failed to update scheme status');
     }
   };
 
   const deleteScheme = async (schemeId: string) => {
-    if (!window.confirm('Are you sure you want to delete this scheme? This action cannot be undone.')) {
-      return;
-    }
-
     try {
       const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}`, {
         method: 'DELETE',
@@ -156,11 +153,10 @@ const AdminWelfareSchemes: React.FC = () => {
         setSchemes(prev => prev.filter(scheme => scheme._id !== schemeId));
         fetchStats(); // Refresh stats
       } else {
-        const data = await response.json();
-        alert(data.message || 'Failed to delete scheme');
+        console.error('Failed to delete scheme');
       }
     } catch (error) {
-      alert('Network error. Please try again.');
+      console.error('Network error. Please try again.');
     }
   };
 
@@ -248,16 +244,17 @@ const AdminWelfareSchemes: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <Navbar onMenuClick={handleMenuClick} />
+    <div className="min-h-screen bg-gray-50">
+      <Navbar onMenuClick={() => setIsSidebarOpen(prev => !prev)} />
+      <AdminTopNav activeId="welfare-schemes" />
       
       {/* Admin Sidebar */}
       <AdminSidebar
         items={adminSidebarItems}
         isOpen={isSidebarOpen}
-        onClose={handleSidebarClose}
-        onItemClick={handleSidebarNavigation}
-        activeTab="welfare-schemes"
+        onClose={() => setIsSidebarOpen(false)}
+        onItemClick={(id) => navigate(adminSidebarItems.find(i => i.id === id)?.path || '/admin')}
+        activeTab={'welfare-schemes'}
       />
 
       <div className="container mx-auto px-4 py-8">

@@ -17,6 +17,7 @@ const Navbar: React.FC<NavbarProps> = ({ title = 'Dashboard', className = '', on
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [hasNewDot, setHasNewDot] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,23 +37,30 @@ const Navbar: React.FC<NavbarProps> = ({ title = 'Dashboard', className = '', on
   useEffect(() => {
     const updateNotificationCount = () => {
       if (user?.id) {
-        setNotificationCount(notificationService.getUnreadCount(user.id));
+        const count = notificationService.getUnreadCount(user.id);
+        setNotificationCount(count);
+        if (count > 0) setHasNewDot(true);
       }
     };
 
-    // Initial count
-    updateNotificationCount();
+    // Initial count and bootstrap seen set
+    (async () => {
+      if (user?.ward && user?.role === 'citizen' && user?.id) {
+        await notificationService.checkForNewSchemes(user.id, user.ward);
+        updateNotificationCount();
+      }
+    })();
 
-    // Check for new schemes periodically (every 30 seconds)
+    // Poll for new schemes (15s)
     const interval = setInterval(async () => {
       if (user?.ward && user?.role === 'citizen' && user?.id) {
         await notificationService.checkForNewSchemes(user.id, user.ward);
         updateNotificationCount();
       }
-    }, 30000);
+    }, 15000);
 
     return () => clearInterval(interval);
-  }, [user?.ward, user?.role]);
+  }, [user?.ward, user?.role, user?.id]);
 
   const handleLogout = () => {
     logout();
@@ -103,10 +111,17 @@ const Navbar: React.FC<NavbarProps> = ({ title = 'Dashboard', className = '', on
           {/* Notifications */}
           <div className="relative">
             <button 
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={() => {
+                const next = !showNotifications;
+                setShowNotifications(next);
+                if (next) setHasNewDot(false);
+              }}
               className="relative p-3 text-gray-600 hover:text-gray-800 transition-all duration-200 hover:bg-gray-50 rounded-xl"
             >
               <i className="fas fa-bell text-xl"></i>
+              {hasNewDot && !showNotifications && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+              )}
               {notificationCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
                   {notificationCount}

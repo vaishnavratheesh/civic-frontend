@@ -39,6 +39,88 @@ const CouncillorDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>('complaints');
     const [loading, setLoading] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [headerStats, setHeaderStats] = useState({
+        pendingComplaints: 0,
+        welfareApplications: 0,
+        welfareSchemes: 0,
+        wardPopulation: 0
+    });
+    const [headerLoading, setHeaderLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchHeaderStats = async () => {
+            if (!user) return;
+            try {
+                setHeaderLoading(true);
+                const token = localStorage.getItem('token');
+                const tokenHeader = token ? { Authorization: `Bearer ${token}` } : {};
+                const [appsRes, wardRes, schemesRes, appsListRes] = await Promise.all([
+                    fetch('http://localhost:3002/api/welfare/applications/stats', {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...tokenHeader
+                        }
+                    }),
+                    fetch(`http://localhost:3002/api/users/wards/${user.ward}/stats`),
+                    fetch('http://localhost:3002/api/welfare/schemes', {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...tokenHeader
+                        }
+                    }),
+                    fetch(`http://localhost:3002/api/welfare/applications?ward=${user.ward}`, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...tokenHeader
+                        }
+                    })
+                ]);
+
+                let welfareApplications = 0;
+                if (appsRes.ok) {
+                    const data = await appsRes.json();
+                    const s = data?.stats || {};
+                    welfareApplications = Number(s.totalApplications || 0);
+                }
+                // Fallback to direct list count if stats endpoint returns 0
+                if (welfareApplications === 0 && appsListRes.ok) {
+                    const data = await appsListRes.json();
+                    welfareApplications = Array.isArray(data?.applications) ? data.applications.length : 0;
+                }
+
+                let wardPopulation = 0;
+                if (wardRes.ok) {
+                    const data = await wardRes.json();
+                    wardPopulation = Number(data?.stats?.totalUsers || 0);
+                }
+
+                let welfareSchemes = 0;
+                if (schemesRes.ok) {
+                    const data = await schemesRes.json();
+                    const schemes: any[] = data?.schemes || [];
+                    // Count councillor-owned schemes (or panchayath visible ones); we show total returned for councillor
+                    welfareSchemes = schemes.length;
+                }
+
+                setHeaderStats({
+                    pendingComplaints: 0, // real complaints endpoint not available yet
+                    welfareApplications,
+                    welfareSchemes,
+                    wardPopulation
+                });
+            } catch (e) {
+                setHeaderStats({
+                    pendingComplaints: 0,
+                    welfareApplications: 0,
+                    resolvedIssues: 0,
+                    wardPopulation: 0
+                });
+            } finally {
+                setHeaderLoading(false);
+            }
+        };
+        fetchHeaderStats();
+    }, [user]);
 
     const handleSidebarNavigation = (itemId: string) => {
         if (itemId === 'edit-profile') {
@@ -67,16 +149,11 @@ const CouncillorDashboard: React.FC = () => {
                     onItemClick={handleSidebarNavigation}
                 />
                 <main className="flex-1 p-6">
-                    {/* Header */}
-                    <div className="mb-8">
+                    {/* Header (no big page title) */}
+                    <div className="mb-6">
                         <div className="flex items-center justify-between">
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                                    Councillor Dashboard
-                                </h1>
-                                <p className="text-gray-600">
-                                    Welcome back, {user.name} | Ward {user.ward} | Erumeli Panchayath
-                                </p>
+                            <div className="text-gray-700 text-sm">
+                                Welcome back, <span className="font-semibold">{user.name}</span> • Ward {user.ward} • Erumeli Panchayath
                             </div>
                             <div className="text-right">
                                 <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
@@ -96,7 +173,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </div>
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-gray-600">Pending Complaints</p>
-                                    <p className="text-2xl font-bold text-gray-900">12</p>
+                                    <p className="text-2xl font-bold text-gray-900">{headerLoading ? '—' : headerStats.pendingComplaints}</p>
                                 </div>
                             </div>
                         </div>
@@ -108,7 +185,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </div>
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-gray-600">Welfare Applications</p>
-                                    <p className="text-2xl font-bold text-gray-900">8</p>
+                                    <p className="text-2xl font-bold text-gray-900">{headerLoading ? '—' : headerStats.welfareApplications}</p>
                                 </div>
                             </div>
                         </div>
@@ -116,11 +193,11 @@ const CouncillorDashboard: React.FC = () => {
                         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                             <div className="flex items-center">
                                 <div className="p-2 bg-blue-100 rounded-lg">
-                                    <i className="fas fa-check-circle text-blue-600"></i>
+                                    <i className="fas fa-hands-helping text-blue-600"></i>
                                 </div>
                                 <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-600">Resolved Issues</p>
-                                    <p className="text-2xl font-bold text-gray-900">45</p>
+                                    <p className="text-sm font-medium text-gray-600">Welfare Schemes</p>
+                                    <p className="text-2xl font-bold text-gray-900">{headerLoading ? '—' : headerStats.welfareSchemes}</p>
                                 </div>
                             </div>
                         </div>
@@ -132,7 +209,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </div>
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-gray-600">Ward Population</p>
-                                    <p className="text-2xl font-bold text-gray-900">2,847</p>
+                                    <p className="text-2xl font-bold text-gray-900">{headerLoading ? '—' : headerStats.wardPopulation.toLocaleString()}</p>
                                 </div>
                             </div>
                         </div>
@@ -262,15 +339,39 @@ const WelfareQueue: React.FC = () => {
     const { user } = useAuth();
     const [applications, setApplications] = useState<WelfareApplication[]>([]);
     const [loadingScores, setLoadingScores] = useState<{[key: string]: boolean}>({});
+    const [schemes, setSchemes] = useState<{ id: string; title: string }[]>([]);
+    const [selectedSchemeId, setSelectedSchemeId] = useState<string>('all');
+    const [showAnalytics, setShowAnalytics] = useState(false);
 
-    // Fetch real applications for councillor's ward from backend
+    // Load councillor's schemes for filter
+    useEffect(() => {
+        const fetchSchemes = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('http://localhost:3002/api/welfare/schemes', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const mapped = (data.schemes || []).map((s: any) => ({ id: s._id || s.id, title: s.title }));
+                    setSchemes(mapped);
+                }
+            } catch (e) {
+                console.error('Failed to load schemes', e);
+            }
+        };
+        fetchSchemes();
+    }, [user?.id]);
+
+    // Fetch applications for councillor's ward, optionally by scheme
     useEffect(() => {
         const fetchApplications = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const url = user?.ward
-                    ? `http://localhost:3002/api/welfare/applications?ward=${user.ward}`
-                    : 'http://localhost:3002/api/welfare/applications';
+                const params = new URLSearchParams();
+                if (user?.ward) params.append('ward', String(user.ward));
+                if (selectedSchemeId !== 'all') params.append('schemeId', selectedSchemeId);
+                const url = `http://localhost:3002/api/welfare/applications?${params.toString()}`;
                 const response = await fetch(url, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -318,7 +419,7 @@ const WelfareQueue: React.FC = () => {
         };
 
         fetchApplications();
-    }, [user?.id, user?.ward]);
+    }, [user?.id, user?.ward, selectedSchemeId]);
 
     const handleGetScore = async (appId: string) => {
         const app = applications.find(a => a.id === appId);
@@ -337,103 +438,330 @@ const WelfareQueue: React.FC = () => {
     
     const sortedApplications = [...applications].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
 
+    // Group by scheme when All selected
+    const applicationsByScheme: Record<string, WelfareApplication[]> = sortedApplications.reduce((acc, app) => {
+        const key = app.schemeId;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(app);
+        return acc;
+    }, {} as Record<string, WelfareApplication[]>);
+
+    const exportApplicationsCSV = () => {
+        const headers = ['Scheme','Applicant','Income','Dependents','Status','Score','Applied At'];
+        const source = selectedSchemeId === 'all' ? sortedApplications : sortedApplications.filter(a => a.schemeId === selectedSchemeId);
+        const rows = source.map(a => [
+            a.schemeTitle,
+            a.userName,
+            a.familyIncome,
+            a.dependents,
+            ApplicationStatus[a.status],
+            a.score ?? '',
+            a.createdAt ? new Date(a.createdAt).toLocaleString() : ''
+        ]);
+        const csv = [headers, ...rows].map(r => r.map(x => `"${String(x ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = selectedSchemeId === 'all' ? 'applications_all.csv' : `applications_${selectedSchemeId}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    const appAnalytics = (() => {
+        const total = sortedApplications.length;
+        const withScores = sortedApplications.filter(a => a.score !== undefined);
+        const avgScore = withScores.length ? (withScores.reduce((s,a)=> s + (a.score as number), 0) / withScores.length) : 0;
+        const approved = sortedApplications.filter(a => a.status === ApplicationStatus.APPROVED).length;
+        const rejected = sortedApplications.filter(a => a.status === ApplicationStatus.REJECTED).length;
+        const pending = sortedApplications.filter(a => a.status === ApplicationStatus.PENDING).length;
+        // top by score
+        const top = [...withScores].sort((a,b) => (b.score as number) - (a.score as number)).slice(0,5);
+        return { total, avgScore, approved, rejected, pending, top };
+    })();
+
     return (
         <div>
             <div className="flex items-center justify-between mb-6">
                 <h3 className="font-bold text-xl text-gray-800">Welfare Application Queue</h3>
-                <div className="flex space-x-2">
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                <div className="flex space-x-2 items-center">
+                    <select
+                        value={selectedSchemeId}
+                        onChange={(e) => setSelectedSchemeId(e.target.value)}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    >
+                        <option value="all">All Schemes</option>
+                        {schemes.map(s => (
+                            <option key={s.id} value={s.id}>{s.title}</option>
+                        ))}
+                    </select>
+                    <button onClick={exportApplicationsCSV} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
                         <i className="fas fa-download mr-2"></i>
                         Export Applications
                     </button>
-                    <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                    <button onClick={() => setShowAnalytics(true)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
                         <i className="fas fa-chart-bar mr-2"></i>
                         View Analytics
                     </button>
                 </div>
             </div>
             
-            <div className="space-y-4">
-                {sortedApplications.map(app => (
-                    <div key={app.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                        <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                                <div className="flex items-center mb-3">
-                                    <h4 className="font-bold text-lg text-gray-800 mr-4">{app.userName}</h4>
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        {app.schemeTitle}
-                                    </span>
-                                </div>
-                                <p className="text-gray-600 mb-3 italic">"{app.reason}"</p>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                    <div>
-                                        <span className="text-gray-500">Income:</span>
-                                        <span className="font-medium ml-1">₹{app.familyIncome.toLocaleString()}/yr</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-500">Dependents:</span>
-                                        <span className="font-medium ml-1">{app.dependents}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-500">Status:</span>
-                                        <span className="font-medium ml-1">{app.isSingleWoman ? 'Single Woman' : 'Married'}</span>
-                                    </div>
-                            <div>
-                                        <span className="text-gray-500">Address:</span>
-                                        <span className="font-medium ml-1">{app.address}</span>
-                                    </div>
-                                </div>
-                                {app.justification && (
-                                    <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                                        <p className="text-sm text-blue-800">
-                                            <i className="fas fa-lightbulb mr-2"></i>
-                                            {app.justification}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="ml-6 flex flex-col items-end space-y-3">
-                                {app.score !== undefined ? (
-                                    <div className="text-center">
-                                        <p className="text-sm text-gray-500 mb-1">AI Score</p>
-                                        <div className="text-3xl font-bold text-green-600 bg-green-100 rounded-lg px-3 py-2">
-                                            {app.score}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <button 
-                                        onClick={() => handleGetScore(app.id)} 
-                                        disabled={loadingScores[app.id]} 
-                                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:bg-indigo-300"
-                                    >
-                                        {loadingScores[app.id] ? (
-                                            <div className="flex items-center">
-                                                <Spinner size="sm" />
-                                                <span className="ml-2">Analyzing...</span>
+            <div className="space-y-6">
+                {selectedSchemeId === 'all' ? (
+                    Object.keys(applicationsByScheme).length === 0 ? (
+                        <div className="text-gray-600">No applications found.</div>
+                    ) : (
+                        Object.entries(applicationsByScheme).map(([schemeId, apps]) => {
+                            const schemeTitle = apps[0]?.schemeTitle || (schemes.find(s => s.id === schemeId)?.title ?? 'Scheme');
+                            return (
+                                <div key={schemeId}>
+                                    <h4 className="text-lg font-semibold text-gray-900 mb-3">{schemeTitle}</h4>
+                                    <div className="space-y-4">
+                                        {apps.map(app => (
+                                            <div key={app.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center mb-3">
+                                                            <h4 className="font-bold text-lg text-gray-800 mr-4">{app.userName}</h4>
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                {app.schemeTitle}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-gray-600 mb-3 italic">"{app.reason}"</p>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                                            <div>
+                                                                <span className="text-gray-500">Income:</span>
+                                                                <span className="font-medium ml-1">₹{app.familyIncome.toLocaleString()}/yr</span>
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-gray-500">Dependents:</span>
+                                                                <span className="font-medium ml-1">{app.dependents}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-gray-500">Status:</span>
+                                                                <span className="font-medium ml-1">{app.isSingleWoman ? 'Single Woman' : 'Married'}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-gray-500">Address:</span>
+                                                                <span className="font-medium ml-1">{app.address}</span>
+                                                            </div>
+                                                        </div>
+                                                        {app.justification && (
+                                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                                                                <p className="text-sm text-blue-800">
+                                                                    <i className="fas fa-lightbulb mr-2"></i>
+                                                                    {app.justification}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="ml-6 flex flex-col items-end space-y-3">
+                                                        {app.score !== undefined ? (
+                                                            <div className="text-center">
+                                                                <p className="text-sm text-gray-500 mb-1">AI Score</p>
+                                                                <div className="text-3xl font-bold text-green-600 bg-green-100 rounded-lg px-3 py-2">
+                                                                    {app.score}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <button 
+                                                                onClick={() => handleGetScore(app.id)} 
+                                                                disabled={loadingScores[app.id]} 
+                                                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:bg-indigo-300"
+                                                            >
+                                                                {loadingScores[app.id] ? (
+                                                                    <div className="flex items-center">
+                                                                        <Spinner size="sm" />
+                                                                        <span className="ml-2">Analyzing...</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center">
+                                                                        <i className="fas fa-brain mr-2"></i>
+                                                                        Get AI Score
+                                                                    </div>
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                        <div className="flex space-x-2">
+                                                            <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                                                <i className="fas fa-check mr-2"></i>
+                                                                Approve
+                                                            </button>
+                                                            <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                                                <i className="fas fa-times mr-2"></i>
+                                                                Reject
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <div className="flex items-center">
-                                                <i className="fas fa-brain mr-2"></i>
-                                                Get AI Score
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )
+                ) : (
+                    <div className="space-y-4">
+                        {sortedApplications.map(app => (
+                            <div key={app.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center mb-3">
+                                            <h4 className="font-bold text-lg text-gray-800 mr-4">{app.userName}</h4>
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                {app.schemeTitle}
+                                            </span>
+                                        </div>
+                                        <p className="text-gray-600 mb-3 italic">"{app.reason}"</p>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                            <div>
+                                                <span className="text-gray-500">Income:</span>
+                                                <span className="font-medium ml-1">₹{app.familyIncome.toLocaleString()}/yr</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">Dependents:</span>
+                                                <span className="font-medium ml-1">{app.dependents}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">Status:</span>
+                                                <span className="font-medium ml-1">{app.isSingleWoman ? 'Single Woman' : 'Married'}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">Address:</span>
+                                                <span className="font-medium ml-1">{app.address}</span>
+                                            </div>
+                                        </div>
+                                        {app.justification && (
+                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                                                <p className="text-sm text-blue-800">
+                                                    <i className="fas fa-lightbulb mr-2"></i>
+                                                    {app.justification}
+                                                </p>
                                             </div>
                                         )}
-                                    </button>
-                                )}
-                                <div className="flex space-x-2">
-                                    <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
-                                        <i className="fas fa-check mr-2"></i>
-                                        Approve
-                                    </button>
-                                    <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
-                                        <i className="fas fa-times mr-2"></i>
-                                        Reject
-                                    </button>
+                                    </div>
+                                    <div className="ml-6 flex flex-col items-end space-y-3">
+                                        {app.score !== undefined ? (
+                                            <div className="text-center">
+                                                <p className="text-sm text-gray-500 mb-1">AI Score</p>
+                                                <div className="text-3xl font-bold text-green-600 bg-green-100 rounded-lg px-3 py-2">
+                                                    {app.score}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <button 
+                                                onClick={() => handleGetScore(app.id)} 
+                                                disabled={loadingScores[app.id]} 
+                                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:bg-indigo-300"
+                                            >
+                                                {loadingScores[app.id] ? (
+                                                    <div className="flex items-center">
+                                                        <Spinner size="sm" />
+                                                        <span className="ml-2">Analyzing...</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center">
+                                                        <i className="fas fa-brain mr-2"></i>
+                                                        Get AI Score
+                                                    </div>
+                                                )}
+                                            </button>
+                                        )}
+                                        <div className="flex space-x-2">
+                                            <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                                <i className="fas fa-check mr-2"></i>
+                                                Approve
+                                            </button>
+                                            <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                                <i className="fas fa-times mr-2"></i>
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        </div>
-                ))}
+                        ))}
+                    </div>
+                )}
             </div>
+
+            {/* Applications Analytics Modal */}
+            {showAnalytics && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl p-6">
+                        <div className="flex items-start justify-between mb-4">
+                            <h4 className="text-lg font-semibold">Applications Analytics</h4>
+                            <button onClick={() => setShowAnalytics(false)} className="px-3 py-1 rounded-md border hover:bg-gray-50">Close</button>
+                        </div>
+
+                        {/* KPI cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                            <div className="p-4 bg-gray-50 rounded-lg border">
+                                <div className="text-xs uppercase tracking-wide text-gray-500">Total</div>
+                                <div className="text-2xl font-bold">{appAnalytics.total}</div>
+                            </div>
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                                <div className="text-xs uppercase tracking-wide text-green-700">Approved</div>
+                                <div className="text-2xl font-bold text-green-700">{appAnalytics.approved}</div>
+                            </div>
+                            <div className="p-4 bg-red-50 rounded-lg border border-red-100">
+                                <div className="text-xs uppercase tracking-wide text-red-700">Rejected</div>
+                                <div className="text-2xl font-bold text-red-700">{appAnalytics.rejected}</div>
+                            </div>
+                            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-100">
+                                <div className="text-xs uppercase tracking-wide text-yellow-700">Pending</div>
+                                <div className="text-2xl font-bold text-yellow-700">{appAnalytics.pending}</div>
+                            </div>
+                            <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                                <div className="text-xs uppercase tracking-wide text-purple-700">Avg Score</div>
+                                <div className="text-2xl font-bold text-purple-700">{appAnalytics.avgScore.toFixed(1)}</div>
+                            </div>
+                        </div>
+
+                        {/* Simple stacked bar for status distribution */}
+                        <div className="mb-8">
+                            <div className="mb-2 text-sm text-gray-600">Status Distribution</div>
+                            {(() => {
+                                const total = Math.max(appAnalytics.total, 1);
+                                const pct = (n: number) => (n / total) * 100;
+                                return (
+                                    <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden flex">
+                                        <div className="h-full bg-green-500" style={{width: `${pct(appAnalytics.approved)}%`}} title={`Approved ${appAnalytics.approved}`}></div>
+                                        <div className="h-full bg-red-500" style={{width: `${pct(appAnalytics.rejected)}%`}} title={`Rejected ${appAnalytics.rejected}`}></div>
+                                        <div className="h-full bg-yellow-500" style={{width: `${pct(appAnalytics.pending)}%`}} title={`Pending ${appAnalytics.pending}`}></div>
+                                    </div>
+                                );
+                            })()}
+                            <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>Approved</span><span>Rejected</span><span>Pending</span>
+                            </div>
+                        </div>
+
+                        {/* Top applicants by score */}
+                        <div>
+                            <div className="mb-2 font-medium">Top Applicants by Score</div>
+                            <div className="space-y-2">
+                                {appAnalytics.top.map((a, i) => (
+                                    <div key={a.id} className="flex items-center space-x-3">
+                                        <div className="w-6 text-sm text-gray-500">{i+1}</div>
+                                        <div className="flex-1">
+                                            <div className="truncate text-sm">{a.userName} — <span className="text-gray-500">{a.schemeTitle}</span></div>
+                                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-indigo-500" style={{width: `${Math.min((a.score ?? 0) * 10, 100)}%`}}></div>
+                                            </div>
+                                        </div>
+                                        <div className="w-10 text-right font-semibold">{a.score}</div>
+                                    </div>
+                                ))}
+                                {appAnalytics.top.length === 0 && <div className="text-sm text-gray-500">No scored applications yet.</div>}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -457,6 +785,9 @@ const AddSchemes: React.FC = () => {
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [tokenValid, setTokenValid] = useState(true);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+    const [submitted, setSubmitted] = useState(false);
+    const [touched, setTouched] = useState<Record<string, boolean>>({});
 
     // Simple token check - just verify it exists
     useEffect(() => {
@@ -476,10 +807,76 @@ const AddSchemes: React.FC = () => {
             ...prev,
             [name]: value
         }));
+        setTouched(prev => ({ ...prev, [name]: true }));
+        // real-time validation on change
+        const nextValues = { ...formData, [name]: value } as typeof formData;
+        setFieldErrors(validate(nextValues));
     };
+
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name } = e.target;
+        setTouched(prev => ({ ...prev, [name]: true }));
+        setFieldErrors(validate());
+    };
+
+    const validate = (values = formData) => {
+        const errs: Record<string, string> = {};
+        const trim = (s: string) => (s || '').trim();
+        const asInt = (s: string) => Number.parseInt(String(s), 10);
+        const toDate = (s: string) => (s ? new Date(s + 'T00:00:00') : null);
+
+        if (trim(values.title).length < 3) errs.title = 'Title must be at least 3 characters.';
+        if (!values.category) errs.category = 'Select a category.';
+        if (trim(values.description).length < 20) errs.description = 'Description must be at least 20 characters.';
+        if (trim(values.eligibilityCriteria).length < 10) errs.eligibilityCriteria = 'Provide clear eligibility criteria (min 10 chars).';
+        if (trim(values.benefits).length < 10) errs.benefits = 'Describe key benefits (min 10 chars).';
+
+        const slots = asInt(String(values.totalSlots));
+        if (!Number.isFinite(slots) || slots < 1) errs.totalSlots = 'Total slots must be a positive integer.';
+
+        const today = new Date(); today.setHours(0,0,0,0);
+        const start = toDate(values.startDate);
+        const end = toDate(values.endDate);
+        const deadline = toDate(values.applicationDeadline);
+        if (!start) errs.startDate = 'Start date is required.';
+        if (!end) errs.endDate = 'End date is required.';
+        if (!deadline) errs.applicationDeadline = 'Application deadline is required.';
+        if (start && end && start > end) errs.endDate = 'End date must be after or on the start date.';
+        if (deadline && start && deadline > end!) errs.applicationDeadline = 'Deadline must be on/before end date.';
+        if (deadline && deadline < today) errs.applicationDeadline = 'Deadline cannot be in the past.';
+        if (start && start < today) errs.startDate = 'Start date cannot be in the past.';
+        return errs;
+    };
+
+    useEffect(() => {
+        // keep errors in sync as user types
+        setFieldErrors(validate());
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formData.startDate, formData.endDate, formData.applicationDeadline, formData.totalSlots]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSubmitted(true);
+        // mark all fields as touched to show errors
+        setTouched({
+            title: true,
+            category: true,
+            description: true,
+            eligibilityCriteria: true,
+            benefits: true,
+            documentsRequired: true,
+            totalSlots: true,
+            applicationDeadline: true,
+            startDate: true,
+            endDate: true,
+            additionalDetails: true
+        });
+        const errs = validate();
+        setFieldErrors(errs);
+        if (Object.keys(errs).length > 0) {
+            setError('Please fix the highlighted fields and try again.');
+            return;
+        }
         setLoading(true);
         setMessage('');
         setError('');
@@ -542,6 +939,8 @@ const AddSchemes: React.FC = () => {
                     endDate: '',
                     additionalDetails: ''
                 });
+                setSubmitted(false);
+                setFieldErrors({});
             } else {
                 console.log('Error response:', data);
                 setError(data.error || data.message || 'Failed to create scheme');
@@ -609,11 +1008,13 @@ const AddSchemes: React.FC = () => {
                             name="title"
                             value={formData.title}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                             disabled={!tokenValid}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                             placeholder="e.g., Free Sewing Machines for Women"
                         />
+                        {touched.title && fieldErrors.title && <p className="mt-1 text-sm text-red-600">{fieldErrors.title}</p>}
                     </div>
 
                     <div>
@@ -624,6 +1025,7 @@ const AddSchemes: React.FC = () => {
                             name="category"
                             value={formData.category}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
@@ -638,6 +1040,7 @@ const AddSchemes: React.FC = () => {
                             <option value="Agriculture">Agriculture</option>
                             <option value="Other">Other</option>
                         </select>
+                        {touched.category && fieldErrors.category && <p className="mt-1 text-sm text-red-600">{fieldErrors.category}</p>}
                     </div>
                 </div>
 
@@ -649,11 +1052,13 @@ const AddSchemes: React.FC = () => {
                         name="description"
                         value={formData.description}
                         onChange={handleInputChange}
+                        onBlur={handleBlur}
                         required
                         rows={3}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Describe the scheme in detail..."
                     />
+                    {touched.description && fieldErrors.description && <p className="mt-1 text-sm text-red-600">{fieldErrors.description}</p>}
                 </div>
 
                 <div>
@@ -664,11 +1069,13 @@ const AddSchemes: React.FC = () => {
                         name="eligibilityCriteria"
                         value={formData.eligibilityCriteria}
                         onChange={handleInputChange}
+                        onBlur={handleBlur}
                         required
                         rows={3}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Who is eligible for this scheme?"
                     />
+                    {touched.eligibilityCriteria && fieldErrors.eligibilityCriteria && <p className="mt-1 text-sm text-red-600">{fieldErrors.eligibilityCriteria}</p>}
                 </div>
 
                 <div>
@@ -679,11 +1086,13 @@ const AddSchemes: React.FC = () => {
                         name="benefits"
                         value={formData.benefits}
                         onChange={handleInputChange}
+                        onBlur={handleBlur}
                         required
                         rows={3}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="What benefits will recipients receive?"
                     />
+                    {touched.benefits && fieldErrors.benefits && <p className="mt-1 text-sm text-red-600">{fieldErrors.benefits}</p>}
                 </div>
 
                 <div>
@@ -710,11 +1119,13 @@ const AddSchemes: React.FC = () => {
                             name="totalSlots"
                             value={formData.totalSlots}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                             min="1"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Number of beneficiaries"
                         />
+                        {touched.totalSlots && fieldErrors.totalSlots && <p className="mt-1 text-sm text-red-600">{fieldErrors.totalSlots}</p>}
                     </div>
 
                     <div>
@@ -726,9 +1137,11 @@ const AddSchemes: React.FC = () => {
                             name="applicationDeadline"
                             value={formData.applicationDeadline}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
+                        {touched.applicationDeadline && fieldErrors.applicationDeadline && <p className="mt-1 text-sm text-red-600">{fieldErrors.applicationDeadline}</p>}
                     </div>
 
                     <div>
@@ -740,9 +1153,11 @@ const AddSchemes: React.FC = () => {
                             name="startDate"
                             value={formData.startDate}
                             onChange={handleInputChange}
+                            onBlur={handleBlur}
                             required
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
+                        {touched.startDate && fieldErrors.startDate && <p className="mt-1 text-sm text-red-600">{fieldErrors.startDate}</p>}
                     </div>
                 </div>
 
@@ -755,9 +1170,11 @@ const AddSchemes: React.FC = () => {
                         name="endDate"
                         value={formData.endDate}
                         onChange={handleInputChange}
+                        onBlur={handleBlur}
                         required
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
+                    {touched.endDate && fieldErrors.endDate && <p className="mt-1 text-sm text-red-600">{fieldErrors.endDate}</p>}
                 </div>
 
                 <div>
@@ -824,6 +1241,9 @@ const ViewSchemes: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingScheme, setEditingScheme] = useState<any>(null);
+    const [showAnalytics, setShowAnalytics] = useState(false);
 
     // Fetch schemes created by this councillor
     useEffect(() => {
@@ -852,7 +1272,11 @@ const ViewSchemes: React.FC = () => {
                 if (response.ok) {
                     const data = await response.json();
                     console.log('Fetched schemes data:', data);
-                    setSchemes(data.schemes || []);
+                    const normalized = (data.schemes || []).map((s: any) => ({
+                        ...s,
+                        id: s._id || s.id
+                    }));
+                    setSchemes(normalized);
                 } else {
                     const errorText = await response.text();
                     console.error('Failed to fetch schemes:', response.status, errorText);
@@ -880,7 +1304,8 @@ const ViewSchemes: React.FC = () => {
                 
                 // Fetch application counts for each scheme
                 for (const scheme of schemes) {
-                    const response = await fetch(`http://localhost:3002/api/welfare/applications?schemeId=${scheme.id}`, {
+                    const schemeKey = (scheme as any).id || (scheme as any)._id;
+                    const response = await fetch(`http://localhost:3002/api/welfare/applications?schemeId=${schemeKey}&ward=${user?.ward}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
@@ -889,9 +1314,10 @@ const ViewSchemes: React.FC = () => {
                     
                     if (response.ok) {
                         const data = await response.json();
-                        counts[scheme.id] = data.applications?.length || 0;
+                        console.log('Scheme', schemeKey, 'applications length:', data.applications?.length);
+                        counts[String(schemeKey)] = Array.isArray(data.applications) ? data.applications.length : 0;
                     } else {
-                        counts[scheme.id] = 0;
+                        counts[String(schemeKey)] = 0;
                     }
                 }
                 
@@ -905,12 +1331,13 @@ const ViewSchemes: React.FC = () => {
     }, [schemes]);
 
     // Filter schemes based on status
+    const now = new Date();
     const activeSchemes = schemes.filter(scheme => 
-        scheme.status === 'active' || scheme.status === 'draft'
+        (scheme.status === 'active' || scheme.status === 'draft') && new Date(scheme.endDate) >= now
     );
     
     const completedSchemes = schemes.filter(scheme => 
-        scheme.status === 'completed' || scheme.status === 'expired'
+        scheme.status === 'completed' || scheme.status === 'expired' || new Date(scheme.endDate) < now
     );
 
     const currentSchemes = activeTab === 'active' ? activeSchemes : completedSchemes;
@@ -946,31 +1373,144 @@ const ViewSchemes: React.FC = () => {
     };
 
     const handleDeleteScheme = async (schemeId: string) => {
-        if (window.confirm('Are you sure you want to delete this scheme?')) {
-            setLoading(true);
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.ok) {
-                    // Remove from local state
-                    setSchemes(prev => prev.filter(scheme => scheme.id !== schemeId));
-                } else {
-                    console.error('Failed to delete scheme:', response.statusText);
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
-            } catch (error) {
-                console.error('Error deleting scheme:', error);
-            } finally {
-                setLoading(false);
+            });
+
+            if (response.ok) {
+                // Remove from local state
+                setSchemes(prev => prev.filter(scheme => scheme.id !== schemeId));
+            } else {
+                console.error('Failed to delete scheme:', response.statusText);
             }
+        } catch (error) {
+            console.error('Error deleting scheme:', error);
+        } finally {
+            setLoading(false);
         }
     };
+
+    const openEdit = (scheme: any) => {
+        setEditingScheme({
+            id: (scheme as any).id,
+            title: scheme.title || '',
+            description: scheme.description || '',
+            totalSlots: scheme.totalSlots || 0,
+            applicationDeadline: scheme.applicationDeadline ? new Date(scheme.applicationDeadline).toISOString().slice(0,10) : '',
+            startDate: scheme.startDate ? new Date(scheme.startDate).toISOString().slice(0,10) : '',
+            endDate: scheme.endDate ? new Date(scheme.endDate).toISOString().slice(0,10) : '',
+            status: scheme.status || 'active'
+        });
+        setShowEditModal(true);
+    };
+
+    const saveEdit = async () => {
+        if (!editingScheme) return;
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const payload: any = {
+                title: editingScheme.title,
+                description: editingScheme.description,
+                totalSlots: Number(editingScheme.totalSlots),
+                applicationDeadline: editingScheme.applicationDeadline,
+                startDate: editingScheme.startDate,
+                endDate: editingScheme.endDate,
+                status: editingScheme.status
+            };
+            const res = await fetch(`http://localhost:3002/api/welfare/schemes/${editingScheme.id}` ,{
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setSchemes(prev => prev.map(s => s.id === editingScheme.id ? { ...s, ...data.scheme, id: (data.scheme as any)._id || editingScheme.id } : s));
+                setShowEditModal(false);
+            } else {
+                console.error('Failed to update scheme');
+            }
+        } catch (e) {
+            console.error('Error updating scheme:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Auto-mark schemes as completed if endDate has passed
+    useEffect(() => {
+        const markCompletedIfExpired = async () => {
+            const token = localStorage.getItem('token');
+            const nowLocal = new Date();
+            for (const sch of schemes) {
+                if (sch.status !== 'completed' && sch.status !== 'expired' && new Date(sch.endDate) < nowLocal) {
+                    try {
+                        await fetch(`http://localhost:3002/api/welfare/schemes/${(sch as any).id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ status: 'completed' })
+                        });
+                        setSchemes(prev => prev.map(s => s.id === (sch as any).id ? { ...s, status: 'completed' } : s));
+                    } catch (err) {
+                        console.warn('Failed to mark scheme completed', err);
+                    }
+                }
+            }
+        };
+        if (schemes.length) markCompletedIfExpired();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [schemes.length]);
+
+    const exportCSV = () => {
+        const headers = ['Title','Description','Ward','Scope','Status','Total Slots','Applications','Start Date','End Date'];
+        const rows = currentSchemes.map(s => [
+            s.title,
+            (s as any).description || '',
+            s.ward ?? '',
+            (s as any).scope || '',
+            s.status,
+            s.totalSlots,
+            applicationCounts[(s as any).id] || 0,
+            new Date((s as any).startDate).toLocaleDateString(),
+            new Date((s as any).endDate).toLocaleDateString()
+        ]);
+        const csv = [headers, ...rows].map(r => r.map(x => `"${String(x ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'schemes.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    const analytics = (() => {
+        const total = schemes.length;
+        const active = schemes.filter(s => (s.status === 'active' || s.status === 'draft') && new Date(s.endDate) >= now).length;
+        const completed = schemes.filter(s => s.status === 'completed' || s.status === 'expired' || new Date(s.endDate) < now).length;
+        const totalApplications = Object.values(applicationCounts).reduce((a,b) => a + (b || 0), 0);
+        // applications per scheme (sorted desc, top 7)
+        const perScheme = schemes
+            .map(s => ({ title: s.title, count: applicationCounts[(s as any).id] || 0 }))
+            .sort((a,b) => b.count - a.count)
+            .slice(0, 7);
+        return { total, active, completed, totalApplications, perScheme };
+    })();
 
     if (fetching) {
         return (
@@ -988,11 +1528,11 @@ const ViewSchemes: React.FC = () => {
             <div className="flex items-center justify-between mb-6">
                 <h3 className="font-bold text-xl text-gray-800">Your Created Schemes</h3>
                 <div className="flex space-x-2">
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                    <button onClick={exportCSV} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
                         <i className="fas fa-download mr-2"></i>
                         Export Schemes
                     </button>
-                    <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                    <button onClick={() => setShowAnalytics(true)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
                         <i className="fas fa-chart-bar mr-2"></i>
                         View Analytics
                     </button>
@@ -1075,7 +1615,7 @@ const ViewSchemes: React.FC = () => {
                                         </button>
                                     )}
                                     {scheme.status !== 'completed' && scheme.status !== 'expired' && (
-                                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                        <button onClick={() => openEdit(scheme)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
                                             <i className="fas fa-edit mr-2"></i>
                                             Edit
                                         </button>
@@ -1125,6 +1665,154 @@ const ViewSchemes: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {/* Edit Scheme Modal */}
+            {showEditModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6">
+                        <h4 className="text-lg font-semibold mb-4">Edit Scheme</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm text-gray-600 mb-1">Title</label>
+                                <input value={editingScheme?.title || ''} onChange={e => setEditingScheme({ ...editingScheme, title: e.target.value })} className="w-full border rounded-md px-3 py-2" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-600 mb-1">Total Slots</label>
+                                <input type="number" value={editingScheme?.totalSlots || 0} onChange={e => setEditingScheme({ ...editingScheme, totalSlots: e.target.value })} className="w-full border rounded-md px-3 py-2" />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm text-gray-600 mb-1">Description</label>
+                                <textarea value={editingScheme?.description || ''} onChange={e => setEditingScheme({ ...editingScheme, description: e.target.value })} className="w-full border rounded-md px-3 py-2" rows={3} />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-600 mb-1">Start Date</label>
+                                <input type="date" value={editingScheme?.startDate || ''} onChange={e => setEditingScheme({ ...editingScheme, startDate: e.target.value })} className="w-full border rounded-md px-3 py-2" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-600 mb-1">End Date</label>
+                                <input type="date" value={editingScheme?.endDate || ''} onChange={e => setEditingScheme({ ...editingScheme, endDate: e.target.value })} className="w-full border rounded-md px-3 py-2" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-600 mb-1">Application Deadline</label>
+                                <input type="date" value={editingScheme?.applicationDeadline || ''} onChange={e => setEditingScheme({ ...editingScheme, applicationDeadline: e.target.value })} className="w-full border rounded-md px-3 py-2" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-600 mb-1">Status</label>
+                                <select value={editingScheme?.status || 'active'} onChange={e => setEditingScheme({ ...editingScheme, status: e.target.value })} className="w-full border rounded-md px-3 py-2">
+                                    <option value="active">Active</option>
+                                    <option value="draft">Draft</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-end space-x-2">
+                            <button onClick={() => setShowEditModal(false)} className="px-4 py-2 rounded-md border">Cancel</button>
+                            <button onClick={saveEdit} disabled={loading} className="px-4 py-2 rounded-md bg-blue-600 text-white">{loading ? 'Saving...' : 'Save Changes'}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Analytics Modal */}
+            {showAnalytics && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl p-6">
+                        <div className="flex items-start justify-between mb-4">
+                            <h4 className="text-lg font-semibold">Schemes Analytics</h4>
+                            <button onClick={() => setShowAnalytics(false)} className="px-3 py-1 rounded-md border hover:bg-gray-50">Close</button>
+                        </div>
+
+                        {/* KPI cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div className="p-4 bg-gray-50 rounded-lg border">
+                                <div className="text-xs uppercase tracking-wide text-gray-500">Total Schemes</div>
+                                <div className="text-2xl font-bold">{analytics.total}</div>
+                            </div>
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                                <div className="text-xs uppercase tracking-wide text-green-700">Active</div>
+                                <div className="text-2xl font-bold text-green-700">{analytics.active}</div>
+                            </div>
+                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                <div className="text-xs uppercase tracking-wide text-blue-700">Completed</div>
+                                <div className="text-2xl font-bold text-blue-700">{analytics.completed}</div>
+                            </div>
+                            <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                                <div className="text-xs uppercase tracking-wide text-purple-700">Total Applications</div>
+                                <div className="text-2xl font-bold text-purple-700">{analytics.totalApplications}</div>
+                            </div>
+                        </div>
+
+                        {/* Charts */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Donut chart: Active vs Completed */}
+                            <div className="p-4 border rounded-xl">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="font-medium">Status Breakdown</div>
+                                    <div className="text-xs text-gray-500">Active vs Completed</div>
+                                </div>
+                                {(() => {
+                                    const active = analytics.active;
+                                    const completed = analytics.completed;
+                                    const total = Math.max(active + completed, 1);
+                                    const r = 90; const c = 2 * Math.PI * r;
+                                    let activePct = total ? active / total : 0;
+                                    let completedPct = total ? completed / total : 0;
+                                    // clamp to [0,1] to avoid floating rounding artefacts
+                                    activePct = Math.min(1, Math.max(0, activePct));
+                                    completedPct = Math.min(1, Math.max(0, completedPct));
+                                    const activeFull = activePct >= 0.9995; // treat as 100%
+                                    const completedVisible = completedPct >= 0.001;
+                                    return (
+                                        <div className="flex items-center space-x-6">
+                                            <svg width="220" height="220" viewBox="0 0 220 220">
+                                                <circle cx="110" cy="110" r={r} stroke="#e5e7eb" strokeWidth="22" fill="none" />
+                                                <circle cx="110" cy="110" r={r} stroke="#10b981" strokeWidth="22" fill="none" strokeDasharray={activeFull ? `${c} 0` : `${c * activePct} ${c}`} strokeDashoffset={c * 0.25} strokeLinecap="round" />
+                                                {completedVisible && (
+                                                    <circle cx="110" cy="110" r={r} stroke="#3b82f6" strokeWidth="22" fill="none" strokeDasharray={`${c * completedPct} ${c}`} strokeDashoffset={c * (0.25 + activePct)} strokeLinecap="round" />
+                                                )}
+                                                <text x="110" y="115" textAnchor="middle" className="fill-gray-800" style={{fontSize: '28px', fontWeight: 700}}>{Math.round(activePct * 100)}%</text>
+                                            </svg>
+                                            <div>
+                                                <div className="flex items-center mb-2"><span className="w-3 h-3 rounded-sm bg-green-500 mr-2"></span>Active: <span className="ml-2 font-medium">{active}</span></div>
+                                                <div className="flex items-center"><span className="w-3 h-3 rounded-sm bg-blue-500 mr-2"></span>Completed: <span className="ml-2 font-medium">{completed}</span></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            {/* Bar chart: Applications per scheme */}
+                            <div className="p-4 border rounded-xl">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="font-medium">Applications per Scheme (Top 7)</div>
+                                    <div className="text-xs text-gray-500">Counts</div>
+                                </div>
+                                {(() => {
+                                    const labels = analytics.perScheme.map(p => p.title);
+                                    const values = analytics.perScheme.map(p => p.count);
+                                    const max = Math.max(...values, 1);
+                                    return (
+                                        <div className="space-y-2">
+                                            {labels.map((label, i) => (
+                                                <div key={i} className="flex items-center space-x-3">
+                                                    <div className="w-40 truncate text-sm" title={label}>{label}</div>
+                                                    <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                                        <div className={`h-full ${i % 2 === 0 ? 'bg-indigo-500' : 'bg-fuchsia-500'}`} style={{ width: `${(values[i] / max) * 100}%` }}></div>
+                                                    </div>
+                                                    <div className="w-8 text-right text-sm font-medium">{values[i]}</div>
+                                                </div>
+                                            ))}
+                                            {labels.length === 0 && (
+                                                <div className="text-sm text-gray-500">No applications yet.</div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import AdminSidebar from '../../components/AdminSidebar';
 import Spinner from '../../components/Spinner';
+import AdminTopNav from '../../components/AdminTopNav';
 import { getAllUsers, updateUser, deleteUser, bulkApproveUsers } from '../../services/adminService';
 
 interface User {
@@ -58,10 +59,13 @@ const UserManagement: React.FC = () => {
 
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
   // Admin sidebar navigation items
   const adminSidebarItems = [
     { id: 'overview', name: 'Overview', icon: 'fa-tachometer-alt', path: '/admin' },
+    { id: 'welfare-schemes', name: 'Welfare Schemes', icon: 'fa-hands-helping', path: '/admin/welfare-schemes' },
+    { id: 'welfare-applications', name: 'Applications', icon: 'fa-file-alt', path: '/admin/welfare-applications' },
     { id: 'users', name: 'User Management', icon: 'fa-users', path: '/admin/users' },
     { id: 'grievances', name: 'Grievance Management', icon: 'fa-bullhorn', path: '/admin/grievances' },
     { id: 'councillors', name: 'Councillors', icon: 'fa-user-tie', path: '/admin/councillors' },
@@ -138,7 +142,10 @@ const UserManagement: React.FC = () => {
 
       const response = await getAllUsers(params);
       if (response.success) {
-        setUsers(response.users);
+        const fetchedUsers: User[] = response.users || [];
+        // Hide the logged-in admin from the table
+        const filtered = fetchedUsers.filter(u => u._id !== user?.id);
+        setUsers(filtered);
         setPagination(response.pagination);
       }
     } catch (error) {
@@ -189,29 +196,23 @@ const UserManagement: React.FC = () => {
     try {
       const response = await bulkApproveUsers(selectedUsers, approved);
       if (response.success) {
-        alert(response.message);
         loadUsers();
         setSelectedUsers([]);
         setSelectAll(false);
       }
     } catch (error) {
       console.error('Error bulk approving users:', error);
-      alert('Error updating users');
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-
     try {
       const response = await deleteUser(userId);
       if (response.success) {
-        alert('User deleted successfully');
         loadUsers();
       }
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Error deleting user');
     }
   };
 
@@ -233,19 +234,19 @@ const UserManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <Navbar onMenuClick={handleMenuClick} />
-      
-      {/* Admin Sidebar */}
+    <div className="min-h-screen bg-gray-50">
+      <Navbar onMenuClick={() => setIsSidebarOpen(prev => !prev)} />
+      <AdminTopNav activeId="users" />
+
       <AdminSidebar
         items={adminSidebarItems}
         isOpen={isSidebarOpen}
-        onClose={handleSidebarClose}
+        onClose={() => setIsSidebarOpen(false)}
         onItemClick={handleSidebarNavigation}
         activeTab="users"
       />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className={`flex-1 flex flex-col overflow-hidden ${isSidebarOpen ? 'ml-80' : 'ml-0'}`}>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">User Management</h1>
@@ -393,6 +394,7 @@ const UserManagement: React.FC = () => {
                       className="rounded border-gray-300"
                     />
                   </th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">#</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">User</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Role</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">Ward</th>
@@ -402,7 +404,7 @@ const UserManagement: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
+                {users.map((user, idx) => (
                   <tr key={user._id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-4">
                       <input
@@ -412,6 +414,7 @@ const UserManagement: React.FC = () => {
                         className="rounded border-gray-300"
                       />
                     </td>
+                    <td className="py-3 px-4 text-gray-700">{(pagination.currentPage - 1) * 10 + (idx + 1)}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center">
                         {user.profilePicture ? (
@@ -484,14 +487,14 @@ const UserManagement: React.FC = () => {
               <div className="flex space-x-2">
                 <button
                   onClick={() => handlePageChange(pagination.currentPage - 1)}
-                  disabled={!pagination.hasPrevPage}
+                  disabled={pagination.currentPage <= 1}
                   className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => handlePageChange(pagination.currentPage + 1)}
-                  disabled={!pagination.hasNextPage}
+                  disabled={pagination.currentPage >= pagination.totalPages}
                   className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
                   Next

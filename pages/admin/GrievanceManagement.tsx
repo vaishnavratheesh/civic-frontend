@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import AdminSidebar from '../../components/AdminSidebar';
 import Spinner from '../../components/Spinner';
+import AdminTopNav from '../../components/AdminTopNav';
 import { API_ENDPOINTS } from '../../src/config/config';
 
 interface Grievance {
@@ -52,10 +53,13 @@ const GrievanceManagement: React.FC = () => {
 
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
 
   // Admin sidebar navigation items
   const adminSidebarItems = [
     { id: 'overview', name: 'Overview', icon: 'fa-tachometer-alt', path: '/admin' },
+    { id: 'welfare-schemes', name: 'Welfare Schemes', icon: 'fa-hands-helping', path: '/admin/welfare-schemes' },
+    { id: 'welfare-applications', name: 'Applications', icon: 'fa-file-alt', path: '/admin/welfare-applications' },
     { id: 'users', name: 'User Management', icon: 'fa-users', path: '/admin/users' },
     { id: 'grievances', name: 'Grievance Management', icon: 'fa-bullhorn', path: '/admin/grievances' },
     { id: 'councillors', name: 'Councillors', icon: 'fa-user-tie', path: '/admin/councillors' },
@@ -342,19 +346,19 @@ const GrievanceManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <Navbar onMenuClick={handleMenuClick} />
-      
-      {/* Admin Sidebar */}
+    <div className="min-h-screen bg-gray-50">
+      <Navbar onMenuClick={() => setIsSidebarOpen(prev => !prev)} />
+      <AdminTopNav activeId="grievances" />
+
       <AdminSidebar
         items={adminSidebarItems}
         isOpen={isSidebarOpen}
-        onClose={handleSidebarClose}
+        onClose={() => setIsSidebarOpen(false)}
         onItemClick={handleSidebarNavigation}
         activeTab="grievances"
       />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className={`flex-1 flex flex-col overflow-hidden ${isSidebarOpen ? 'ml-80' : 'ml-0'}`}>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Grievance Management</h1>

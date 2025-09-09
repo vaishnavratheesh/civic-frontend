@@ -23,6 +23,10 @@ class NotificationService {
     return `civic_seen_schemes_${userId}`;
   }
 
+  private getLastSeenKey(userId: string): string {
+    return `civic_last_seen_scheme_ts_${userId}`;
+  }
+
   // Get all notifications for a user
   getNotifications(userId: string): Notification[] {
     try {
@@ -115,14 +119,31 @@ class NotificationService {
       if (response.ok) {
         const data = await response.json();
         const currentSchemes = data.schemes || [];
+        // Sort by createdAt ascending for deterministic processing
+        currentSchemes.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         
-        // Get previously seen scheme IDs for this user
+        // Get previously seen scheme IDs and last seen timestamp for this user
         const seenSchemeIds = this.getSeenSchemeIds(userId);
+        const lastSeenTsRaw = localStorage.getItem(this.getLastSeenKey(userId));
+        const lastSeenTs = lastSeenTsRaw ? parseInt(lastSeenTsRaw, 10) : 0;
+        const latestReturnedTs = currentSchemes.reduce((max: number, s: any) => {
+          const t = new Date(s.createdAt || s.updatedAt || Date.now()).getTime();
+          return Math.max(max, t);
+        }, 0);
         
-        // Find new schemes
-        const newSchemes = currentSchemes.filter((scheme: any) => 
-          !seenSchemeIds.includes(scheme._id)
-        );
+        // First run bootstrap: mark existing as seen, do NOT notify
+        if (!lastSeenTs && currentSchemes.length > 0) {
+          const allSchemeIds = currentSchemes.map((scheme: any) => scheme._id);
+          this.updateSeenSchemeIds(userId, allSchemeIds);
+          localStorage.setItem(this.getLastSeenKey(userId), String(latestReturnedTs || Date.now()));
+          return;
+        }
+
+        // Find new schemes strictly newer than last seen timestamp
+        const newSchemes = currentSchemes.filter((scheme: any) => {
+          const created = new Date(scheme.createdAt || scheme.updatedAt || Date.now()).getTime();
+          return created > lastSeenTs && !seenSchemeIds.includes(scheme._id);
+        });
 
         console.log(`Found ${newSchemes.length} new schemes for user ${userId}`);
 
@@ -138,9 +159,11 @@ class NotificationService {
           });
         });
 
-        // Update seen scheme IDs for this user
-        const allSchemeIds = currentSchemes.map((scheme: any) => scheme._id);
-        this.updateSeenSchemeIds(userId, allSchemeIds);
+        // Update seen scheme IDs incrementally and bump last seen timestamp
+        const updatedSeen = Array.from(new Set([...seenSchemeIds, ...currentSchemes.map((s: any) => s._id)]));
+        this.updateSeenSchemeIds(userId, updatedSeen);
+        const newLastSeen = Math.max(lastSeenTs, latestReturnedTs || Date.now());
+        localStorage.setItem(this.getLastSeenKey(userId), String(newLastSeen));
       }
     } catch (error) {
       console.error('Error checking for new schemes:', error);

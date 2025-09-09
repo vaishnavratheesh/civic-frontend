@@ -202,7 +202,7 @@ const CitizenDashboard: React.FC = () => {
 
     const handleApplyClick = (scheme: WelfareScheme) => {
         if (hasAppliedForScheme(scheme.id)) {
-            alert('You have already applied for this scheme.');
+            // Already applied: keep UI silent and disable button elsewhere
             return;
         }
         setSelectedScheme(scheme);
@@ -231,7 +231,7 @@ const CitizenDashboard: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="flex h-screen bg-gray-50">
             {/* Sidebar */}
             <Sidebar 
                 items={sidebarItems} 
@@ -247,24 +247,22 @@ const CitizenDashboard: React.FC = () => {
                 <Navbar onMenuClick={handleMenuClick} />
 
                 {/* Main Content Area */}
-                <main className="flex-1 overflow-y-auto p-8">
+                <main className="flex-1 overflow-y-auto p-6">
                     {/* Header Section */}
-                    <div className="mb-8">
-                        <div className="bg-gradient-to-r from-blue-800 to-blue-900 rounded-2xl p-6 text-white shadow-xl">
+                    <div className="mb-6">
+                        <div className="bg-white border border-gray-200 rounded-lg p-4">
                             <div className="flex items-center justify-between">
-                                <div>
-                                    <h1 className="text-3xl font-bold mb-2">Welcome, {user?.name}</h1>
-                                    <p className="text-blue-100 text-lg">Ward {user?.ward} • Erumeli Panchayath</p>
-                                    <p className="text-blue-200 text-sm mt-2">Access government services and civic engagement tools</p>
+                                <div className="text-sm text-gray-700">
+                                    Welcome, <span className="font-semibold">{user?.name}</span> • Ward {user?.ward} • Erumeli Panchayath
                                 </div>
-                                <div className="hidden md:flex items-center space-x-4">
+                                <div className="hidden md:flex items-center space-x-6 text-sm text-gray-700">
                                     <div className="text-center">
-                                        <div className="text-2xl font-bold text-yellow-400">{myComplaints.length}</div>
-                                        <div className="text-blue-200 text-sm">My Grievances</div>
+                                        <div className="text-base font-semibold">{myComplaints.length}</div>
+                                        <div>My Grievances</div>
                                     </div>
                                     <div className="text-center">
-                                        <div className="text-2xl font-bold text-yellow-400">{myApplications.length}</div>
-                                        <div className="text-blue-200 text-sm">Applications</div>
+                                        <div className="text-base font-semibold">{myApplications.length}</div>
+                                        <div>Applications</div>
                                     </div>
                                 </div>
                             </div>
@@ -272,20 +270,20 @@ const CitizenDashboard: React.FC = () => {
                     </div>
 
                     {/* Navigation Tabs */}
-                    <div className="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                        <nav className="flex space-x-1 p-2 bg-gray-50">
+                    <div className="mb-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <nav className="flex space-x-1 p-1 bg-gray-50">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex-1 py-4 px-6 rounded-xl font-semibold text-sm flex items-center justify-center space-x-3 transition-all duration-200 ${
+                                    className={`flex-1 py-2 px-4 rounded-md font-medium text-sm flex items-center justify-center space-x-2 transition-colors ${
                                         activeTab === tab.id
-                                            ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white shadow-lg'
-                                            : 'text-gray-600 hover:text-blue-800 hover:bg-blue-50'
+                                            ? 'bg-gray-200 text-gray-900'
+                                            : 'text-gray-700 hover:bg-gray-100'
                                     }`}
                                     aria-current={activeTab === tab.id ? 'page' : undefined}
                                 >
-                                    <i className={`fas ${tab.icon} text-lg`}></i>
+                                    <i className={`fas ${tab.icon} text-base`}></i>
                                     <span>{tab.name}</span>
                                 </button>
                             ))}
@@ -316,6 +314,7 @@ const MyWardInfo: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [wardPopulation, setWardPopulation] = useState<number | null>(null);
+    const [councillor, setCouncillor] = useState<{ name: string; email?: string; contactNumber?: string; address?: string; profilePicture?: string } | null>(null);
 
     const handleAsk = async () => {
         if (!question.trim() || !user) return;
@@ -350,106 +349,128 @@ const MyWardInfo: React.FC = () => {
                 console.error('Failed to fetch ward stats', e);
             }
         };
+        const fetchCouncillor = async () => {
+            if (!user?.ward) return;
+            try {
+                const res = await fetch(`${API_ENDPOINTS.WARD_COUNCILLOR}/${user.ward}/councillor`);
+                const data = await res.json();
+                if (res.ok && data?.success && data?.councillor) {
+                    setCouncillor(data.councillor);
+                } else {
+                    setCouncillor(null);
+                }
+            } catch (e) {
+                console.error('Failed to fetch councillor', e);
+                setCouncillor(null);
+            }
+        };
         fetchWardStats();
+        fetchCouncillor();
     }, [user?.ward]);
 
     return (
         <div className="space-y-8">
             {/* Ward Overview Card */}
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-8 py-6 text-white">
-                    <h3 className="text-2xl font-bold mb-2">Ward {user?.ward} Information</h3>
-                    <p className="text-blue-100">Official government data and services for your area</p>
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-200">
+                    <h3 className="text-base font-semibold text-gray-900">Ward {user?.ward} Information</h3>
+                    <p className="text-gray-600 text-sm">Official government data and services</p>
                 </div>
-                <div className="p-8">
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
-                            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                                <i className="fas fa-users text-white text-xl"></i>
+                <div className="p-5">
+                    <div className="grid md:grid-cols-3 gap-4">
+                        <div className="text-center p-4 rounded-md border border-gray-200 bg-gray-50">
+                            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i className="fas fa-users text-gray-700"></i>
                             </div>
-                            <h4 className="font-bold text-blue-900 mb-2">Population</h4>
-                            <p className="text-2xl font-bold text-blue-800">{wardPopulation !== null ? wardPopulation.toLocaleString() : '0'}</p>
-                            <p className="text-blue-600 text-sm">Registered Users</p>
+                            <h4 className="font-medium text-gray-900 mb-1">Population</h4>
+                            <p className="text-lg font-semibold text-gray-800">{wardPopulation !== null ? wardPopulation.toLocaleString() : '0'}</p>
+                            <p className="text-gray-600 text-xs">Registered Users</p>
                         </div>
-                        
-                        <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
-                            <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-700 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                                <i className="fas fa-check-circle text-white text-xl"></i>
+                        <div className="text-center p-4 rounded-md border border-gray-200 bg-gray-50">
+                            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i className="fas fa-check-circle text-gray-700"></i>
                             </div>
-                            <h4 className="font-bold text-green-900 mb-2">Active Issues</h4>
-                            <p className="text-2xl font-bold text-green-800">23</p>
-                            <p className="text-green-600 text-sm">Under Resolution</p>
+                            <h4 className="font-medium text-gray-900 mb-1">Active Issues</h4>
+                            <p className="text-lg font-semibold text-gray-800">23</p>
+                            <p className="text-gray-600 text-xs">Under Resolution</p>
                         </div>
-                        
-                        <div className="text-center p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border border-yellow-200">
-                            <div className="w-16 h-16 bg-gradient-to-br from-yellow-600 to-yellow-700 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                                <i className="fas fa-star text-white text-xl"></i>
+                        <div className="text-center p-4 rounded-md border border-gray-200 bg-gray-50">
+                            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i className="fas fa-star text-gray-700"></i>
                             </div>
-                            <h4 className="font-bold text-yellow-900 mb-2">Rating</h4>
-                            <p className="text-2xl font-bold text-yellow-800">4.2/5</p>
-                            <p className="text-yellow-600 text-sm">Citizen Satisfaction</p>
+                            <h4 className="font-medium text-gray-900 mb-1">Rating</h4>
+                            <p className="text-lg font-semibold text-gray-800">4.2/5</p>
+                            <p className="text-gray-600 text-xs">Citizen Satisfaction</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Councillor Information */}
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-indigo-800 to-indigo-900 px-8 py-6 text-white">
-                    <h3 className="text-2xl font-bold mb-2">Your Ward Representative</h3>
-                    <p className="text-indigo-100">Direct contact with your elected official</p>
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-200">
+                    <h3 className="text-base font-semibold text-gray-900">Your Ward Representative</h3>
+                    <p className="text-gray-600 text-sm">Direct contact with your elected official</p>
                 </div>
-                <div className="p-8">
-                    <div className="flex items-center space-x-6">
-                        <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-full flex items-center justify-center shadow-lg">
-                            <i className="fas fa-user-tie text-white text-2xl"></i>
-                        </div>
-                        <div className="flex-1">
-                            <h4 className="text-xl font-bold text-gray-800 mb-2">Councillor Jane Doe</h4>
-                            <p className="text-gray-600 mb-3">Elected Representative for Ward {user?.ward}</p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="flex items-center space-x-3">
-                                    <i className="fas fa-map-marker-alt text-indigo-600"></i>
-                                    <span className="text-gray-700">Office: Room 201, City Hall</span>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                    <i className="fas fa-phone text-indigo-600"></i>
-                                    <span className="text-gray-700">+91 98765 43210</span>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                    <i className="fas fa-envelope text-indigo-600"></i>
-                                    <span className="text-gray-700">councillor.ward{user?.ward}@gov.in</span>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                    <i className="fas fa-clock text-indigo-600"></i>
-                                    <span className="text-gray-700">Mon-Fri: 9 AM - 5 PM</span>
+                <div className="p-5">
+                    {councillor ? (
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-gray-200 rounded-full overflow-hidden flex items-center justify-center">
+                                {councillor.profilePicture ? (
+                                    <img src={councillor.profilePicture} alt={councillor.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <i className="fas fa-user-tie text-gray-700"></i>
+                                )}
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="text-base font-semibold text-gray-900">{councillor.name}</h4>
+                                <p className="text-gray-600 text-sm mb-2">Ward {user?.ward}</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                        <i className="fas fa-map-marker-alt text-gray-600"></i>
+                                        <span>{councillor.address || 'Office details unavailable'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                        <i className="fas fa-phone text-gray-600"></i>
+                                        <span>{councillor.contactNumber || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                        <i className="fas fa-envelope text-gray-600"></i>
+                                        <span>{councillor.email}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                        <i className="fas fa-clock text-gray-600"></i>
+                                        <span>Mon-Fri: 9 AM - 5 PM</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="text-gray-600">Councillor information is not available for your ward.</div>
+                    )}
                 </div>
             </div>
 
             {/* AI Assistant */}
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-purple-800 to-purple-900 px-8 py-6 text-white">
-                    <h3 className="text-2xl font-bold mb-2">Government AI Assistant</h3>
-                    <p className="text-purple-100">Get instant answers about your ward and government services</p>
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-200">
+                    <h3 className="text-base font-semibold text-gray-900">Government AI Assistant</h3>
+                    <p className="text-gray-600 text-sm">Get answers about your ward and services</p>
                 </div>
-                <div className="p-8">
-                    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="p-5">
+                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
                         <input
                             type="text"
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}
                             placeholder="e.g., When is the next garbage collection? What are the current welfare schemes?"
-                            className="flex-grow p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            className="flex-grow p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-500 focus:border-gray-500"
                             aria-labelledby="ask-ai-label"
                         />
                         <button 
                             onClick={handleAsk} 
                             disabled={isLoading || !question.trim()} 
-                            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/25 flex items-center justify-center"
+                            className="px-4 py-2 bg-gray-800 text-white font-medium rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                         >
                             {isLoading ? <Spinner size="sm" /> : (
                                 <>
@@ -461,29 +482,29 @@ const MyWardInfo: React.FC = () => {
                     </div>
                     
                     {error && (
-                        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-4" role="alert">
+                        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded mb-3" role="alert">
                             <div className="flex items-center">
-                                <i className="fas fa-exclamation-triangle mr-3"></i>
+                                <i className="fas fa-exclamation-triangle mr-2"></i>
                                 <span className="font-medium">{error}</span>
                             </div>
                         </div>
                     )}
                     
                     {isLoading && (
-                        <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6 text-center">
+                        <div className="bg-gray-50 border border-gray-200 rounded-md p-4 text-center">
                             <Spinner message="Processing your request..." />
                         </div>
                     )}
                     
                     {answer && (
-                        <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6" aria-live="polite">
-                            <div className="flex items-center mb-4">
-                                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-full flex items-center justify-center mr-3">
-                                    <i className="fas fa-robot text-white"></i>
+                        <div className="bg-gray-50 border border-gray-200 rounded-md p-4" aria-live="polite">
+                            <div className="flex items-center mb-2">
+                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
+                                    <i className="fas fa-robot text-gray-700"></i>
                                 </div>
-                                <h4 className="font-bold text-purple-900">Government AI Response</h4>
+                                <h4 className="font-semibold text-gray-900">Government AI Response</h4>
                             </div>
-                            <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{answer}</p>
+                            <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-sm">{answer}</p>
                         </div>
                     )}
                 </div>
@@ -566,51 +587,47 @@ const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted:
 };
 
 const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: WelfareApplication[], onApplyClick: (scheme: WelfareScheme) => void, loading?: boolean }> = ({ schemes, applications, onApplyClick, loading = false }) => (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
         {/* Available Schemes */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-green-800 to-green-900 px-8 py-6 text-white">
-                <h3 className="text-2xl font-bold mb-2">Available Welfare Schemes</h3>
-                <p className="text-green-100">Government assistance programs for eligible citizens</p>
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-200">
+                <h3 className="text-base font-semibold text-gray-900">Available Welfare Schemes</h3>
+                <p className="text-gray-600 text-sm">Government assistance programs for eligible citizens</p>
             </div>
-            <div className="p-8">
+            <div className="p-5">
                 {loading ? (
-                    <div className="flex items-center justify-center py-16">
+                    <div className="flex items-center justify-center py-12">
                         <div className="flex items-center">
                             <Spinner size="lg" />
                             <span className="ml-3 text-gray-600">Loading available schemes...</span>
                         </div>
                     </div>
                 ) : schemes.length > 0 ? (
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid md:grid-cols-2 gap-4">
                         {schemes.map(s => (
-                            <div key={s.id} className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-green-700 rounded-xl flex items-center justify-center">
-                                        <i className="fas fa-hands-helping text-white text-xl"></i>
+                            <div key={s.id} className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="flex items-center gap-2 text-gray-800">
+                                        <i className="fas fa-hands-helping text-gray-700"></i>
+                                        <h4 className="font-semibold text-gray-900">{s.title}</h4>
                                     </div>
-                                    <div className="text-right">
-                                        <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full font-medium">
-                                            Active
-                                        </span>
-                                    </div>
+                                    <span className="text-xs bg-gray-200 text-gray-800 px-2 py-0.5 rounded">Active</span>
                                 </div>
-                                <h4 className="font-bold text-xl text-green-900 mb-3">{s.title}</h4>
-                                <p className="text-green-800 mb-4 leading-relaxed">{s.description}</p>
-                                <div className="flex items-center justify-between mb-4">
-                                    <span className="text-sm text-green-700">
+                                <p className="text-gray-700 mb-2 text-sm">{s.description}</p>
+                                <div className="flex items-center justify-between mb-3 text-sm text-gray-700">
+                                    <span>
                                         <i className="fas fa-building mr-1"></i>
                                         {s.creatorName}
                                     </span>
-                                    <span className="text-sm text-green-700">
+                                    <span>
                                         <i className="fas fa-users mr-1"></i>
-                                        {s.availableSlots} slots available
+                                        {s.availableSlots} slots
                                     </span>
                                 </div>
                                 <button 
                                     onClick={() => onApplyClick(s)} 
                                     disabled={applications.some(a => a.schemeId === s.id)}
-                                    className={`w-full text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center ${applications.some(a => a.schemeId === s.id) ? 'bg-gray-300 cursor-not-allowed' : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-green-500/25'}`}
+                                    className={`w-full text-white font-medium py-2.5 px-4 rounded-md flex items-center justify-center ${applications.some(a => a.schemeId === s.id) ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-800 hover:bg-gray-700'}`}
                                 >
                                     <i className="fas fa-edit mr-2"></i>
                                     {applications.some(a => a.schemeId === s.id) ? 'Already Applied' : 'Apply Now'}
@@ -619,40 +636,34 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-16">
-                        <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <i className="fas fa-hands-helping text-3xl text-gray-400"></i>
-                        </div>
-                        <h4 className="text-xl font-bold text-gray-700 mb-2">No Schemes Available</h4>
-                        <p className="text-gray-500">Currently there are no welfare schemes open for applications.</p>
-                    </div>
+                    <div className="text-center py-10 text-gray-600 text-sm">No schemes available right now.</div>
                 )}
             </div>
         </div>
 
         {/* My Applications */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-8 py-6 text-white">
-                <h3 className="text-2xl font-bold mb-2">My Applications</h3>
-                <p className="text-blue-100">Track your welfare scheme applications</p>
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-200">
+                <h3 className="text-base font-semibold text-gray-900">My Applications</h3>
+                <p className="text-gray-600 text-sm">Track your applications</p>
             </div>
-            <div className="p-8">
+            <div className="p-5">
                 {applications.length > 0 ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {applications.map(app => (
-                            <div key={app.id} className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 hover:shadow-md transition-all duration-200">
-                                <div className="flex items-start justify-between gap-4">
+                            <div key={app.id} className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                                <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1">
-                                        <div className="flex items-center space-x-3 mb-3">
-                                            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
-                                                <i className="fas fa-file-alt text-white"></i>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                                <i className="fas fa-file-alt text-gray-700"></i>
                                             </div>
                                             <div>
-                                                <h4 className="text-lg font-bold text-gray-800">{app.schemeTitle}</h4>
-                                                <p className="text-sm text-gray-600">Application Score: {app.score}/100</p>
+                                                <h4 className="text-base font-semibold text-gray-900">{app.schemeTitle}</h4>
+                                                <p className="text-xs text-gray-600">Score: {app.score}/100</p>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700 mb-2">
                                             <div>
                                                 <span className="font-medium">Applied:</span> {new Date(app.createdAt).toLocaleDateString()}
                                             </div>
@@ -667,13 +678,13 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                                             </div>
                                         </div>
                                         {app.justification && (
-                                            <p className="text-gray-700 text-sm italic">
+                                            <p className="text-gray-700 text-sm">
                                                 <span className="font-medium">Justification:</span> {app.justification}
                                             </p>
                                         )}
                                     </div>
                                     <div className="flex-shrink-0">
-                                        <span className={`px-4 py-2 text-sm font-semibold rounded-xl ${STATUS_COLORS[app.status]} shadow-lg`}>
+                                        <span className={`px-3 py-1.5 text-xs font-medium rounded-md ${STATUS_COLORS[app.status]}`}>
                                             {app.status}
                                         </span>
                                     </div>
@@ -682,19 +693,7 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-16">
-                        <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <i className="fas fa-file-alt text-3xl text-gray-400"></i>
-                        </div>
-                        <h4 className="text-xl font-bold text-gray-700 mb-2">No Applications Submitted</h4>
-                        <p className="text-gray-500 mb-6">You haven't applied for any welfare schemes yet.</p>
-                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
-                            <p className="text-blue-800 text-sm">
-                                <i className="fas fa-info-circle mr-2"></i>
-                                Browse available schemes above and apply for those you're eligible for.
-                            </p>
-                        </div>
-                    </div>
+                    <div className="text-center py-10 text-gray-600 text-sm">No applications submitted yet.</div>
                 )}
             </div>
         </div>

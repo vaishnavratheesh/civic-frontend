@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import AdminSidebar from '../../components/AdminSidebar';
 import Spinner from '../../components/Spinner';
+import AdminTopNav from '../../components/AdminTopNav';
 
 interface WelfareScheme {
   _id: string;
@@ -137,15 +138,11 @@ const AdminWelfareSchemes: React.FC = () => {
         fetchStats(); // Refresh stats
       }
     } catch (error) {
-      alert('Failed to update scheme status');
+      console.error('Failed to update scheme status');
     }
   };
 
   const handleDeleteScheme = async (schemeId: string) => {
-    if (!confirm('Are you sure you want to delete this scheme? This action cannot be undone.')) {
-      return;
-    }
-
     try {
       const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}`, {
         method: 'DELETE',
@@ -159,7 +156,7 @@ const AdminWelfareSchemes: React.FC = () => {
         fetchStats(); // Refresh stats
       }
     } catch (error) {
-      alert('Failed to delete scheme');
+      console.error('Failed to delete scheme');
     }
   };
 
@@ -247,6 +244,7 @@ const AdminWelfareSchemes: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Navbar onMenuClick={handleMenuClick} />
+      <AdminTopNav activeId="welfare-schemes" />
       
       {/* Admin Sidebar */}
       <AdminSidebar
@@ -272,69 +270,6 @@ const AdminWelfareSchemes: React.FC = () => {
               <i className="fas fa-plus mr-2"></i>
               Create New Scheme
             </button>
-          </div>
-        </div>
-
-        {/* Statistics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <i className="fas fa-hands-helping text-2xl text-blue-600"></i>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Schemes</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalSchemes}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-xl">
-                <i className="fas fa-check-circle text-2xl text-green-600"></i>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Schemes</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.activeSchemes}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-            <div className="flex items-center">
-              <div className="p-3 bg-gray-100 rounded-xl">
-                <i className="fas fa-pause-circle text-2xl text-gray-600"></i>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Inactive Schemes</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.inactiveSchemes}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-            <div className="flex items-center">
-              <div className="p-3 bg-red-100 rounded-xl">
-                <i className="fas fa-times-circle text-2xl text-red-600"></i>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Expired Schemes</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.expiredSchemes}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <i className="fas fa-file-alt text-2xl text-purple-600"></i>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Applications</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalApplications}</p>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -377,7 +312,6 @@ const AdminWelfareSchemes: React.FC = () => {
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
                 <option value="expired">Expired</option>
-                <option value="cancelled">Cancelled</option>
               </select>
             </div>
 
@@ -389,8 +323,8 @@ const AdminWelfareSchemes: React.FC = () => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Scopes</option>
-                <option value="panchayath">Panchayath-wide</option>
-                <option value="ward">Ward-specific</option>
+                <option value="panchayath">Panchayath</option>
+                <option value="ward">Ward</option>
               </select>
             </div>
 

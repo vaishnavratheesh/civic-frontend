@@ -52,6 +52,7 @@ export const API_ENDPOINTS = {
   USER_PROFILE_PICTURE: `${config.API_BASE_URL}/api/users`,
   USER_CHANGE_PASSWORD: `${config.API_BASE_URL}/api/users`,
   WARD_STATS: `${config.API_BASE_URL}/api/wards`,
+  WARD_COUNCILLOR: `${config.API_BASE_URL}/api/wards`,
   
   // Admin
   ADMIN_DASHBOARD_STATS: `${config.API_BASE_URL}/api/admin/dashboard-stats`,
