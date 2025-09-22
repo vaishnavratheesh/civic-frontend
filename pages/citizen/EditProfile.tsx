@@ -456,74 +456,74 @@ const EditProfile: React.FC = () => {
                     Personal Information
                   </h3>
 
-                  {/* First Name and Last Name */}
+                {/* First Name and Last Name */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
+                  <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         First Name *
-                      </label>
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
+                    </label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
                           errors.firstName ? 'border-red-300' : 'border-gray-300'
                         }`}
-                        required
-                      />
+                      required
+                    />
                       {errors.firstName && (
                         <p className="text-red-600 text-sm mt-1">{errors.firstName}</p>
                       )}
-                    </div>
-                    <div>
+                  </div>
+                  <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Last Name *
-                      </label>
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
+                    </label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
                           errors.lastName ? 'border-red-300' : 'border-gray-300'
                         }`}
-                        required
-                      />
+                      required
+                    />
                       {errors.lastName && (
                         <p className="text-red-600 text-sm mt-1">{errors.lastName}</p>
                       )}
                     </div>
-                  </div>
+                </div>
 
                   {/* Email (Read-only) */}
                   <div className="mb-6">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Email Address
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
                       disabled
-                    />
+                  />
                     <p className="text-gray-500 text-sm mt-1">
                       <i className="fas fa-info-circle mr-1"></i>
                       Email address cannot be changed once created
                     </p>
-                  </div>
+                </div>
 
-                  {/* Contact Number */}
+                {/* Contact Number */}
                   <div className="mb-6">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Contact Number
-                    </label>
-                    <input
-                      type="tel"
-                      name="contactNumber"
-                      value={formData.contactNumber}
-                      onChange={handleInputChange}
+                    Contact Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="contactNumber"
+                    value={formData.contactNumber}
+                    onChange={handleInputChange}
                       placeholder="10-digit mobile number"
                       className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
                         errors.contactNumber ? 'border-red-300' : 'border-gray-300'
@@ -586,18 +586,18 @@ const EditProfile: React.FC = () => {
                         <p className="text-red-600 text-sm mt-1">{errors.ward}</p>
                       )}
                     </div>
-                  </div>
+                </div>
 
-                  {/* Address */}
+                {/* Address */}
                   <div className="mb-6">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Address
-                    </label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
                       placeholder="Enter your complete address"
                       className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 ${
                         errors.address ? 'border-red-300' : 'border-gray-300'

@@ -12,28 +12,9 @@ import WelfareApplicationForm from '../../components/WelfareApplicationForm';
 import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../../src/config/config';
 import { notificationService } from '../../services/notificationService';
+import jsPDF from 'jspdf';
 
-// Mock Data
-const mockMyComplaints: Complaint[] = [
-    { id: 'comp-1', userId: 'user-citizen', userName: 'John Doe', ward: 3, imageURL: 'https://picsum.photos/400/300?random=1', issueType: 'Road Repair', description: 'Large pothole causing traffic issues.', location: { lat: 12.9716, lng: 77.5946 }, priorityScore: 4, status: ComplaintStatus.IN_PROGRESS, assignedTo: 'officer-1', officerName: 'Officer Smith', source: 'user', createdAt: '2023-10-26T10:00:00Z' },
-    { id: 'comp-2', userId: 'user-citizen', userName: 'John Doe', ward: 3, imageURL: 'https://picsum.photos/400/300?random=2', issueType: 'Streetlight Outage', description: 'Streetlight on 2nd street has been out for a week.', location: { lat: 12.9716, lng: 77.5946 }, priorityScore: 3, status: ComplaintStatus.RESOLVED, assignedTo: 'officer-2', officerName: 'Officer Jones', source: 'user', createdAt: '2023-10-20T14:30:00Z', resolvedAt: '2023-10-25T16:00:00Z' },
-];
-
-const mockCommunityComplaints: Complaint[] = [
-    { id: 'comm-1', userId: 'user-citizen-2', userName: 'Jane Smith', ward: 3, imageURL: 'https://picsum.photos/400/300?random=10', issueType: 'Waste Management', description: 'Overflowing bin at Harmony Park.', location: { lat: 12.9716, lng: 77.5946 }, priorityScore: 3, status: ComplaintStatus.PENDING, source: 'user', createdAt: '2023-10-28T14:00:00Z' },
-    { id: 'comm-2', userId: 'user-citizen-3', userName: 'Anil Kumar', ward: 5, imageURL: 'https://picsum.photos/400/300?random=11', issueType: 'Water Leakage', description: 'Constant water leakage near the community hall.', location: { lat: 12.9716, lng: 77.5946 }, priorityScore: 5, status: ComplaintStatus.IN_PROGRESS, assignedTo: 'officer-1', officerName: 'Officer Smith', source: 'user', createdAt: '2023-10-27T09:00:00Z' },
-    { id: 'comm-3', userId: 'user-citizen-4', userName: 'Priya Singh', ward: 1, imageURL: 'https://picsum.photos/400/300?random=12', issueType: 'Road Repair', description: 'Pavement is broken outside the school.', location: { lat: 12.9716, lng: 77.5946 }, priorityScore: 4, status: ComplaintStatus.RESOLVED, assignedTo: 'officer-2', officerName: 'Officer Jones', source: 'user', createdAt: '2023-10-25T11:00:00Z', resolvedAt: '2023-10-28T15:00:00Z' },
-    { id: 'comm-4', userId: 'user-citizen-5', userName: 'Mike Ross', ward: 2, imageURL: 'https://picsum.photos/400/300?random=13', issueType: 'Public Nuisance', description: 'Loud music from neighbours every night.', location: { lat: 12.9716, lng: 77.5946 }, priorityScore: 2, status: ComplaintStatus.REJECTED, source: 'user', createdAt: '2023-10-29T23:00:00Z' },
-];
-
-const mockWelfareSchemes: WelfareScheme[] = [
-    { id: 'sch-1', title: 'Educational Scholarship for Girls', description: 'A scholarship program to support the education of girls from low-income families.', postedBy: 'Dept. of Social Welfare', ward: 0, totalItems: 100, createdAt: '2023-09-01T00:00:00Z' },
-    { id: 'sch-2', title: 'Senior Citizen Health Subsidy', description: 'Provides subsidies for essential health checkups and medicines for senior citizens.', postedBy: 'Health Department', ward: 0, totalItems: 500, createdAt: '2023-09-15T00:00:00Z' },
-];
-
-const mockMyApplications: WelfareApplication[] = [
-    { id: 'app-3', schemeId: 'sch-1', schemeTitle: 'Educational Scholarship for Girls', userId: 'user-citizen', userName: 'John Doe', address: '123, Harmony Lane, Metropolis', phoneNumber: '9876543210', rationCardNumber: 'RC12345678', aadharNumber: '1234-5678-9012', ward: 3, reason: 'Requesting financial support for my daughter\'s college education.', isHandicapped: false, isSingleWoman: false, familyIncome: 150000, dependents: 4, status: ApplicationStatus.APPROVED, createdAt: '2023-10-15T09:00:00Z', score: 85, justification: 'High need due to income and dependents.' },
-];
+// No mock data - using real data from backend
 
 const tabs = [
     { id: 'my-ward', name: 'My Ward', icon: 'fa-map-marker-alt' },
@@ -43,22 +24,258 @@ const tabs = [
 ];
 
 const CitizenDashboard: React.FC = () => {
-    const { user } = useAuth();
+    const { user, login } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('my-ward');
-    const [myComplaints, setMyComplaints] = useState<Complaint[]>(mockMyComplaints);
+    const [myComplaints, setMyComplaints] = useState<Complaint[]>([]);
+    const [communityComplaints, setCommunityComplaints] = useState<Complaint[]>([]);
+    const [grievancesLoading, setGrievancesLoading] = useState(false);
     const [myApplications, setMyApplications] = useState<WelfareApplication[]>([]);
+    const [printingPDF, setPrintingPDF] = useState<string | null>(null);
+
+    // PDF Generation function
+    const generateApplicationPDF = (application: WelfareApplication) => {
+        setPrintingPDF(application.id);
+        try {
+            const doc = new jsPDF();
+            
+            // Set page margins
+            const margin = 20;
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            
+            // Header with official design
+            doc.setFillColor(0, 51, 102); // Dark blue background
+            doc.rect(0, 0, pageWidth, 40, 'F');
+            
+            // Official header text
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('ERUMELI PANCHAYATH', pageWidth / 2, 20, { align: 'center' });
+            
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Welfare Application Form', pageWidth / 2, 30, { align: 'center' });
+            
+            // Reset text color
+            doc.setTextColor(0, 0, 0);
+            
+            // Application details box
+            doc.setFillColor(240, 248, 255);
+            doc.rect(margin, 50, pageWidth - 2 * margin, 25, 'F');
+            doc.setDrawColor(0, 51, 102);
+            doc.rect(margin, 50, pageWidth - 2 * margin, 25, 'S');
+            
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('APPLICATION FOR WELFARE SCHEME', margin + 5, 65);
+            
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Date of Application: ${new Date(application.createdAt).toLocaleDateString('en-IN')}`, margin + 5, 70);
+            
+            // Scheme Information Section
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('SCHEME DETAILS', margin, 90);
+            
+            // Draw line under heading
+            doc.line(margin, 95, pageWidth - margin, 95);
+            
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Scheme Applied For: ${application.schemeTitle}`, margin, 105);
+            doc.text(`Application Status: ${application.status}`, margin, 115);
+            
+            // Personal Information Section
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('PERSONAL INFORMATION', margin, 135);
+            doc.line(margin, 140, pageWidth - margin, 140);
+            
+            // Create a table-like layout for personal info
+            const personalInfo = [
+                ['Full Name', application.userName],
+                ['Address', application.address],
+                ['Phone Number', application.phoneNumber],
+                ['Aadhar Number', application.aadharNumber],
+                ['Ration Card Number', application.rationCardNumber]
+            ];
+            
+            let yPos = 150;
+            personalInfo.forEach(([label, value]) => {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${label}:`, margin, yPos);
+                doc.setFont('helvetica', 'normal');
+                doc.text(value, margin + 60, yPos);
+                yPos += 8;
+            });
+            
+            // Financial Information Section
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('FINANCIAL INFORMATION', margin, yPos + 10);
+            doc.line(margin, yPos + 15, pageWidth - margin, yPos + 15);
+            
+            yPos += 25;
+            const financialInfo = [
+                ['Annual Family Income', `₹${application.familyIncome.toLocaleString()}`],
+                ['Number of Dependents', application.dependents.toString()],
+                ['Handicapped Member', application.isHandicapped ? 'Yes' : 'No'],
+                ['Single Woman Headed Family', application.isSingleWoman ? 'Yes' : 'No']
+            ];
+            
+            financialInfo.forEach(([label, value]) => {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${label}:`, margin, yPos);
+                doc.setFont('helvetica', 'normal');
+                doc.text(value, margin + 60, yPos);
+                yPos += 8;
+            });
+            
+            // Justification Section
+            if (application.justification) {
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text('JUSTIFICATION FOR APPLICATION', margin, yPos + 10);
+                doc.line(margin, yPos + 15, pageWidth - margin, yPos + 15);
+                
+                yPos += 25;
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                const justificationLines = doc.splitTextToSize(application.justification, pageWidth - 2 * margin - 10);
+                doc.text(justificationLines, margin + 5, yPos);
+                yPos += justificationLines.length * 5 + 10;
+            }
+            
+            // Declaration Section
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('DECLARATION', margin, yPos + 10);
+            doc.line(margin, yPos + 15, pageWidth - margin, yPos + 15);
+            
+            yPos += 25;
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            const declaration = [
+                "I hereby declare that the information provided above is true and correct to the best of my knowledge.",
+                "I understand that any false information may result in rejection of my application.",
+                "I agree to provide additional documents if required by the authorities."
+            ];
+            
+            declaration.forEach((text, index) => {
+                doc.text(`${index + 1}. ${text}`, margin + 5, yPos);
+                yPos += 8;
+            });
+            
+            // Signature section
+            yPos += 20;
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Signature of Applicant:', margin, yPos);
+            doc.line(margin + 50, yPos - 2, margin + 120, yPos - 2);
+            
+            doc.text('Date:', pageWidth - 80, yPos);
+            doc.line(pageWidth - 50, yPos - 2, pageWidth - 20, yPos - 2);
+            
+            // Official footer
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'italic');
+            doc.setTextColor(100, 100, 100);
+            doc.text('This is a computer generated document and does not require signature.', margin, pageHeight - 30);
+            doc.text('For official use only - Erumeli Panchayath Welfare Management System', margin, pageHeight - 20);
+            doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, margin, pageHeight - 10);
+            
+            // Generate filename
+            const timestamp = new Date().toISOString().slice(0, 10);
+            const filename = `Welfare-Application-${application.schemeTitle.replace(/[^a-zA-Z0-9]/g, '-')}-${timestamp}.pdf`;
+            
+            // Save the PDF
+            doc.save(filename);
+            
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+        } finally {
+            setPrintingPDF(null);
+        }
+    };
     const [availableSchemes, setAvailableSchemes] = useState<WelfareScheme[]>([]);
     const [schemesLoading, setSchemesLoading] = useState(false);
     const [isApplicationFormOpen, setIsApplicationFormOpen] = useState(false);
     const [selectedScheme, setSelectedScheme] = useState<WelfareScheme | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const isVerified = !!user?.isVerified;
+    const restrictedTabIds = ['my-grievances', 'community-grievances', 'welfare-schemes'];
 
     // Fetch user's applications
     const fetchMyApplications = async () => {
+        const TAG = '[APPS]';
         try {
             const token = localStorage.getItem('token');
+            console.log(`${TAG} requesting /api/welfare/applications/user`, { hasToken: !!token });
             const response = await fetch('http://localhost:3002/api/welfare/applications/user', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const status = response.status;
+            let bodyText: string | undefined;
+            try { bodyText = await response.clone().text(); } catch (_) {}
+            console.log(`${TAG} response`, { status, ok: response.ok, bodyText });
+            if (response.ok) {
+                let data: any = {};
+                try { data = await response.json(); } catch (e) { console.error(`${TAG} JSON parse error`, e); }
+                const mapped = (data.applications || []).map((a: any) => {
+                    const schemeIdRaw = a.schemeId;
+                    const schemeIdStr = (
+                        (schemeIdRaw && (schemeIdRaw._id || schemeIdRaw.id)) || schemeIdRaw || ''
+                    ).toString();
+                    return {
+                        id: a._id,
+                        schemeId: schemeIdStr,
+                        schemeTitle: a.schemeTitle,
+                        userId: a.userId,
+                        userName: a.userName,
+                        address: a.personalDetails?.address || '',
+                        phoneNumber: a.personalDetails?.phoneNumber || '',
+                        rationCardNumber: a.personalDetails?.rationCardNumber || '',
+                        aadharNumber: a.personalDetails?.aadharNumber || '',
+                        ward: a.userWard,
+                        reason: a.reason,
+                        isHandicapped: a.personalDetails?.isHandicapped || false,
+                        isSingleWoman: a.personalDetails?.isSingleWoman || false,
+                        familyIncome: a.personalDetails?.familyIncome || 0,
+                        dependents: a.personalDetails?.dependents || 0,
+                        status: (a.status || 'pending') as ApplicationStatus,
+                        createdAt: a.appliedAt,
+                        score: a.score,
+                        justification: a.justification,
+                    };
+                });
+                console.log(`${TAG} mapped`, { count: mapped.length, schemeIds: mapped.map((m:any)=>m.schemeId) });
+                setMyApplications(mapped);
+            } else {
+                let details: any = bodyText;
+                try { details = JSON.parse(bodyText || '{}'); } catch (_) {}
+                console.error(`${TAG} failed`, { status, statusText: response.statusText, details });
+                setMyApplications([]);
+            }
+        } catch (err) {
+            console.error('[APPS] exception', err);
+            setMyApplications([]);
+        }
+    };
+
+    // Fetch user's grievances
+    const fetchMyGrievances = async () => {
+        setGrievancesLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:3002/api/grievances/my', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -66,41 +283,112 @@ const CitizenDashboard: React.FC = () => {
             });
             if (response.ok) {
                 const data = await response.json();
-                const mapped = (data.applications || []).map((a: any) => ({
-                    id: a._id,
-                    schemeId: typeof a.schemeId === 'object' ? (a.schemeId._id || a.schemeId.id) : a.schemeId,
-                    schemeTitle: a.schemeTitle,
-                    userId: a.userId,
-                    userName: a.userName,
-                    address: a.personalDetails?.address || '',
-                    phoneNumber: a.personalDetails?.phoneNumber || '',
-                    rationCardNumber: a.personalDetails?.rationCardNumber || '',
-                    aadharNumber: a.personalDetails?.aadharNumber || '',
-                    ward: a.userWard,
-                    reason: a.reason,
-                    isHandicapped: a.personalDetails?.isHandicapped || false,
-                    isSingleWoman: a.personalDetails?.isSingleWoman || false,
-                    familyIncome: a.personalDetails?.familyIncome || 0,
-                    dependents: a.personalDetails?.dependents || 0,
-                    status: (a.status || 'pending') as ApplicationStatus,
-                    createdAt: a.appliedAt,
-                    score: a.score,
-                    justification: a.justification,
+                const mapped = (data.grievances || []).map((g: any) => ({
+                    id: g.id,
+                    userId: g.userId,
+                    userName: g.userName,
+                    ward: g.ward,
+                    imageURL: g.imageURL,
+                    issueType: g.issueType,
+                    description: g.description,
+                    location: g.location,
+                    priorityScore: g.priorityScore,
+                    status: g.status as ComplaintStatus,
+                    assignedTo: g.assignedTo,
+                    officerName: g.officerName,
+                    source: g.source,
+                    createdAt: g.createdAt,
+                    resolvedAt: g.resolvedAt
                 }));
-                setMyApplications(mapped);
+                setMyComplaints(mapped);
             } else {
-                console.error('Failed to fetch applications:', response.statusText);
-                setMyApplications([]);
+                console.error('Failed to fetch my grievances:', response.statusText);
+                setMyComplaints([]);
             }
         } catch (err) {
-            console.error('Error fetching applications:', err);
-            setMyApplications([]);
+            console.error('Error fetching my grievances:', err);
+            setMyComplaints([]);
+        } finally {
+            setGrievancesLoading(false);
+        }
+    };
+
+    // Fetch community grievances
+    const fetchCommunityGrievances = async () => {
+        setGrievancesLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:3002/api/grievances/community', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const mapped = (data.grievances || []).map((g: any) => ({
+                    id: g.id,
+                    userId: g.userId,
+                    userName: g.userName,
+                    ward: g.ward,
+                    imageURL: g.imageURL,
+                    issueType: g.issueType,
+                    description: g.description,
+                    location: g.location,
+                    priorityScore: g.priorityScore,
+                    status: g.status as ComplaintStatus,
+                    assignedTo: g.assignedTo,
+                    officerName: g.officerName,
+                    source: g.source,
+                    createdAt: g.createdAt,
+                    resolvedAt: g.resolvedAt
+                }));
+                setCommunityComplaints(mapped);
+            } else {
+                console.error('Failed to fetch community grievances:', response.statusText);
+                setCommunityComplaints([]);
+            }
+        } catch (err) {
+            console.error('Error fetching community grievances:', err);
+            setCommunityComplaints([]);
+        } finally {
+            setGrievancesLoading(false);
         }
     };
 
     useEffect(() => {
         fetchMyApplications();
+        fetchMyGrievances();
+        fetchCommunityGrievances();
     }, []);
+
+
+    // Refresh user profile to reflect verification changes done by councillor
+    useEffect(() => {
+        const refreshUserVerification = async () => {
+            try {
+                if (!user?.id) return;
+                const token = localStorage.getItem('token');
+                const res = await fetch(`http://localhost:3002/api/users/${user.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const latest = data?.user;
+                    if (latest && typeof latest.isVerified === 'boolean' && latest.isVerified !== user.isVerified) {
+                        login({ ...user, isVerified: latest.isVerified });
+                    }
+                }
+            } catch (e) {
+                // Non-blocking; ignore refresh errors
+            }
+        };
+        refreshUserVerification();
+        // Run once on mount and when user.id changes
+    }, [user?.id]);
 
     // Fetch available welfare schemes for the citizen's ward
     useEffect(() => {
@@ -119,8 +407,6 @@ const CitizenDashboard: React.FC = () => {
 
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('Fetched schemes for citizen:', data);
-                    console.log('Number of schemes received:', data.schemes?.length || 0);
                     
                     // Map the schemes to include id field
                     const mappedSchemes = data.schemes?.map((s: any) => ({
@@ -144,7 +430,6 @@ const CitizenDashboard: React.FC = () => {
                         createdAt: s.createdAt
                     })) || [];
                     
-                    console.log('Mapped schemes:', mappedSchemes);
                     setAvailableSchemes(mappedSchemes);
                     
                     // Check for new schemes and create notifications
@@ -175,6 +460,9 @@ const CitizenDashboard: React.FC = () => {
     ];
 
     const handleSidebarNavigation = (itemId: string) => {
+        if (!isVerified && restrictedTabIds.includes(itemId)) {
+            return;
+        }
         if (itemId === 'help') {
             navigate('/citizen/help');
         } else if (itemId === 'edit-profile') {
@@ -194,13 +482,19 @@ const CitizenDashboard: React.FC = () => {
     
     const handleGrievanceSubmitted = (newComplaint: Complaint) => {
         setMyComplaints(prev => [newComplaint, ...prev]);
+        // Refresh both my grievances and community grievances
+        fetchMyGrievances();
+        fetchCommunityGrievances();
     };
     
     const hasAppliedForScheme = (schemeId: string) => {
-        return myApplications.some(app => app.schemeId === schemeId);
+        return myApplications.some(app => String(app.schemeId) === String(schemeId));
     };
-
+    
     const handleApplyClick = (scheme: WelfareScheme) => {
+        if (!isVerified) {
+            return;
+        }
         if (hasAppliedForScheme(scheme.id)) {
             // Already applied: keep UI silent and disable button elsewhere
             return;
@@ -220,11 +514,11 @@ const CitizenDashboard: React.FC = () => {
             case 'my-ward':
                 return <MyWardInfo />;
             case 'my-grievances':
-                return <MyGrievancesTab complaints={myComplaints} onGrievanceSubmitted={handleGrievanceSubmitted} />;
+                return <MyGrievancesTab complaints={myComplaints} onGrievanceSubmitted={handleGrievanceSubmitted} loading={grievancesLoading} />;
             case 'community-grievances':
-                return <CommunityGrievances complaints={[...mockMyComplaints, ...mockCommunityComplaints]} />;
+                return <CommunityGrievances complaints={communityComplaints} loading={grievancesLoading} />;
             case 'welfare-schemes':
-                return <WelfareSchemesTab schemes={availableSchemes} applications={myApplications} onApplyClick={handleApplyClick} loading={schemesLoading} />;
+                return <WelfareSchemesTab schemes={availableSchemes} applications={myApplications} onApplyClick={handleApplyClick} loading={schemesLoading} printingPDF={printingPDF} generateApplicationPDF={generateApplicationPDF} />;
             default:
                 return null;
         }
@@ -269,24 +563,46 @@ const CitizenDashboard: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Verification Status Banner */}
+                    {user && !user.isVerified && (
+                        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <div className="flex items-center">
+                                <i className="fas fa-exclamation-triangle text-yellow-600 text-xl mr-3"></i>
+                                <div>
+                                    <h3 className="text-yellow-800 font-semibold">Account Verification Required</h3>
+                                    <p className="text-yellow-700 text-sm mt-1">
+                                        Your account is pending verification by your ward councillor. 
+                                        Some features may be limited until verification is complete.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Navigation Tabs */}
                     <div className="mb-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
                         <nav className="flex space-x-1 p-1 bg-gray-50">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`flex-1 py-2 px-4 rounded-md font-medium text-sm flex items-center justify-center space-x-2 transition-colors ${
-                                        activeTab === tab.id
-                                            ? 'bg-gray-200 text-gray-900'
-                                            : 'text-gray-700 hover:bg-gray-100'
-                                    }`}
-                                    aria-current={activeTab === tab.id ? 'page' : undefined}
-                                >
-                                    <i className={`fas ${tab.icon} text-base`}></i>
-                                    <span>{tab.name}</span>
-                                </button>
-                            ))}
+                            {tabs.map((tab) => {
+                                const disabled = !isVerified && restrictedTabIds.includes(tab.id);
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => { if (!disabled) setActiveTab(tab.id); }}
+                                        disabled={disabled}
+                                        className={`flex-1 py-2 px-4 rounded-md font-medium text-sm flex items-center justify-center space-x-2 transition-colors ${
+                                            disabled
+                                                ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400'
+                                                : activeTab === tab.id
+                                                    ? 'bg-gray-200 text-gray-900'
+                                                    : 'text-gray-700 hover:bg-gray-100'
+                                        }`}
+                                        aria-current={activeTab === tab.id ? 'page' : undefined}
+                                    >
+                                        <i className={`fas ${tab.icon} text-base`}></i>
+                                        <span>{tab.name}</span>
+                                    </button>
+                                );
+                            })}
                         </nav>
                     </div>
 
@@ -308,13 +624,17 @@ const CitizenDashboard: React.FC = () => {
 };
 
 const MyWardInfo: React.FC = () => {
-    const { user } = useAuth();
+    const { user, login } = useAuth();
     const [question, setQuestion] = useState('');
     const [answer, setAnswer] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [wardPopulation, setWardPopulation] = useState<number | null>(null);
+    const [activeIssues, setActiveIssues] = useState<number>(0);
     const [councillor, setCouncillor] = useState<{ name: string; email?: string; contactNumber?: string; address?: string; profilePicture?: string } | null>(null);
+    const [idProofUploading, setIdProofUploading] = useState(false);
+    const [idProofType, setIdProofType] = useState<'aadhar' | 'voter_id' | 'driving_license' | 'ration_card' | 'passport'>('aadhar');
+    const [idProofFile, setIdProofFile] = useState<File | null>(null);
 
     const handleAsk = async () => {
         if (!question.trim() || !user) return;
@@ -349,6 +669,28 @@ const MyWardInfo: React.FC = () => {
                 console.error('Failed to fetch ward stats', e);
             }
         };
+        const fetchActiveIssues = async () => {
+            if (!user?.ward) return;
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/grievances/../stats?ward=${user.ward}`.replace('/users/grievances/..','/grievances'), {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await res.json();
+                if (res.ok && data) {
+                    const active = (data.pending || 0) + (data.in_progress || 0);
+                    setActiveIssues(active);
+                } else {
+                    setActiveIssues(0);
+                }
+            } catch (e) {
+                console.error('Failed to fetch active issues', e);
+                setActiveIssues(0);
+            }
+        };
         const fetchCouncillor = async () => {
             if (!user?.ward) return;
             try {
@@ -365,6 +707,7 @@ const MyWardInfo: React.FC = () => {
             }
         };
         fetchWardStats();
+        fetchActiveIssues();
         fetchCouncillor();
     }, [user?.ward]);
 
@@ -391,7 +734,7 @@ const MyWardInfo: React.FC = () => {
                                 <i className="fas fa-check-circle text-gray-700"></i>
                             </div>
                             <h4 className="font-medium text-gray-900 mb-1">Active Issues</h4>
-                            <p className="text-lg font-semibold text-gray-800">23</p>
+                            <p className="text-lg font-semibold text-gray-800">{activeIssues}</p>
                             <p className="text-gray-600 text-xs">Under Resolution</p>
                         </div>
                         <div className="text-center p-4 rounded-md border border-gray-200 bg-gray-50">
@@ -405,6 +748,58 @@ const MyWardInfo: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* ID Proof Upload Prompt for unverified users */}
+            {user && !user.isVerified && (!user.idProof || !user.idProof.fileUrl) && (
+                <div className="bg-yellow-50 rounded-lg border border-yellow-200 overflow-hidden">
+                    <div className="px-5 py-4 border-b border-yellow-200">
+                        <h3 className="text-base font-semibold text-yellow-900">Upload ID Proof to Complete Verification</h3>
+                        <p className="text-yellow-800 text-sm">Upload any one valid document. Your councillor will review and verify your account.</p>
+                    </div>
+                    <div className="p-5">
+                        <div className="flex flex-col md:flex-row md:items-center gap-3">
+                            <select value={idProofType} onChange={e => setIdProofType(e.target.value as any)} className="border rounded-md px-3 py-2 text-sm w-full md:w-48">
+                                <option value="aadhar">Aadhar</option>
+                                <option value="voter_id">Voter ID</option>
+                                <option value="driving_license">Driving License</option>
+                                <option value="ration_card">Ration Card</option>
+                                <option value="passport">Passport</option>
+                            </select>
+                            <input type="file" accept="image/*,application/pdf" onChange={e => setIdProofFile(e.target.files?.[0] || null)} className="text-sm" />
+                            <button
+                                onClick={async () => {
+                                    if (!idProofFile || !user) return;
+                                    setIdProofUploading(true);
+                                    try {
+                                        const formData = new FormData();
+                                        formData.append('type', idProofType);
+                                        formData.append('idProof', idProofFile);
+                                        const token = localStorage.getItem('token');
+                                        const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/${user.id}/id-proof`, {
+                                            method: 'POST',
+                                            headers: { 'Authorization': `Bearer ${token}` },
+                                            body: formData
+                                        });
+                                        if (res.ok) {
+                                            const data = await res.json();
+                                            login({ ...(user as any), idProof: data.user.idProof });
+                                        }
+                                    } catch (e) {
+                                        console.error('ID proof upload failed', e);
+                                    } finally {
+                                        setIdProofUploading(false);
+                                    }
+                                }}
+                                disabled={idProofUploading || !idProofFile}
+                                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-md text-sm"
+                            >
+                                {idProofUploading ? 'Uploading...' : 'Upload Proof'}
+                            </button>
+                        </div>
+                        <p className="text-xs text-yellow-700 mt-2">Accepted: images or PDF. Max 5MB.</p>
+                    </div>
+                </div>
+            )}
 
             {/* Councillor Information */}
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -421,8 +816,8 @@ const MyWardInfo: React.FC = () => {
                                 ) : (
                                     <i className="fas fa-user-tie text-gray-700"></i>
                                 )}
-                            </div>
-                            <div className="flex-1">
+                        </div>
+                        <div className="flex-1">
                                 <h4 className="text-base font-semibold text-gray-900">{councillor.name}</h4>
                                 <p className="text-gray-600 text-sm mb-2">Ward {user?.ward}</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -433,15 +828,15 @@ const MyWardInfo: React.FC = () => {
                                     <div className="flex items-center gap-2 text-gray-700">
                                         <i className="fas fa-phone text-gray-600"></i>
                                         <span>{councillor.contactNumber || 'N/A'}</span>
-                                    </div>
+                                </div>
                                     <div className="flex items-center gap-2 text-gray-700">
                                         <i className="fas fa-envelope text-gray-600"></i>
                                         <span>{councillor.email}</span>
-                                    </div>
+                                </div>
                                     <div className="flex items-center gap-2 text-gray-700">
                                         <i className="fas fa-clock text-gray-600"></i>
                                         <span>Mon-Fri: 9 AM - 5 PM</span>
-                                    </div>
+                                </div>
                                 </div>
                             </div>
                         </div>
@@ -513,7 +908,7 @@ const MyWardInfo: React.FC = () => {
     );
 };
 
-const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted: (complaint: Complaint) => void }> = ({ complaints, onGrievanceSubmitted }) => {
+const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted: (complaint: Complaint) => void, loading?: boolean }> = ({ complaints, onGrievanceSubmitted, loading = false }) => {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
             <div className="lg:col-span-2">
@@ -523,7 +918,12 @@ const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted:
                         <p className="text-red-100">Track the status of your civic issue reports</p>
                     </div>
                     <div className="p-8">
-                        {complaints.length > 0 ? (
+                        {loading ? (
+                            <div className="text-center py-16">
+                                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                                <p className="mt-2 text-gray-500">Loading grievances...</p>
+                            </div>
+                        ) : complaints.length > 0 ? (
                             <div className="space-y-6">
                                 {complaints.map(c => (
                                     <div key={c.id} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 hover:shadow-md transition-all duration-200">
@@ -586,7 +986,59 @@ const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted:
     );
 };
 
-const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: WelfareApplication[], onApplyClick: (scheme: WelfareScheme) => void, loading?: boolean }> = ({ schemes, applications, onApplyClick, loading = false }) => (
+const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: WelfareApplication[], onApplyClick: (scheme: WelfareScheme) => void, loading?: boolean, printingPDF: string | null, generateApplicationPDF: (application: WelfareApplication) => void }> = ({ schemes, applications, onApplyClick, loading = false, printingPDF, generateApplicationPDF }) => {
+    const hasAppliedForScheme = (schemeId: string) => {
+        return applications.some(app => String(app.schemeId) === String(schemeId));
+    };
+    
+    const [appFilter, setAppFilter] = React.useState<'active' | 'accepted' | 'rejected' | 'old'>('active');
+
+    const filteredApplications = React.useMemo(() => {
+        const now = Date.now();
+        const isAccepted = (s: string) => ['approved', 'accepted'].includes(String(s || '').toLowerCase());
+        const isRejected = (s: string) => String(s || '').toLowerCase() === 'rejected';
+        const schemeById = new Map(schemes.map(s => [String(s.id), s]));
+        const isSchemeExpired = (schemeId: string) => {
+            const s = schemeById.get(String(schemeId));
+            if (!s) return false;
+            const deadline = s.applicationDeadline || s.endDate;
+            if (!deadline) return false;
+            const ts = new Date(deadline as any).getTime();
+            return Number.isFinite(ts) && ts < now;
+        };
+        return applications.filter(a => {
+            if (appFilter === 'accepted') return isAccepted(a.status as any);
+            if (appFilter === 'rejected') return isRejected(a.status as any);
+            if (appFilter === 'old') return isSchemeExpired(String(a.schemeId));
+            // active: not accepted and not rejected
+            return !isAccepted(a.status as any) && !isRejected(a.status as any);
+        });
+    }, [applications, appFilter, schemes]);
+    
+    const counts = React.useMemo(() => {
+        const now = Date.now();
+        const isAccepted = (s: string) => ['approved', 'accepted'].includes(String(s || '').toLowerCase());
+        const isRejected = (s: string) => String(s || '').toLowerCase() === 'rejected';
+        const schemeById = new Map(schemes.map(s => [String(s.id), s]));
+        const isSchemeExpired = (schemeId: string) => {
+            const s = schemeById.get(String(schemeId));
+            if (!s) return false;
+            const deadline = s.applicationDeadline || s.endDate;
+            if (!deadline) return false;
+            const ts = new Date(deadline as any).getTime();
+            return Number.isFinite(ts) && ts < now;
+        };
+        let accepted = 0, rejected = 0, old = 0, active = 0;
+        for (const a of applications) {
+            if (isAccepted(a.status as any)) accepted++;
+            else if (isRejected(a.status as any)) rejected++;
+            else active++;
+            if (isSchemeExpired(String(a.schemeId))) old++;
+        }
+        return { accepted, rejected, active, old };
+    }, [applications, schemes]);
+    
+    return (
     <div className="space-y-6 animate-fade-in">
         {/* Available Schemes */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -617,20 +1069,22 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                                 <div className="flex items-center justify-between mb-3 text-sm text-gray-700">
                                     <span>
                                         <i className="fas fa-building mr-1"></i>
-                                        {s.creatorName}
+                                        {(s as any).creatorName}
                                     </span>
                                     <span>
                                         <i className="fas fa-users mr-1"></i>
-                                        {s.availableSlots} slots
+                                        {(s as any).availableSlots} slots
                                     </span>
                                 </div>
                                 <button 
                                     onClick={() => onApplyClick(s)} 
-                                    disabled={applications.some(a => a.schemeId === s.id)}
-                                    className={`w-full text-white font-medium py-2.5 px-4 rounded-md flex items-center justify-center ${applications.some(a => a.schemeId === s.id) ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-800 hover:bg-gray-700'}`}
+                                    disabled={hasAppliedForScheme(s.id) || !isVerified}
+                                    className={`w-full text-white font-medium py-2.5 px-4 rounded-md flex items-center justify-center ${
+                                        hasAppliedForScheme(s.id) || !isVerified ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-800 hover:bg-gray-700'
+                                    }`}
                                 >
                                     <i className="fas fa-edit mr-2"></i>
-                                    {applications.some(a => a.schemeId === s.id) ? 'Already Applied' : 'Apply Now'}
+                                    {hasAppliedForScheme(s.id) ? 'Already Applied' : (!isVerified ? 'Verify to Apply' : 'Apply Now')}
                                 </button>
                             </div>
                         ))}
@@ -645,12 +1099,41 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200">
                 <h3 className="text-base font-semibold text-gray-900">My Applications</h3>
-                <p className="text-gray-600 text-sm">Track your applications</p>
+                <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                    <button
+                        onClick={() => setAppFilter('active')}
+                        className={`px-3 py-1.5 rounded-md border ${appFilter === 'active' ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'}`}
+                        aria-current={appFilter === 'active' ? 'page' : undefined}
+                    >
+                        Active ({counts.active})
+                    </button>
+                    <button
+                        onClick={() => setAppFilter('accepted')}
+                        className={`px-3 py-1.5 rounded-md border ${appFilter === 'accepted' ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'}`}
+                        aria-current={appFilter === 'accepted' ? 'page' : undefined}
+                    >
+                        Accepted ({counts.accepted})
+                    </button>
+                    <button
+                        onClick={() => setAppFilter('rejected')}
+                        className={`px-3 py-1.5 rounded-md border ${appFilter === 'rejected' ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'}`}
+                        aria-current={appFilter === 'rejected' ? 'page' : undefined}
+                    >
+                        Rejected ({counts.rejected})
+                    </button>
+                    <button
+                        onClick={() => setAppFilter('old')}
+                        className={`px-3 py-1.5 rounded-md border ${appFilter === 'old' ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'}`}
+                        aria-current={appFilter === 'old' ? 'page' : undefined}
+                    >
+                        Old ({counts.old})
+                    </button>
+                </div>
             </div>
             <div className="p-5">
-                {applications.length > 0 ? (
+                {filteredApplications.length > 0 ? (
                     <div className="space-y-4">
-                        {applications.map(app => (
+                        {filteredApplications.map(app => (
                             <div key={app.id} className="bg-gray-50 border border-gray-200 rounded-md p-4">
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1">
@@ -683,10 +1166,31 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                                             </p>
                                         )}
                                     </div>
-                                    <div className="flex-shrink-0">
+                                    <div className="flex-shrink-0 flex flex-col gap-2">
                                         <span className={`px-3 py-1.5 text-xs font-medium rounded-md ${STATUS_COLORS[app.status]}`}>
                                             {app.status}
                                         </span>
+                                        <button
+                                            onClick={() => generateApplicationPDF(app)}
+                                            disabled={printingPDF === app.id}
+                                            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                                printingPDF === app.id
+                                                    ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed'
+                                                    : 'text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100'
+                                            }`}
+                                        >
+                                            {printingPDF === app.id ? (
+                                                <>
+                                                    <i className="fas fa-spinner fa-spin"></i>
+                                                    Generating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="fas fa-print"></i>
+                                                    Print PDF
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -698,6 +1202,7 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
             </div>
         </div>
     </div>
-);
+    );
+};
 
 export default CitizenDashboard;

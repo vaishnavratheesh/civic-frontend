@@ -8,7 +8,8 @@ interface WelfareSchemeForm {
   category: string;
   eligibilityCriteria: string;
   benefits: string;
-  documentsRequired: string[];
+  documentsRequired: string[]; // legacy, still sent for backward-compat
+  requiredDocuments?: { name: string; formats?: string[] }[];
   totalSlots: number;
   applicationDeadline: string;
   startDate: string;
@@ -44,6 +45,7 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
     eligibilityCriteria: '',
     benefits: '',
     documentsRequired: [],
+    requiredDocuments: [{ name: '', formats: [] }],
     totalSlots: 1,
     applicationDeadline: '',
     startDate: '',
@@ -79,25 +81,74 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
   };
 
   const handleDocumentChange = (index: number, value: string) => {
-    const newDocuments = [...formData.documentsRequired];
-    newDocuments[index] = value;
+    const newDocuments = [...(formData.requiredDocuments || [])];
+    if (!newDocuments[index]) {
+      newDocuments[index] = { name: '', formats: [] };
+    }
+    newDocuments[index].name = value;
     setFormData(prev => ({
       ...prev,
-      documentsRequired: newDocuments
+      requiredDocuments: newDocuments
     }));
+  };
+
+  // Allowed Indian documents (must match backend ALLOWED_INDIAN_DOCUMENTS)
+  const ALLOWED_INDIAN_DOCUMENTS = [
+    'Aadhar Card',
+    'Ration Card',
+    'Voter ID',
+    'Driving License',
+    'PAN Card',
+    'Passport',
+    'Disability Certificate',
+    'Income Certificate',
+    'Caste Certificate',
+    'Residence Certificate',
+    'BPL Card',
+    'Senior Citizen ID',
+    'Widow Certificate',
+    'Death Certificate'
+  ];
+
+  // New: dynamic requiredDocuments handlers
+  const addRequiredDocument = () => {
+    setFormData(prev => ({
+      ...prev,
+      requiredDocuments: [...(prev.requiredDocuments || []), { name: '', formats: [] }]
+    }));
+  };
+
+  const removeRequiredDocument = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      requiredDocuments: (prev.requiredDocuments || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateRequiredDocument = (index: number, key: 'name' | 'formats', value: string) => {
+    const list = [...(formData.requiredDocuments || [])];
+    if (key === 'name') {
+      list[index].name = value;
+    } else {
+      list[index].formats = value
+        .split(',')
+        .map(v => v.trim())
+        .filter(Boolean);
+    }
+    setFormData(prev => ({ ...prev, requiredDocuments: list }));
   };
 
   const addDocument = () => {
     setFormData(prev => ({
       ...prev,
-      documentsRequired: [...prev.documentsRequired, '']
+      requiredDocuments: [...(prev.requiredDocuments || []), { name: '', formats: [] }]
     }));
   };
 
   const removeDocument = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      documentsRequired: prev.documentsRequired.filter((_, i) => i !== index)
+      requiredDocuments: (prev.requiredDocuments || []).filter((_, i) => i !== index)
     }));
   };
 
@@ -135,6 +186,14 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
       newErrors.ward = 'Ward number is required for ward-specific schemes';
     }
 
+    // Validate required documents: must have at least one, and each name in allowed list
+    const reqDocs = (formData.requiredDocuments || []).filter(d => d.name && d.name.trim());
+    if (reqDocs.length === 0) {
+      (newErrors as any).requiredDocuments = 'At least one required document is mandatory';
+    } else if (reqDocs.some(d => !ALLOWED_INDIAN_DOCUMENTS.includes(d.name))) {
+      (newErrors as any).requiredDocuments = 'Select valid Indian document types only';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -156,7 +215,12 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          // ensure backend receives requiredDocuments
+          requiredDocuments: (formData.requiredDocuments || [])
+            .filter(d => d.name && d.name.trim().length > 0)
+        })
       });
 
       const data = await response.json();
@@ -279,6 +343,65 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
             </div>
           </div>
 
+          {/* Required Documents (Dynamic) */}
+          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+              <i className="fas fa-file-upload mr-3 text-amber-600"></i>
+              Required Documents (Dynamic)
+            </h3>
+
+            <p className="text-sm text-gray-600 mb-4">Add the documents applicants must upload (e.g., Aadhar Card, Ration Card). Optionally restrict allowed formats (e.g., pdf,jpg,png).</p>
+
+            {(formData.requiredDocuments || []).map((doc, idx) => (
+              <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mb-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Document Name *</label>
+                  <select
+                    value={doc.name}
+                    onChange={(e) => updateRequiredDocument(idx, 'name', e.target.value)}
+                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  >
+                    <option value="">Select document</option>
+                    {ALLOWED_INDIAN_DOCUMENTS.map(dn => (
+                      <option key={dn} value={dn}>{dn}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Allowed Formats (comma separated)</label>
+                  <input
+                    type="text"
+                    value={(doc.formats || []).join(',')}
+                    onChange={(e) => updateRequiredDocument(idx, 'formats', e.target.value)}
+                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    placeholder="pdf,jpg,png"
+                  />
+                </div>
+                <div className="flex">
+                  <button
+                    type="button"
+                    onClick={() => removeRequiredDocument(idx)}
+                    className="h-10 mt-auto px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addRequiredDocument}
+              className="px-4 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700"
+            >
+              Add Document
+            </button>
+
+            {errors as any && (errors as any).requiredDocuments && (
+              <p className="mt-2 text-sm text-red-600">{(errors as any).requiredDocuments}</p>
+            )}
+          </div>
+
           {/* Scheme Details */}
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
@@ -392,41 +515,73 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
             </div>
           </div>
 
-          {/* Documents Required */}
-          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6">
+          {/* Required Documents */}
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-              <i className="fas fa-file-alt mr-3 text-yellow-600"></i>
-              Documents Required
+              <i className="fas fa-file-alt mr-3 text-orange-600"></i>
+              Required Documents
             </h3>
             
             <div className="space-y-4">
-              {formData.documentsRequired.map((doc, index) => (
+              {(formData.requiredDocuments || []).map((doc, index) => (
                 <div key={index} className="flex items-center space-x-3">
-                  <input
-                    type="text"
-                    value={doc}
+                  <select
+                    value={doc.name || ''}
                     onChange={(e) => handleDocumentChange(index, e.target.value)}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200"
-                    placeholder="e.g., Aadhar Card, Income Certificate"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeDocument(index)}
-                    className="px-3 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
                   >
-                    <i className="fas fa-trash"></i>
-                  </button>
+                    <option value="">Select document type</option>
+                    <option value="Aadhar Card">Aadhar Card</option>
+                    <option value="PAN Card">PAN Card</option>
+                    <option value="Voter ID">Voter ID</option>
+                    <option value="Driving License">Driving License</option>
+                    <option value="Passport">Passport</option>
+                    <option value="Ration Card">Ration Card</option>
+                    <option value="Income Certificate">Income Certificate</option>
+                    <option value="Caste Certificate">Caste Certificate</option>
+                    <option value="Disability Certificate">Disability Certificate</option>
+                    <option value="Bank Passbook">Bank Passbook</option>
+                    <option value="Property Documents">Property Documents</option>
+                    <option value="Educational Certificates">Educational Certificates</option>
+                    <option value="Employment Certificate">Employment Certificate</option>
+                    <option value="Medical Certificate">Medical Certificate</option>
+                    <option value="Death Certificate">Death Certificate</option>
+                    <option value="Birth Certificate">Birth Certificate</option>
+                    <option value="Marriage Certificate">Marriage Certificate</option>
+                    <option value="Divorce Certificate">Divorce Certificate</option>
+                    <option value="Land Records">Land Records</option>
+                    <option value="Electricity Bill">Electricity Bill</option>
+                    <option value="Water Bill">Water Bill</option>
+                    <option value="Gas Bill">Gas Bill</option>
+                    <option value="Telephone Bill">Telephone Bill</option>
+                    <option value="Insurance Policy">Insurance Policy</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  
+                  {(formData.requiredDocuments || []).length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeDocument(index)}
+                      className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  )}
                 </div>
               ))}
               
               <button
                 type="button"
                 onClick={addDocument}
-                className="px-4 py-3 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-colors font-medium"
+                className="w-full py-3 border-2 border-dashed border-orange-300 rounded-xl text-orange-600 hover:border-orange-400 hover:text-orange-700 transition-colors flex items-center justify-center"
               >
                 <i className="fas fa-plus mr-2"></i>
-                Add Document Requirement
+                Add Required Document
               </button>
+              
+              {errors.requiredDocuments && (
+                <p className="text-red-600 text-sm mt-2">{errors.requiredDocuments}</p>
+              )}
             </div>
           </div>
 

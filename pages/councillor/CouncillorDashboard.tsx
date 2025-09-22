@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import Sidebar from '../../components/Sidebar';
 import Navbar from '../../components/Navbar';
+import VerificationModal from '../../components/VerificationModal';
 import { Complaint, ComplaintStatus, WelfareApplication, ApplicationStatus, WelfareScheme } from '../../types';
-import { STATUS_COLORS } from '../../constants';
-import { scoreWelfareApplication } from '../../services/geminiService';
+import { API_ENDPOINTS } from '../../src/config/config';
+// ML scoring now handled by backend endpoint
 import Spinner from '../../components/Spinner';
 
 
@@ -15,29 +16,22 @@ const councillorSidebarItems = [
     { id: 'dashboard', name: 'Dashboard', icon: 'fa-tachometer-alt', path: '/councillor' },
     { id: 'complaints', name: 'Complaints', icon: 'fa-exclamation-triangle', path: '/councillor/complaints' },
     { id: 'welfare', name: 'Welfare Applications', icon: 'fa-hands-helping', path: '/councillor/welfare' },
+    { id: 'verification', name: 'Verification', icon: 'fa-user-check', path: '/councillor/verification' },
     { id: 'view-schemes', name: 'View Schemes', icon: 'fa-list-alt', path: '/councillor/view-schemes' },
     { id: 'add-schemes', name: 'Add Schemes', icon: 'fa-plus-circle', path: '/councillor/add-schemes' },
     { id: 'edit-profile', name: 'Edit Profile', icon: 'fa-user-edit', path: '/councillor/edit-profile' },
 ];
 
-const mockWardComplaints: Complaint[] = [
-    { id: 'comp-1', userId: 'user-citizen', userName: 'John Doe', ward: 5, imageURL: 'https://picsum.photos/400/300?random=1', issueType: 'Road Repair', description: 'Large pothole causing traffic issues.', location: { lat: 12.9716, lng: 77.5946 }, priorityScore: 4, status: ComplaintStatus.PENDING, source: 'user', createdAt: '2023-10-26T10:00:00Z' },
-    { id: 'comp-5', userId: 'user-citizen-2', userName: 'Jane Smith', ward: 5, imageURL: 'https://picsum.photos/400/300?random=5', issueType: 'Water Leakage', description: 'Main water line leaking for two days on 5th cross.', location: { lat: 12.9716, lng: 77.5946 }, priorityScore: 5, status: ComplaintStatus.PENDING, source: 'user', createdAt: '2023-10-28T11:00:00Z' },
-];
-
-const mockWelfareApplications: WelfareApplication[] = [
-    { id: 'app-1', schemeId: 'sch-1', schemeTitle: 'Free Sewing Machines', userId: 'user-3', userName: 'Anita Devi', address: '12, New Colony, Ward 5', phoneNumber: '9876543211', rationCardNumber: 'RC98765', aadharNumber: '1111-2222-3333', ward: 5, reason: 'I am a single mother and want to start a tailoring business to support my two children.', isHandicapped: false, isSingleWoman: true, familyIncome: 120000, dependents: 3, status: ApplicationStatus.PENDING, createdAt: '2023-10-27T10:00:00Z' },
-    { id: 'app-2', schemeId: 'sch-1', schemeTitle: 'Free Sewing Machines', userId: 'user-4', userName: 'Sunita Kumari', address: '45, Old Town, Ward 5', phoneNumber: '9876543212', rationCardNumber: 'RC54321', aadharNumber: '4444-5555-6666', ward: 5, reason: 'I have tailoring skills but cannot afford a machine.', isHandicapped: false, isSingleWoman: false, familyIncome: 90000, dependents: 1, status: ApplicationStatus.PENDING, createdAt: '2023-10-28T11:30:00Z' },
-];
+// No mock data; complaints fetched from backend
 
 
-type Tab = 'complaints' | 'welfare' | 'view-schemes' | 'add-schemes';
+
+type Tab = 'complaints' | 'welfare' | 'verification' | 'view-schemes' | 'add-schemes';
 
 const CouncillorDashboard: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<Tab>('complaints');
-    const [loading, setLoading] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [headerStats, setHeaderStats] = useState({
         pendingComplaints: 0,
@@ -53,26 +47,23 @@ const CouncillorDashboard: React.FC = () => {
             try {
                 setHeaderLoading(true);
                 const token = localStorage.getItem('token');
-                const tokenHeader = token ? { Authorization: `Bearer ${token}` } : {};
+                const headers: Record<string, string> = {
+                    'Content-Type': 'application/json'
+                };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
                 const [appsRes, wardRes, schemesRes, appsListRes] = await Promise.all([
                     fetch('http://localhost:3002/api/welfare/applications/stats', {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...tokenHeader
-                        }
+                        headers
                     }),
-                    fetch(`http://localhost:3002/api/users/wards/${user.ward}/stats`),
+                    fetch(`http://localhost:3002/api/wards/${user.ward}/stats`),
                     fetch('http://localhost:3002/api/welfare/schemes', {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...tokenHeader
-                        }
+                        headers
                     }),
                     fetch(`http://localhost:3002/api/welfare/applications?ward=${user.ward}`, {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...tokenHeader
-                        }
+                        headers
                     })
                 ]);
 
@@ -112,7 +103,7 @@ const CouncillorDashboard: React.FC = () => {
                 setHeaderStats({
                     pendingComplaints: 0,
                     welfareApplications: 0,
-                    resolvedIssues: 0,
+                    welfareSchemes: 0,
                     wardPopulation: 0
                 });
             } finally {
@@ -253,6 +244,17 @@ const CouncillorDashboard: React.FC = () => {
                                     View Schemes
                         </button>
                                 <button 
+                                    onClick={() => setActiveTab('verification')} 
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                                        activeTab === 'verification' 
+                                            ? 'border-blue-500 text-blue-600' 
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <i className="fas fa-user-check mr-2"></i>
+                                    Verification
+                        </button>
+                                <button 
                                     onClick={() => setActiveTab('add-schemes')} 
                                     className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                                         activeTab === 'add-schemes' 
@@ -269,6 +271,7 @@ const CouncillorDashboard: React.FC = () => {
                             {activeTab === 'complaints' && <WardComplaints />}
                             {activeTab === 'welfare' && <WelfareQueue />}
                             {activeTab === 'view-schemes' && <ViewSchemes />}
+                            {activeTab === 'verification' && <VerificationTab />}
                             {activeTab === 'add-schemes' && <AddSchemes />}
                         </div>
                     </div>
@@ -278,62 +281,359 @@ const CouncillorDashboard: React.FC = () => {
     );
 };
 
-const WardComplaints: React.FC = () => (
-    <div>
-        <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-xl text-gray-800">Pending Complaints in Your Ward</h3>
-            <div className="flex space-x-2">
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
-                    <i className="fas fa-download mr-2"></i>
-                    Export Report
-                </button>
-                <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
-                    <i className="fas fa-plus mr-2"></i>
-                    Add Note
-                </button>
-            </div>
-        </div>
+const VerificationTab: React.FC = () => {
+    const [citizens, setCitizens] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [search, setSearch] = useState('');
+    const [filter, setFilter] = useState<'all' | 'verified' | 'unverified'>('all');
+    const [showRemoveModal, setShowRemoveModal] = useState(false);
+    const [selectedCitizen, setSelectedCitizen] = useState<any>(null);
+    const [removalReason, setRemovalReason] = useState<'death' | 'relocation' | 'other'>('relocation');
+    const [removalComments, setRemovalComments] = useState('');
+    const [deathCertificate, setDeathCertificate] = useState<File | null>(null);
+    const [removing, setRemoving] = useState(false);
+
+    const fetchCitizens = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const params = new URLSearchParams();
+            params.set('page', String(page));
+            params.set('limit', '10');
+            if (search) params.set('search', search);
+            if (filter === 'verified') params.set('verified', 'true');
+            if (filter === 'unverified') params.set('verified', 'false');
+            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../councillors/ward/citizens?${params.toString()}`.replace('/users/..',''), {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setCitizens(data.citizens || []);
+                setTotalPages(data.totalPages || 1);
+            } else {
+                setCitizens([]);
+            }
+        } catch (e) {
+            console.error('Failed to fetch citizens', e);
+            setCitizens([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchCitizens();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, filter]);
+
+    const verifyCitizen = async (id: string) => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../councillors/ward/citizens/${id}/verify`.replace('/users/..',''), {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (res.ok) {
+                setCitizens(prev => prev.map(c => c._id === id ? { ...c, isVerified: true } : c));
+            }
+        } catch (e) {
+            console.error('Verify failed', e);
+        }
+    };
+
+    const openRemoveModal = (citizen: any) => {
+        setSelectedCitizen(citizen);
+        setShowRemoveModal(true);
+        setRemovalReason('relocation');
+        setRemovalComments('');
+        setDeathCertificate(null);
+    };
+
+    const handleRemoveCitizen = async () => {
+        if (!selectedCitizen) return;
         
-        <div className="space-y-4">
-            {mockWardComplaints.map(c => (
-                <div key={c.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                            <div className="flex items-center mb-2">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-3">
-                                    Priority {c.priorityScore}
-                                </span>
-                                <span className="text-sm text-gray-500">
-                                    <i className="fas fa-clock mr-1"></i>
-                                    {new Date(c.createdAt).toLocaleDateString()}
-                                </span>
-                            </div>
-                            <h4 className="font-semibold text-gray-800 mb-2">{c.issueType}</h4>
-                            <p className="text-gray-600 mb-3">{c.description}</p>
-                            <div className="flex items-center text-sm text-gray-500">
-                                <i className="fas fa-user mr-2"></i>
-                                <span>Reported by: {c.userName}</span>
-                                <span className="mx-2">•</span>
-                                <i className="fas fa-map-marker-alt mr-2"></i>
-                                <span>Ward {c.ward}</span>
-                            </div>
+        setRemoving(true);
+        try {
+            const token = localStorage.getItem('token');
+            const formData = new FormData();
+            formData.append('removalReason', removalReason);
+            formData.append('removalComments', removalComments);
+            
+            if (deathCertificate) {
+                formData.append('deathCertificate', deathCertificate);
+            }
+            
+            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../councillors/ward/citizens/${selectedCitizen._id}`.replace('/users/..',''), {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+            
+            if (res.ok) {
+                setCitizens(prev => prev.filter(c => c._id !== selectedCitizen._id));
+                setShowRemoveModal(false);
+                setSelectedCitizen(null);
+            } else {
+                const error = await res.json();
+                alert(error.error || 'Failed to remove citizen');
+            }
+        } catch (e) {
+            console.error('Remove failed', e);
+            alert('Failed to remove citizen');
+        } finally {
+            setRemoving(false);
+        }
+    };
+
+    return (
+                    <div>
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-xl text-gray-800">Citizen Verification</h3>
+                <div className="flex space-x-2">
+                    <select value={filter} onChange={e => { setFilter(e.target.value as any); setPage(1); }} className="border rounded-md px-3 py-2 text-sm">
+                        <option value="all">All</option>
+                        <option value="unverified">Unverified</option>
+                        <option value="verified">Verified</option>
+                    </select>
+                    <div className="relative">
+                        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name/email/address" className="border rounded-md pl-8 pr-3 py-2 text-sm w-64" />
+                        <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <button onClick={() => { setPage(1); fetchCitizens(); }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Search</button>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <table className="min-w-full text-sm">
+                    <thead className="bg-gray-50 text-gray-600">
+                        <tr>
+                            <th className="px-4 py-3 text-left">Name</th>
+                            <th className="px-4 py-3 text-left">Email</th>
+                            <th className="px-4 py-3 text-left">Address</th>
+                            <th className="px-4 py-3 text-left">Ward</th>
+                            <th className="px-4 py-3 text-left">Status</th>
+                            <th className="px-4 py-3 text-left">ID Proof</th>
+                            <th className="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {loading ? (
+                            <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-500">Loading citizens...</td></tr>
+                        ) : citizens.length === 0 ? (
+                            <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-500">No citizens found.</td></tr>
+                        ) : (
+                            citizens.map(c => (
+                                <tr key={c._id}>
+                                    <td className="px-4 py-3 font-medium text-gray-800">{c.name}</td>
+                                    <td className="px-4 py-3 text-gray-600">{c.email}</td>
+                                    <td className="px-4 py-3 text-gray-600">{c.address || '-'}</td>
+                                    <td className="px-4 py-3 text-gray-600">{c.ward}</td>
+                                    <td className="px-4 py-3">
+                                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${c.isVerified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{c.isVerified ? 'Verified' : 'Unverified'}</span>
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-600">
+                                        {c.idProof?.fileUrl ? (
+                                            <a href={c.idProof.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-xs">View Proof</a>
+                                        ) : (
+                                            <span className="text-xs text-gray-500">Not uploaded</span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3 text-right space-x-2">
+                                        {!c.isVerified && (
+                                            <button onClick={() => verifyCitizen(c._id)} disabled={!c.idProof?.fileUrl} className={`px-3 py-1.5 rounded-md text-xs font-medium text-white ${c.idProof?.fileUrl ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'}`}>
+                                                <i className="fas fa-check mr-1"></i> Verify
+                                            </button>
+                                        )}
+                                        <button onClick={() => openRemoveModal(c)} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md text-xs font-medium">
+                                            <i className="fas fa-user-times mr-1"></i> Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-gray-600">Page {page} of {totalPages}</div>
+                <div className="space-x-2">
+                    <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p-1))} className="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50">Previous</button>
+                    <button disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p+1))} className="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50">Next</button>
+                </div>
+            </div>
+
+            {/* Removal Modal */}
+            {showRemoveModal && selectedCitizen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                        <h3 className="text-lg font-semibold mb-4">Remove Citizen</h3>
+                        <div className="mb-4">
+                            <p className="text-sm text-gray-600 mb-2">
+                                Removing: <span className="font-medium">{selectedCitizen.name}</span> ({selectedCitizen.email})
+                            </p>
                         </div>
-                        <div className="ml-6 flex flex-col space-y-2">
-                            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
-                                <i className="fas fa-user-tie mr-2"></i>
-                                Assign Officer
+                        
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Reason for Removal</label>
+                            <select 
+                                value={removalReason} 
+                                onChange={(e) => setRemovalReason(e.target.value as any)}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            >
+                                <option value="relocation">Relocation</option>
+                                <option value="death">Death</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        {removalReason === 'death' && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Death Certificate <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="file"
+                                    accept="image/*,application/pdf"
+                                    onChange={(e) => setDeathCertificate(e.target.files?.[0] || null)}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                                    required
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Upload death certificate (PDF or image)</p>
+                            </div>
+                        )}
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Comments (Optional)</label>
+                            <textarea
+                                value={removalComments}
+                                onChange={(e) => setRemovalComments(e.target.value)}
+                                placeholder="Additional details about the removal..."
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm h-20 resize-none"
+                            />
+                        </div>
+
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => setShowRemoveModal(false)}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                disabled={removing}
+                            >
+                                Cancel
                             </button>
-                            <button className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
-                                <i className="fas fa-eye mr-2"></i>
-                                View Details
+                            <button
+                                onClick={handleRemoveCitizen}
+                                disabled={removing || (removalReason === 'death' && !deathCertificate)}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {removing ? 'Removing...' : 'Remove Citizen'}
                             </button>
                         </div>
                     </div>
                 </div>
-            ))}
-        </div>
+            )}
     </div>
 );
+};
+
+const WardComplaints: React.FC = () => {
+    const { user } = useAuth();
+    const [complaints, setComplaints] = useState<Complaint[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchWardComplaints = async () => {
+            setLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../grievances/community`.replace('/users/..',''), {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const mapped = (data.grievances || []).filter((g: any) => g.status !== 'resolved').map((g: any) => ({
+                        id: g.id,
+                        userId: g.userId,
+                        userName: g.userName,
+                        ward: g.ward,
+                        imageURL: g.imageURL,
+                        issueType: g.issueType,
+                        description: g.description,
+                        location: g.location,
+                        priorityScore: g.priorityScore,
+                        status: g.status as ComplaintStatus,
+                        source: g.source,
+                        createdAt: g.createdAt
+                    }));
+                    setComplaints(mapped);
+                } else {
+                    setComplaints([]);
+                }
+            } catch (e) {
+                console.error('Failed to fetch ward complaints', e);
+                setComplaints([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchWardComplaints();
+    }, [user?.ward]);
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-xl text-gray-800">Pending Complaints in Your Ward</h3>
+            </div>
+            <div className="space-y-4">
+                {loading ? (
+                    <div className="text-gray-600 text-sm">Loading complaints...</div>
+                ) : complaints.length === 0 ? (
+                    <div className="text-gray-600 text-sm">No active complaints in your ward.</div>
+                ) : (
+                    complaints.map(c => (
+                        <div key={c.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center mb-2">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-3">
+                                            Priority {c.priorityScore}
+                                        </span>
+                                        <span className="text-sm text-gray-500">
+                                            <i className="fas fa-clock mr-1"></i>
+                                            {new Date(c.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <h4 className="font-semibold text-gray-800 mb-2">{c.issueType}</h4>
+                                    <p className="text-gray-600 mb-3">{c.description}</p>
+                                    <div className="flex items-center text-sm text-gray-500">
+                                        <i className="fas fa-user mr-2"></i>
+                                        <span>Reported by: {c.userName}</span>
+                                        <span className="mx-2">•</span>
+                                        <i className="fas fa-map-marker-alt mr-2"></i>
+                                        <span>Ward {c.ward}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+};
 
 const WelfareQueue: React.FC = () => {
     const { user } = useAuth();
@@ -342,6 +642,10 @@ const WelfareQueue: React.FC = () => {
     const [schemes, setSchemes] = useState<{ id: string; title: string }[]>([]);
     const [selectedSchemeId, setSelectedSchemeId] = useState<string>('all');
     const [showAnalytics, setShowAnalytics] = useState(false);
+    const [verifying, setVerifying] = useState<{[key: string]: boolean}>({});
+    const [verificationInfo, setVerificationInfo] = useState<{[key: string]: { status: string; score?: number; remarks?: string }}>({});
+    const [selectedApplication, setSelectedApplication] = useState<any>(null);
+    const [showVerificationModal, setShowVerificationModal] = useState(false);
 
     // Load councillor's schemes for filter
     useEffect(() => {
@@ -386,11 +690,13 @@ const WelfareQueue: React.FC = () => {
                         approved: ApplicationStatus.APPROVED,
                         rejected: ApplicationStatus.REJECTED,
                     };
-                    const mapped: WelfareApplication[] = (data.applications || []).map((a: any) => ({
+                    const mapped: WelfareApplication[] = (data.applications || [])
+                        .filter((a: any) => a && a._id) // Filter out null/undefined applications
+                        .map((a: any) => ({
                         id: a._id,
-                        schemeId: typeof a.schemeId === 'object' ? a.schemeId._id || a.schemeId.id : a.schemeId,
-                        schemeTitle: a.schemeTitle || (typeof a.schemeId === 'object' ? a.schemeId.title : ''),
-                        userId: typeof a.userId === 'object' ? a.userId._id || a.userId.id : a.userId,
+                        schemeId: a.schemeId && typeof a.schemeId === 'object' ? a.schemeId._id || a.schemeId.id : a.schemeId,
+                        schemeTitle: a.schemeTitle || (a.schemeId && typeof a.schemeId === 'object' ? a.schemeId.title : ''),
+                        userId: a.userId && typeof a.userId === 'object' ? a.userId._id || a.userId.id : a.userId,
                         userName: a.userName,
                         address: a.personalDetails?.address || '',
                         phoneNumber: a.personalDetails?.phoneNumber || '',
@@ -406,6 +712,7 @@ const WelfareQueue: React.FC = () => {
                         createdAt: a.appliedAt,
                         score: a.score,
                         justification: a.justification,
+                        documents: a.documents || [],
                     }));
                     setApplications(mapped);
                 } else {
@@ -427,12 +734,162 @@ const WelfareQueue: React.FC = () => {
 
         setLoadingScores(prev => ({ ...prev, [appId]: true }));
         try {
-            const result = await scoreWelfareApplication(app.reason, app.familyIncome, app.dependents);
-            setApplications(prev => prev.map(a => a.id === appId ? { ...a, score: result.score, justification: result.justification } : a));
+            // Call ML service directly
+            const resp = await fetch(`http://localhost:8001/score`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(app) // Send the full application data
+            });
+            
+            if (resp.ok) {
+                const data = await resp.json();
+                console.log('ML Score received:', data);
+                
+                // Update the application with the score
+                setApplications(prev => prev.map(a => 
+                    a.id === appId ? { 
+                        ...a, 
+                        score: Math.round(data.score),
+                        justification: data.justification,
+                        priority: data.priority
+                    } : a
+                ));
+            } else {
+                console.error('ML service error:', resp.status);
+                // Fallback scoring
+                const fallbackScore = Math.floor(Math.random() * 100);
+                setApplications(prev => prev.map(a => 
+                    a.id === appId ? { 
+                        ...a, 
+                        score: fallbackScore,
+                        justification: `⚠️ ML Service Not Running - Please start ML service: cd ml && python welfare_scoring_service.py`
+                    } : a
+                ));
+            }
         } catch (error) {
             console.error("Failed to get score", error);
+            // Fallback scoring
+            const fallbackScore = Math.floor(Math.random() * 100);
+            setApplications(prev => prev.map(a => 
+                a.id === appId ? { 
+                    ...a, 
+                    score: fallbackScore,
+                    justification: `⚠️ ML Service Not Running - Please start ML service: cd ml && python welfare_scoring_service.py`
+                } : a
+            ));
         } finally {
             setLoadingScores(prev => ({ ...prev, [appId]: false }));
+        }
+    };
+
+    const openVerificationModal = (appId: string) => {
+        const application = applications.find(app => app.id === appId);
+        if (application) {
+            // Convert to the expected format for VerificationModal
+            const modalApplication = {
+                _id: application.id,
+                schemeId: { _id: application.schemeId, title: application.schemeTitle, scope: 'ward' as const },
+                schemeTitle: application.schemeTitle,
+                userId: { _id: application.userId, name: application.userName, email: '' },
+                userName: application.userName,
+                userEmail: '',
+                userWard: application.ward,
+                personalDetails: {
+                    address: application.address,
+                    phoneNumber: application.phoneNumber,
+                    rationCardNumber: application.rationCardNumber,
+                    aadharNumber: application.aadharNumber,
+                    familyIncome: application.familyIncome,
+                    dependents: application.dependents,
+                    isHandicapped: application.isHandicapped,
+                    isSingleWoman: application.isSingleWoman
+                },
+                reason: application.reason,
+                status: application.status.toLowerCase() as any,
+                appliedAt: application.createdAt,
+                verification: application.score ? { autoScore: application.score / 100 } : undefined,
+                documents: application.documents || []
+            } as any;
+            setSelectedApplication(modalApplication);
+            setShowVerificationModal(true);
+        }
+    };
+
+    const handleVerification = async (appId: string, approve: boolean, remarks: string) => {
+        try {
+            setVerifying(prev => ({ ...prev, [appId]: true }));
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`http://localhost:3002/api/welfare/applications/${appId}/manual-verify`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: approve ? 'Verified-Manual' : 'Rejected', remarks })
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                const a = data?.application;
+                setVerificationInfo(prev => ({
+                    ...prev,
+                    [appId]: {
+                        status: a?.verificationStatus || (approve ? 'Verified-Manual' : 'Rejected'),
+                        score: a?.verification?.autoScore,
+                        remarks: a?.verification?.remarks || remarks
+                    }
+                }));
+                // Refresh applications list
+                const fetchApplications = async () => {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const response = await fetch(`http://localhost:3002/api/welfare/applications?ward=${user?.ward}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            setApplications(data.applications || []);
+                        }
+                    } catch (e) {
+                        console.error('Failed to load applications', e);
+                    }
+                };
+                fetchApplications();
+            }
+        } catch (e) {
+            console.error('Manual verify failed', e);
+        } finally {
+            setVerifying(prev => ({ ...prev, [appId]: false }));
+        }
+    };
+
+    const autoVerify = async (appId: string) => {
+        try {
+            setVerifying(prev => ({ ...prev, [appId]: true }));
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`http://localhost:3002/api/welfare/applications/${appId}/auto-verify`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                const a = data?.application;
+                setVerificationInfo(prev => ({
+                    ...prev,
+                    [appId]: {
+                        status: a?.verificationStatus || data?.status || 'Pending',
+                        score: a?.verification?.autoScore ?? data?.matchScore,
+                        remarks: a?.verification?.remarks || data?.remarks
+                    }
+                }));
+            }
+        } catch (e) {
+            console.error('Auto verify failed', e);
+        } finally {
+            setVerifying(prev => ({ ...prev, [appId]: false }));
         }
     };
     
@@ -454,7 +911,7 @@ const WelfareQueue: React.FC = () => {
             a.userName,
             a.familyIncome,
             a.dependents,
-            ApplicationStatus[a.status],
+            a.status,
             a.score ?? '',
             a.createdAt ? new Date(a.createdAt).toLocaleString() : ''
         ]);
@@ -585,15 +1042,34 @@ const WelfareQueue: React.FC = () => {
                                                             </button>
                                                         )}
                                                         <div className="flex space-x-2">
-                                                            <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                                            <button onClick={() => openVerificationModal(app.id)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                                                <i className="fas fa-file-signature mr-2"></i>
+                                                                Verify Documents
+                                                            </button>
+                                                            <button onClick={() => autoVerify(app.id)} disabled={!!verifying[app.id]} className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-60">
+                                                                <i className="fas fa-robot mr-2"></i>
+                                                                {verifying[app.id] ? 'AI Checking...' : 'Auto Verify'}
+                                                            </button>
+                                                            <button onClick={() => handleVerification(app.id, true, '')} disabled={!!verifying[app.id]} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-60">
                                                                 <i className="fas fa-check mr-2"></i>
                                                                 Approve
                                                             </button>
-                                                            <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                                            <button onClick={() => handleVerification(app.id, false, '')} disabled={!!verifying[app.id]} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-60">
                                                                 <i className="fas fa-times mr-2"></i>
                                                                 Reject
                                                             </button>
                                                         </div>
+                                                        {verificationInfo[app.id] && (
+                                                            <div className="text-xs text-gray-600 text-right">
+                                                                <div><span className="font-semibold">Verification:</span> {verificationInfo[app.id].status}</div>
+                                                                {verificationInfo[app.id].score !== undefined && (
+                                                                    <div><span className="font-semibold">AI Score:</span> {Math.round((verificationInfo[app.id].score || 0) * 100)}%</div>
+                                                                )}
+                                                                {verificationInfo[app.id].remarks && (
+                                                                    <div className="text-gray-500">{verificationInfo[app.id].remarks}</div>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -605,7 +1081,7 @@ const WelfareQueue: React.FC = () => {
                     )
                 ) : (
                     <div className="space-y-4">
-                        {sortedApplications.map(app => (
+                {sortedApplications.map(app => (
                             <div key={app.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
@@ -617,10 +1093,10 @@ const WelfareQueue: React.FC = () => {
                                         </div>
                                         <p className="text-gray-600 mb-3 italic">"{app.reason}"</p>
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                            <div>
+                            <div>
                                                 <span className="text-gray-500">Income:</span>
                                                 <span className="font-medium ml-1">₹{app.familyIncome.toLocaleString()}/yr</span>
-                                            </div>
+                            </div>
                                             <div>
                                                 <span className="text-gray-500">Dependents:</span>
                                                 <span className="font-medium ml-1">{app.dependents}</span>
@@ -644,14 +1120,14 @@ const WelfareQueue: React.FC = () => {
                                         )}
                                     </div>
                                     <div className="ml-6 flex flex-col items-end space-y-3">
-                                        {app.score !== undefined ? (
-                                            <div className="text-center">
+                                {app.score !== undefined ? (
+                                    <div className="text-center">
                                                 <p className="text-sm text-gray-500 mb-1">AI Score</p>
                                                 <div className="text-3xl font-bold text-green-600 bg-green-100 rounded-lg px-3 py-2">
                                                     {app.score}
                                                 </div>
-                                            </div>
-                                        ) : (
+                                    </div>
+                                ) : (
                                             <button 
                                                 onClick={() => handleGetScore(app.id)} 
                                                 disabled={loadingScores[app.id]} 
@@ -668,20 +1144,39 @@ const WelfareQueue: React.FC = () => {
                                                         Get AI Score
                                                     </div>
                                                 )}
-                                            </button>
-                                        )}
+                                    </button>
+                                )}
                                         <div className="flex space-x-2">
-                                            <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                            <button onClick={() => openVerificationModal(app.id)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                                <i className="fas fa-file-signature mr-2"></i>
+                                                Verify Documents
+                                            </button>
+                                            <button onClick={() => autoVerify(app.id)} disabled={!!verifying[app.id]} className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-60">
+                                                <i className="fas fa-robot mr-2"></i>
+                                                {verifying[app.id] ? 'AI Checking...' : 'Auto Verify'}
+                                            </button>
+                                            <button onClick={() => handleVerification(app.id, true, '')} disabled={!!verifying[app.id]} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-60">
                                                 <i className="fas fa-check mr-2"></i>
                                                 Approve
                                             </button>
-                                            <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
+                                            <button onClick={() => handleVerification(app.id, false, '')} disabled={!!verifying[app.id]} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-60">
                                                 <i className="fas fa-times mr-2"></i>
                                                 Reject
                                             </button>
-                                        </div>
-                                    </div>
-                                </div>
+                            </div>
+                                        {verificationInfo[app.id] && (
+                                            <div className="text-xs text-gray-600 text-right">
+                                                <div><span className="font-semibold">Verification:</span> {verificationInfo[app.id].status}</div>
+                                                {verificationInfo[app.id].score !== undefined && (
+                                                    <div><span className="font-semibold">AI Score:</span> {Math.round((verificationInfo[app.id].score || 0) * 100)}%</div>
+                                                )}
+                                                {verificationInfo[app.id].remarks && (
+                                                    <div className="text-gray-500">{verificationInfo[app.id].remarks}</div>
+                                                )}
+                        </div>
+                                        )}
+                        </div>
+                        </div>
                             </div>
                         ))}
                     </div>
@@ -744,7 +1239,7 @@ const WelfareQueue: React.FC = () => {
                         <div>
                             <div className="mb-2 font-medium">Top Applicants by Score</div>
                             <div className="space-y-2">
-                                {appAnalytics.top.map((a, i) => (
+                                {appAnalytics.top.map((a: any, i: number) => (
                                     <div key={a.id} className="flex items-center space-x-3">
                                         <div className="w-6 text-sm text-gray-500">{i+1}</div>
                                         <div className="flex-1">
@@ -762,6 +1257,18 @@ const WelfareQueue: React.FC = () => {
                     </div>
                 </div>
             )}
+            
+            {/* Verification Modal */}
+            <VerificationModal
+                application={selectedApplication}
+                isOpen={showVerificationModal}
+                onClose={() => {
+                    setShowVerificationModal(false);
+                    setSelectedApplication(null);
+                }}
+                onVerify={handleVerification}
+                verifying={selectedApplication ? verifying[selectedApplication._id as string] || false : false}
+            />
         </div>
     );
 };
@@ -774,19 +1281,17 @@ const AddSchemes: React.FC = () => {
         category: '',
         eligibilityCriteria: '',
         benefits: '',
-        documentsRequired: '',
+        requiredDocuments: [''],
         totalSlots: '',
         applicationDeadline: '',
         startDate: '',
-        endDate: '',
-        additionalDetails: ''
+        endDate: ''
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [tokenValid, setTokenValid] = useState(true);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-    const [submitted, setSubmitted] = useState(false);
     const [touched, setTouched] = useState<Record<string, boolean>>({});
 
     // Simple token check - just verify it exists
@@ -831,6 +1336,14 @@ const AddSchemes: React.FC = () => {
         if (trim(values.eligibilityCriteria).length < 10) errs.eligibilityCriteria = 'Provide clear eligibility criteria (min 10 chars).';
         if (trim(values.benefits).length < 10) errs.benefits = 'Describe key benefits (min 10 chars).';
 
+        // Required documents validation
+        const ALLOWED = [
+            'Aadhar Card','Ration Card','Voter ID','Driving License','PAN Card','Passport','Disability Certificate','Income Certificate','Caste Certificate','Residence Certificate','BPL Card','Senior Citizen ID','Widow Certificate','Death Certificate'
+        ];
+        const docs = (values.requiredDocuments || []).map(d => trim(d)).filter(Boolean);
+        if (docs.length === 0) errs.requiredDocuments = 'At least one required document is mandatory.';
+        if (docs.some(d => !ALLOWED.includes(d))) errs.requiredDocuments = 'Select valid Indian document types only.';
+
         const slots = asInt(String(values.totalSlots));
         if (!Number.isFinite(slots) || slots < 1) errs.totalSlots = 'Total slots must be a positive integer.';
 
@@ -856,7 +1369,6 @@ const AddSchemes: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setSubmitted(true);
         // mark all fields as touched to show errors
         setTouched({
             title: true,
@@ -864,12 +1376,11 @@ const AddSchemes: React.FC = () => {
             description: true,
             eligibilityCriteria: true,
             benefits: true,
-            documentsRequired: true,
+            requiredDocuments: true,
             totalSlots: true,
             applicationDeadline: true,
             startDate: true,
-            endDate: true,
-            additionalDetails: true
+            endDate: true
         });
         const errs = validate();
         setFieldErrors(errs);
@@ -896,7 +1407,10 @@ const AddSchemes: React.FC = () => {
             const requestData = {
                 ...formData,
                 totalSlots: parseInt(formData.totalSlots),
-                documentsRequired: formData.documentsRequired.split(',').map(doc => doc.trim()).filter(doc => doc),
+                requiredDocuments: (formData.requiredDocuments || [])
+                    .map(d => (d || '').trim())
+                    .filter(Boolean)
+                    .map(name => ({ name, type: 'file', formats: [] })),
                 scope: 'ward',
                 ward: user?.ward,
                 createdBy: 'councillor',
@@ -932,14 +1446,12 @@ const AddSchemes: React.FC = () => {
                     category: '',
                     eligibilityCriteria: '',
                     benefits: '',
-                    documentsRequired: '',
+                    requiredDocuments: [''],
                     totalSlots: '',
                     applicationDeadline: '',
                     startDate: '',
                     endDate: '',
-                    additionalDetails: ''
                 });
-                setSubmitted(false);
                 setFieldErrors({});
             } else {
                 console.log('Error response:', data);
@@ -1095,18 +1607,76 @@ const AddSchemes: React.FC = () => {
                     {touched.benefits && fieldErrors.benefits && <p className="mt-1 text-sm text-red-600">{fieldErrors.benefits}</p>}
                 </div>
 
+                {/* Required Documents */}
                 <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Documents Required
+                        Required Documents
                     </label>
-                    <input
-                        type="text"
-                        name="documentsRequired"
-                        value={formData.documentsRequired}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="e.g., Aadhar Card, Ration Card, Income Certificate (separate with commas)"
-                    />
+                    {(formData.requiredDocuments || []).map((doc: string, idx: number) => (
+                        <div key={idx} className="flex items-center gap-3 mb-3">
+                            <select
+                                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                value={doc}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setFormData(prev => {
+                                        const next: any = { ...prev };
+                                        const list = [...(next.requiredDocuments || [])];
+                                        list[idx] = value;
+                                        next.requiredDocuments = list;
+                                        return next;
+                                    });
+                                }}
+                            >
+                                <option value="">Select document type</option>
+                                <option value="Aadhar Card">Aadhar Card</option>
+                                <option value="Ration Card">Ration Card</option>
+                                <option value="Voter ID">Voter ID</option>
+                                <option value="Driving License">Driving License</option>
+                                <option value="PAN Card">PAN Card</option>
+                                <option value="Passport">Passport</option>
+                                <option value="Disability Certificate">Disability Certificate</option>
+                                <option value="Income Certificate">Income Certificate</option>
+                                <option value="Caste Certificate">Caste Certificate</option>
+                                <option value="Residence Certificate">Residence Certificate</option>
+                                <option value="BPL Card">BPL Card</option>
+                                <option value="Senior Citizen ID">Senior Citizen ID</option>
+                                <option value="Widow Certificate">Widow Certificate</option>
+                                <option value="Death Certificate">Death Certificate</option>
+                            </select>
+                            {(formData.requiredDocuments || []).length > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(prev => {
+                                        const next: any = { ...prev };
+                                        next.requiredDocuments = (next.requiredDocuments || []).filter((_: any, i: number) => i !== idx);
+                                        return next;
+                                    })}
+                                    className="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                >
+                                    Remove
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    <div className="flex justify-between items-center">
+                        {touched.requiredDocuments && fieldErrors.requiredDocuments && (
+                            <p className="text-sm text-red-600">{fieldErrors.requiredDocuments}</p>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({
+                                ...(prev as any),
+                                requiredDocuments: [
+                                    ...((prev as any).requiredDocuments || []),
+                                    ''
+                                ]
+                            }))}
+                            className="px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                        >
+                            + Add Document
+                        </button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1177,19 +1747,7 @@ const AddSchemes: React.FC = () => {
                     {touched.endDate && fieldErrors.endDate && <p className="mt-1 text-sm text-red-600">{fieldErrors.endDate}</p>}
                 </div>
 
-                <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Additional Details (Optional)
-                    </label>
-                    <textarea
-                        name="additionalDetails"
-                        value={formData.additionalDetails}
-                        onChange={handleInputChange}
-                        rows={4}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Any additional information, special instructions, or notes..."
-                    />
-                </div>
+                {/* Removed Additional Details field as requested */}
 
                 <div className="flex justify-end space-x-4">
                     <button
@@ -1200,12 +1758,11 @@ const AddSchemes: React.FC = () => {
                             category: '',
                             eligibilityCriteria: '',
                             benefits: '',
-                            documentsRequired: '',
+                            requiredDocuments: [''],
                             totalSlots: '',
                             applicationDeadline: '',
                             startDate: '',
-                            endDate: '',
-                            additionalDetails: ''
+                            endDate: ''
                         })}
                         className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
                     >
@@ -1333,11 +1890,11 @@ const ViewSchemes: React.FC = () => {
     // Filter schemes based on status
     const now = new Date();
     const activeSchemes = schemes.filter(scheme => 
-        (scheme.status === 'active' || scheme.status === 'draft') && new Date(scheme.endDate) >= now
+        (scheme.status === 'active' || scheme.status === 'draft') && scheme.endDate && new Date(scheme.endDate) >= now
     );
     
     const completedSchemes = schemes.filter(scheme => 
-        scheme.status === 'completed' || scheme.status === 'expired' || new Date(scheme.endDate) < now
+        scheme.status === 'completed' || scheme.status === 'expired' || (scheme.endDate && new Date(scheme.endDate) < now)
     );
 
     const currentSchemes = activeTab === 'active' ? activeSchemes : completedSchemes;
@@ -1406,7 +1963,8 @@ const ViewSchemes: React.FC = () => {
             applicationDeadline: scheme.applicationDeadline ? new Date(scheme.applicationDeadline).toISOString().slice(0,10) : '',
             startDate: scheme.startDate ? new Date(scheme.startDate).toISOString().slice(0,10) : '',
             endDate: scheme.endDate ? new Date(scheme.endDate).toISOString().slice(0,10) : '',
-            status: scheme.status || 'active'
+            status: scheme.status || 'active',
+            requiredDocuments: (scheme.requiredDocuments || []).map((d: any) => d?.name || '').filter(Boolean)
         });
         setShowEditModal(true);
     };
@@ -1423,7 +1981,11 @@ const ViewSchemes: React.FC = () => {
                 applicationDeadline: editingScheme.applicationDeadline,
                 startDate: editingScheme.startDate,
                 endDate: editingScheme.endDate,
-                status: editingScheme.status
+                status: editingScheme.status,
+                requiredDocuments: (editingScheme.requiredDocuments || [])
+                    .map((n: string) => (n || '').trim())
+                    .filter((n: string) => !!n)
+                    .map((name: string) => ({ name, type: 'file', formats: [] }))
             };
             const res = await fetch(`http://localhost:3002/api/welfare/schemes/${editingScheme.id}` ,{
                 method: 'PUT',
@@ -1453,7 +2015,7 @@ const ViewSchemes: React.FC = () => {
             const token = localStorage.getItem('token');
             const nowLocal = new Date();
             for (const sch of schemes) {
-                if (sch.status !== 'completed' && sch.status !== 'expired' && new Date(sch.endDate) < nowLocal) {
+                if (sch.status !== 'completed' && sch.status !== 'expired' && sch.endDate && new Date(sch.endDate) < nowLocal) {
                     try {
                         await fetch(`http://localhost:3002/api/welfare/schemes/${(sch as any).id}`, {
                             method: 'PUT',
@@ -1501,8 +2063,8 @@ const ViewSchemes: React.FC = () => {
 
     const analytics = (() => {
         const total = schemes.length;
-        const active = schemes.filter(s => (s.status === 'active' || s.status === 'draft') && new Date(s.endDate) >= now).length;
-        const completed = schemes.filter(s => s.status === 'completed' || s.status === 'expired' || new Date(s.endDate) < now).length;
+        const active = schemes.filter(s => (s.status === 'active' || s.status === 'draft') && s.endDate && new Date(s.endDate) >= now).length;
+        const completed = schemes.filter(s => s.status === 'completed' || s.status === 'expired' || (s.endDate && new Date(s.endDate) < now)).length;
         const totalApplications = Object.values(applicationCounts).reduce((a,b) => a + (b || 0), 0);
         // applications per scheme (sorted desc, top 7)
         const perScheme = schemes
@@ -1569,7 +2131,7 @@ const ViewSchemes: React.FC = () => {
             
             <div className="space-y-4">
                 {currentSchemes.length > 0 ? (
-                    currentSchemes.map((scheme, index) => (
+                    currentSchemes.map((scheme) => (
                         <div key={scheme.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
@@ -1703,6 +2265,67 @@ const ViewSchemes: React.FC = () => {
                                     <option value="draft">Draft</option>
                                     <option value="completed">Completed</option>
                                 </select>
+                            </div>
+                            {/* Required Documents Editor */}
+                            <div className="md:col-span-2">
+                                <label className="block text-sm text-gray-600 mb-2">Required Documents</label>
+                                {(editingScheme?.requiredDocuments || ['']).map((doc: string, idx: number) => (
+                                    <div key={idx} className="flex items-center gap-3 mb-2">
+                                        <select
+                                            className="flex-1 border rounded-md px-3 py-2"
+                                            value={doc}
+                                            onChange={e => setEditingScheme({
+                                                ...editingScheme,
+                                                requiredDocuments: (
+                                                    (editingScheme?.requiredDocuments as string[] | undefined) || []
+                                                ).map((d: string, i: number) => (i === idx ? e.target.value : d))
+                                            })}
+                                        >
+                                            <option value="">Select document type</option>
+                                            <option value="Aadhar Card">Aadhar Card</option>
+                                            <option value="Ration Card">Ration Card</option>
+                                            <option value="Voter ID">Voter ID</option>
+                                            <option value="Driving License">Driving License</option>
+                                            <option value="PAN Card">PAN Card</option>
+                                            <option value="Passport">Passport</option>
+                                            <option value="Disability Certificate">Disability Certificate</option>
+                                            <option value="Income Certificate">Income Certificate</option>
+                                            <option value="Caste Certificate">Caste Certificate</option>
+                                            <option value="Residence Certificate">Residence Certificate</option>
+                                            <option value="BPL Card">BPL Card</option>
+                                            <option value="Senior Citizen ID">Senior Citizen ID</option>
+                                            <option value="Widow Certificate">Widow Certificate</option>
+                                            <option value="Death Certificate">Death Certificate</option>
+                                        </select>
+                                        {(editingScheme?.requiredDocuments?.length || 0) > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditingScheme({
+                                                    ...editingScheme,
+                                                    requiredDocuments: (editingScheme?.requiredDocuments || []).filter((_: any, i: number) => i !== idx)
+                                                })}
+                                                className="px-3 py-2 bg-red-500 text-white rounded-md"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditingScheme({
+                                            ...editingScheme,
+                                            requiredDocuments: [
+                                                ...((editingScheme?.requiredDocuments as string[] | undefined) || []),
+                                                ''
+                                            ]
+                                        })}
+                                        className="px-3 py-2 bg-blue-100 text-blue-700 rounded-md"
+                                    >
+                                        + Add Document
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div className="mt-6 flex justify-end space-x-2">

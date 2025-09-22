@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { config } from '../src/config/config';
 
 interface WelfareApplicationFormProps {
   schemeId: string;
@@ -72,6 +73,33 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [requiredDocuments, setRequiredDocuments] = useState<{ name: string; formats?: string[] }[]>([]);
+  const [docFiles, setDocFiles] = useState<Record<string, File | null>>({});
+
+  // Fetch scheme to know required documents
+  useEffect(() => {
+    const loadScheme = async () => {
+      try {
+        const res = await fetch(`${config.API_BASE_URL}/api/welfare/schemes/${schemeId}`);
+        const data = await res.json();
+        if (res.ok && data?.scheme) {
+          // Support both new structured requiredDocuments and legacy documentsRequired (string array)
+          let docs: { name: string; formats?: string[] }[] = [];
+          if (Array.isArray(data.scheme.requiredDocuments) && data.scheme.requiredDocuments.length) {
+            docs = data.scheme.requiredDocuments.map((d: any) => (
+              typeof d === 'string' ? { name: d } : { name: d.name, formats: d.formats || [] }
+            ));
+          } else if (Array.isArray(data.scheme.documentsRequired) && data.scheme.documentsRequired.length) {
+            docs = data.scheme.documentsRequired.map((name: string) => ({ name }));
+          }
+          setRequiredDocuments(docs);
+        }
+      } catch (_) {}
+    };
+    loadScheme();
+  }, [schemeId]);
 
   const [formData, setFormData] = useState<FormData>({
     // Personal Details
@@ -134,7 +162,72 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
       ...prev,
       [field]: value
     }));
+    setTouched(prev => ({ ...prev, [field]: true }));
+    // realtime validation
+    const nextValues = { ...formData, [field]: value } as typeof formData;
+    setFieldErrors(validate(nextValues));
   };
+
+  const handleBlur = (field: keyof FormData) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    setFieldErrors(validate());
+  };
+
+  const validate = (values = formData) => {
+    const errs: Record<string, string> = {};
+
+    const isEmpty = (v: any) => v === undefined || v === null || String(v).trim() === '';
+    const isPositiveInt = (v: any) => Number.isFinite(Number(v)) && Number(v) >= 0 && Number.isInteger(Number(v));
+
+    // Step 1
+    if (isEmpty(values.address) || String(values.address).trim().length < 10) errs.address = 'Provide a full address (min 10 chars).';
+    if (!/^\+?\d{10}$/.test(String(values.phoneNumber).replace(/\s|-/g, ''))) errs.phoneNumber = 'Enter a valid 10-digit phone number.';
+    if (!isPositiveInt(values.familyIncome)) errs.familyIncome = 'Enter a valid non-negative income.';
+    if (!isPositiveInt(values.dependents)) errs.dependents = 'Enter a valid number of dependents.';
+
+    // Optional formats
+    if (values.aadharNumber && !/^(\d{12}|\d{4}-\d{4}-\d{4})$/.test(values.aadharNumber)) errs.aadharNumber = 'Aadhar must be 12 digits (with or without dashes).';
+    if (values.rationCardNumber && String(values.rationCardNumber).length < 5) errs.rationCardNumber = 'Ration card number seems too short.';
+
+    // Step 2
+    if (!isPositiveInt(values.familyMembers)) errs.familyMembers = 'Enter total family members (0 or more).';
+    if (!isPositiveInt(values.childrenCount)) errs.childrenCount = 'Enter a valid number of children.';
+    if (!isPositiveInt(values.elderlyCount)) errs.elderlyCount = 'Enter a valid number of elderly members.';
+    if (!isPositiveInt(values.disabledMembers)) errs.disabledMembers = 'Enter a valid number of disabled members.';
+    if (!isPositiveInt(values.monthlyIncome)) errs.monthlyIncome = 'Enter a valid monthly income.';
+    if (isEmpty(values.incomeSource)) errs.incomeSource = 'Select an income source.';
+    if (values.hasOtherIncome && !isPositiveInt(values.otherIncomeAmount)) errs.otherIncomeAmount = 'Enter other income as a non-negative integer.';
+
+    // Step 3
+    if (isEmpty(values.houseOwnership)) errs.houseOwnership = 'Select house ownership.';
+    if (isEmpty(values.houseType)) errs.houseType = 'Select house type.';
+    if (isEmpty(values.educationLevel)) errs.educationLevel = 'Select education level.';
+    if (isEmpty(values.childrenEducation)) errs.childrenEducation = 'Select children education.';
+
+    // Step 4
+    if (isEmpty(values.employmentStatus)) errs.employmentStatus = 'Select employment status.';
+    if (isEmpty(values.jobStability)) errs.jobStability = 'Select job stability.';
+    if (values.chronicIllness && String(values.illnessDetails).trim().length < 3) errs.illnessDetails = 'Add a brief illness detail.';
+    if (values.hasDisability && String(values.disabilityType).trim().length < 3) errs.disabilityType = 'Specify disability type.';
+
+    // Step 5
+    if (isEmpty(values.caste)) errs.caste = 'Select caste.';
+    if (isEmpty(values.religion)) errs.religion = 'Select religion.';
+    if (values.hasLand && !isPositiveInt(values.landArea)) errs.landArea = 'Enter land area as a non-negative integer.';
+
+    // Step 6
+    if (String(values.emergencyContact).trim().length < 3) errs.emergencyContact = 'Provide emergency contact name.';
+    if (String(values.emergencyRelation).trim().length < 3) errs.emergencyRelation = 'Provide relation to emergency contact.';
+    if (String(values.reason).trim().length < 20) errs.reason = 'Reason must be at least 20 characters.';
+
+    return errs;
+  };
+
+  useEffect(() => {
+    // Keep errors up to date on dependent fields
+    setFieldErrors(validate());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.address, formData.phoneNumber, formData.familyIncome, formData.dependents, formData.aadharNumber, formData.rationCardNumber, formData.familyMembers, formData.childrenCount, formData.elderlyCount, formData.disabledMembers, formData.monthlyIncome, formData.incomeSource, formData.otherIncomeAmount, formData.houseOwnership, formData.houseType, formData.educationLevel, formData.childrenEducation, formData.employmentStatus, formData.jobStability, formData.illnessDetails, formData.disabilityType, formData.caste, formData.religion, formData.landArea, formData.emergencyContact, formData.emergencyRelation, formData.reason]);
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -151,69 +244,87 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
+    const errs = validate();
+    setFieldErrors(errs);
+    // Mark all as touched for final submit
+    const allTouched: Record<string, boolean> = {};
+    Object.keys(formData).forEach(k => (allTouched[k] = true));
+    setTouched(allTouched);
+    if (Object.keys(errs).length > 0) {
+      setLoading(false);
+      setError('Please review the highlighted fields.');
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}/apply`, {
+      const fd = new FormData();
+      fd.append('personalDetails', JSON.stringify({
+        address: formData.address,
+        phoneNumber: formData.phoneNumber,
+        rationCardNumber: formData.rationCardNumber,
+        aadharNumber: formData.aadharNumber,
+        familyIncome: formData.familyIncome,
+        dependents: formData.dependents,
+        isHandicapped: formData.isHandicapped,
+        isSingleWoman: formData.isSingleWoman
+      }));
+      fd.append('assessment', JSON.stringify({
+        familyMembers: formData.familyMembers,
+        childrenCount: formData.childrenCount,
+        elderlyCount: formData.elderlyCount,
+        disabledMembers: formData.disabledMembers,
+        monthlyIncome: formData.monthlyIncome,
+        incomeSource: formData.incomeSource,
+        hasOtherIncome: formData.hasOtherIncome,
+        otherIncomeAmount: formData.otherIncomeAmount,
+        houseOwnership: formData.houseOwnership,
+        houseType: formData.houseType,
+        hasElectricity: formData.hasElectricity,
+        hasWaterConnection: formData.hasWaterConnection,
+        hasToilet: formData.hasToilet,
+        educationLevel: formData.educationLevel,
+        childrenEducation: formData.childrenEducation,
+        hasHealthInsurance: formData.hasHealthInsurance,
+        chronicIllness: formData.chronicIllness,
+        illnessDetails: formData.illnessDetails,
+        hasDisability: formData.hasDisability,
+        disabilityType: formData.disabilityType,
+        employmentStatus: formData.employmentStatus,
+        jobStability: formData.jobStability,
+        hasBankAccount: formData.hasBankAccount,
+        hasVehicle: formData.hasVehicle,
+        vehicleType: formData.vehicleType,
+        hasLand: formData.hasLand,
+        landArea: formData.landArea,
+        caste: formData.caste,
+        religion: formData.religion,
+        isWidow: formData.isWidow,
+        isOrphan: formData.isOrphan,
+        isSeniorCitizen: formData.isSeniorCitizen,
+        hasEmergencyFund: formData.hasEmergencyFund,
+        emergencyContact: formData.emergencyContact,
+        emergencyRelation: formData.emergencyRelation,
+        previousApplications: formData.previousApplications,
+        previousSchemes: formData.previousSchemes,
+        additionalNeeds: formData.additionalNeeds,
+        specialCircumstances: formData.specialCircumstances
+      }));
+      fd.append('reason', formData.reason);
+
+      // Append required documents with agreed field names: doc_<normalized_name>
+      requiredDocuments.forEach(doc => {
+        const key = `doc_${doc.name.replace(/\s+/g, '_').toLowerCase()}`;
+        const file = docFiles[key];
+        if (file) fd.append(key, file);
+      });
+
+      const response = await fetch(`${config.API_BASE_URL}/api/welfare/schemes/${schemeId}/apply`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          personalDetails: {
-            address: formData.address,
-            phoneNumber: formData.phoneNumber,
-            rationCardNumber: formData.rationCardNumber,
-            aadharNumber: formData.aadharNumber,
-            familyIncome: formData.familyIncome,
-            dependents: formData.dependents,
-            isHandicapped: formData.isHandicapped,
-            isSingleWoman: formData.isSingleWoman
-          },
-          assessment: {
-            familyMembers: formData.familyMembers,
-            childrenCount: formData.childrenCount,
-            elderlyCount: formData.elderlyCount,
-            disabledMembers: formData.disabledMembers,
-            monthlyIncome: formData.monthlyIncome,
-            incomeSource: formData.incomeSource,
-            hasOtherIncome: formData.hasOtherIncome,
-            otherIncomeAmount: formData.otherIncomeAmount,
-            houseOwnership: formData.houseOwnership,
-            houseType: formData.houseType,
-            hasElectricity: formData.hasElectricity,
-            hasWaterConnection: formData.hasWaterConnection,
-            hasToilet: formData.hasToilet,
-            educationLevel: formData.educationLevel,
-            childrenEducation: formData.childrenEducation,
-            hasHealthInsurance: formData.hasHealthInsurance,
-            chronicIllness: formData.chronicIllness,
-            illnessDetails: formData.illnessDetails,
-            hasDisability: formData.hasDisability,
-            disabilityType: formData.disabilityType,
-            employmentStatus: formData.employmentStatus,
-            jobStability: formData.jobStability,
-            hasBankAccount: formData.hasBankAccount,
-            hasVehicle: formData.hasVehicle,
-            vehicleType: formData.vehicleType,
-            hasLand: formData.hasLand,
-            landArea: formData.landArea,
-            caste: formData.caste,
-            religion: formData.religion,
-            isWidow: formData.isWidow,
-            isOrphan: formData.isOrphan,
-            isSeniorCitizen: formData.isSeniorCitizen,
-            hasEmergencyFund: formData.hasEmergencyFund,
-            emergencyContact: formData.emergencyContact,
-            emergencyRelation: formData.emergencyRelation,
-            previousApplications: formData.previousApplications,
-            previousSchemes: formData.previousSchemes,
-            additionalNeeds: formData.additionalNeeds,
-            specialCircumstances: formData.specialCircumstances
-          },
-          reason: formData.reason
-        })
+        body: fd
       });
 
       if (!response.ok) {
@@ -230,20 +341,49 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
     }
   };
 
+  const renderRequiredDocuments = () => (
+    <div className="space-y-3">
+      <h4 className="text-sm font-semibold text-gray-800">Upload Required Documents</h4>
+      {requiredDocuments.length === 0 ? (
+        <p className="text-xs text-gray-500">No specific documents required for this scheme.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {requiredDocuments.map(doc => {
+            const key = `doc_${doc.name.replace(/\s+/g, '_').toLowerCase()}`;
+            const accept = (doc.formats || []).map(f => `.${f}`).join(',');
+            return (
+              <div key={key} className="flex flex-col">
+                <label className="text-xs font-medium text-gray-700 mb-1">{doc.name} *</label>
+                <input
+                  type="file"
+                  accept={accept || undefined}
+                  onChange={(e) => setDocFiles(prev => ({ ...prev, [key]: e.target.files?.[0] || null }))}
+                  className="text-xs"
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
   const renderStep1 = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Personal Information</h3>
+    <div className="space-y-4">
+      <h3 className="text-base font-semibold text-gray-800 mb-2">Personal Information</h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Address *</label>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Address *</label>
           <textarea
             value={formData.address}
             onChange={(e) => handleInputChange('address', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={3}
+            onBlur={() => handleBlur('address')}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            rows={2}
             required
           />
+          {touched.address && fieldErrors.address && <p className="mt-1 text-xs text-red-600">{fieldErrors.address}</p>}
         </div>
 
         <div>
@@ -252,9 +392,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="tel"
             value={formData.phoneNumber}
             onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+            onBlur={() => handleBlur('phoneNumber')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          {touched.phoneNumber && fieldErrors.phoneNumber && <p className="mt-1 text-xs text-red-600">{fieldErrors.phoneNumber}</p>}
         </div>
 
         <div>
@@ -263,8 +405,10 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="text"
             value={formData.rationCardNumber}
             onChange={(e) => handleInputChange('rationCardNumber', e.target.value)}
+            onBlur={() => handleBlur('rationCardNumber')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {touched.rationCardNumber && fieldErrors.rationCardNumber && <p className="mt-1 text-xs text-red-600">{fieldErrors.rationCardNumber}</p>}
         </div>
 
         <div>
@@ -273,8 +417,10 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="text"
             value={formData.aadharNumber}
             onChange={(e) => handleInputChange('aadharNumber', e.target.value)}
+            onBlur={() => handleBlur('aadharNumber')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {touched.aadharNumber && fieldErrors.aadharNumber && <p className="mt-1 text-xs text-red-600">{fieldErrors.aadharNumber}</p>}
         </div>
 
         <div>
@@ -283,9 +429,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="number"
             value={formData.familyIncome}
             onChange={(e) => handleInputChange('familyIncome', parseInt(e.target.value) || 0)}
+            onBlur={() => handleBlur('familyIncome')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          {touched.familyIncome && fieldErrors.familyIncome && <p className="mt-1 text-xs text-red-600">{fieldErrors.familyIncome}</p>}
         </div>
 
         <div>
@@ -294,9 +442,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="number"
             value={formData.dependents}
             onChange={(e) => handleInputChange('dependents', parseInt(e.target.value) || 0)}
+            onBlur={() => handleBlur('dependents')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          {touched.dependents && fieldErrors.dependents && <p className="mt-1 text-xs text-red-600">{fieldErrors.dependents}</p>}
         </div>
       </div>
 
@@ -337,9 +487,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="number"
             value={formData.familyMembers}
             onChange={(e) => handleInputChange('familyMembers', parseInt(e.target.value) || 0)}
+            onBlur={() => handleBlur('familyMembers')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          {touched.familyMembers && fieldErrors.familyMembers && <p className="mt-1 text-xs text-red-600">{fieldErrors.familyMembers}</p>}
         </div>
 
         <div>
@@ -348,9 +500,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="number"
             value={formData.childrenCount}
             onChange={(e) => handleInputChange('childrenCount', parseInt(e.target.value) || 0)}
+            onBlur={() => handleBlur('childrenCount')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          {touched.childrenCount && fieldErrors.childrenCount && <p className="mt-1 text-xs text-red-600">{fieldErrors.childrenCount}</p>}
         </div>
 
         <div>
@@ -359,9 +513,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="number"
             value={formData.elderlyCount}
             onChange={(e) => handleInputChange('elderlyCount', parseInt(e.target.value) || 0)}
+            onBlur={() => handleBlur('elderlyCount')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          {touched.elderlyCount && fieldErrors.elderlyCount && <p className="mt-1 text-xs text-red-600">{fieldErrors.elderlyCount}</p>}
         </div>
 
         <div>
@@ -370,9 +526,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="number"
             value={formData.disabledMembers}
             onChange={(e) => handleInputChange('disabledMembers', parseInt(e.target.value) || 0)}
+            onBlur={() => handleBlur('disabledMembers')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          {touched.disabledMembers && fieldErrors.disabledMembers && <p className="mt-1 text-xs text-red-600">{fieldErrors.disabledMembers}</p>}
         </div>
 
         <div>
@@ -381,9 +539,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="number"
             value={formData.monthlyIncome}
             onChange={(e) => handleInputChange('monthlyIncome', parseInt(e.target.value) || 0)}
+            onBlur={() => handleBlur('monthlyIncome')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          {touched.monthlyIncome && fieldErrors.monthlyIncome && <p className="mt-1 text-xs text-red-600">{fieldErrors.monthlyIncome}</p>}
         </div>
 
         <div>
@@ -391,9 +551,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
           <select
             value={formData.incomeSource}
             onChange={(e) => handleInputChange('incomeSource', e.target.value)}
+            onBlur={() => handleBlur('incomeSource')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
+          {touched.incomeSource && fieldErrors.incomeSource && <p className="mt-1 text-xs text-red-600">{fieldErrors.incomeSource}</p>}
             <option value="">Select Income Source</option>
             <option value="salary">Salary</option>
             <option value="business">Business</option>
@@ -424,8 +586,10 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
               type="number"
               value={formData.otherIncomeAmount}
               onChange={(e) => handleInputChange('otherIncomeAmount', parseInt(e.target.value) || 0)}
+              onBlur={() => handleBlur('otherIncomeAmount')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            {touched.otherIncomeAmount && fieldErrors.otherIncomeAmount && <p className="mt-1 text-xs text-red-600">{fieldErrors.otherIncomeAmount}</p>}
           </div>
         )}
       </div>
@@ -442,9 +606,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
           <select
             value={formData.houseOwnership}
             onChange={(e) => handleInputChange('houseOwnership', e.target.value)}
+            onBlur={() => handleBlur('houseOwnership')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
+          {touched.houseOwnership && fieldErrors.houseOwnership && <p className="mt-1 text-xs text-red-600">{fieldErrors.houseOwnership}</p>}
             <option value="">Select Ownership</option>
             <option value="owned">Owned</option>
             <option value="rented">Rented</option>
@@ -458,9 +624,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
           <select
             value={formData.houseType}
             onChange={(e) => handleInputChange('houseType', e.target.value)}
+            onBlur={() => handleBlur('houseType')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
+          {touched.houseType && fieldErrors.houseType && <p className="mt-1 text-xs text-red-600">{fieldErrors.houseType}</p>}
             <option value="">Select House Type</option>
             <option value="concrete">Concrete</option>
             <option value="semi_concrete">Semi Concrete</option>
@@ -474,9 +642,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
           <select
             value={formData.educationLevel}
             onChange={(e) => handleInputChange('educationLevel', e.target.value)}
+            onBlur={() => handleBlur('educationLevel')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
+          {touched.educationLevel && fieldErrors.educationLevel && <p className="mt-1 text-xs text-red-600">{fieldErrors.educationLevel}</p>}
             <option value="">Select Education Level</option>
             <option value="illiterate">Illiterate</option>
             <option value="primary">Primary</option>
@@ -492,9 +662,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
           <select
             value={formData.childrenEducation}
             onChange={(e) => handleInputChange('childrenEducation', e.target.value)}
+            onBlur={() => handleBlur('childrenEducation')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
+          {touched.childrenEducation && fieldErrors.childrenEducation && <p className="mt-1 text-xs text-red-600">{fieldErrors.childrenEducation}</p>}
             <option value="">Select Education Type</option>
             <option value="not_applicable">Not Applicable</option>
             <option value="government">Government School</option>
@@ -554,9 +726,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
           <select
             value={formData.employmentStatus}
             onChange={(e) => handleInputChange('employmentStatus', e.target.value)}
+            onBlur={() => handleBlur('employmentStatus')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
+          {touched.employmentStatus && fieldErrors.employmentStatus && <p className="mt-1 text-xs text-red-600">{fieldErrors.employmentStatus}</p>}
             <option value="">Select Employment Status</option>
             <option value="employed">Employed</option>
             <option value="unemployed">Unemployed</option>
@@ -572,9 +746,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
           <select
             value={formData.jobStability}
             onChange={(e) => handleInputChange('jobStability', e.target.value)}
+            onBlur={() => handleBlur('jobStability')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
+          {touched.jobStability && fieldErrors.jobStability && <p className="mt-1 text-xs text-red-600">{fieldErrors.jobStability}</p>}
             <option value="">Select Job Stability</option>
             <option value="permanent">Permanent</option>
             <option value="temporary">Temporary</option>
@@ -616,9 +792,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
               <textarea
                 value={formData.illnessDetails}
                 onChange={(e) => handleInputChange('illnessDetails', e.target.value)}
+                onBlur={() => handleBlur('illnessDetails')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={2}
               />
+              {touched.illnessDetails && fieldErrors.illnessDetails && <p className="mt-1 text-xs text-red-600">{fieldErrors.illnessDetails}</p>}
             </div>
           )}
 
@@ -640,8 +818,10 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
                 type="text"
                 value={formData.disabilityType}
                 onChange={(e) => handleInputChange('disabilityType', e.target.value)}
+                onBlur={() => handleBlur('disabilityType')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              {touched.disabilityType && fieldErrors.disabilityType && <p className="mt-1 text-xs text-red-600">{fieldErrors.disabilityType}</p>}
             </div>
           )}
         </div>
@@ -659,9 +839,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
           <select
             value={formData.caste}
             onChange={(e) => handleInputChange('caste', e.target.value)}
+            onBlur={() => handleBlur('caste')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
+          {touched.caste && fieldErrors.caste && <p className="mt-1 text-xs text-red-600">{fieldErrors.caste}</p>}
             <option value="">Select Caste</option>
             <option value="general">General</option>
             <option value="obc">OBC</option>
@@ -676,9 +858,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
           <select
             value={formData.religion}
             onChange={(e) => handleInputChange('religion', e.target.value)}
+            onBlur={() => handleBlur('religion')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           >
+          {touched.religion && fieldErrors.religion && <p className="mt-1 text-xs text-red-600">{fieldErrors.religion}</p>}
             <option value="">Select Religion</option>
             <option value="hindu">Hindu</option>
             <option value="muslim">Muslim</option>
@@ -758,8 +942,10 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
               type="number"
               value={formData.landArea}
               onChange={(e) => handleInputChange('landArea', parseInt(e.target.value) || 0)}
+              onBlur={() => handleBlur('landArea')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            {touched.landArea && fieldErrors.landArea && <p className="mt-1 text-xs text-red-600">{fieldErrors.landArea}</p>}
           </div>
         )}
       </div>
@@ -815,9 +1001,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="text"
             value={formData.emergencyContact}
             onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
+            onBlur={() => handleBlur('emergencyContact')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          {touched.emergencyContact && fieldErrors.emergencyContact && <p className="mt-1 text-xs text-red-600">{fieldErrors.emergencyContact}</p>}
         </div>
 
         <div>
@@ -826,9 +1014,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             type="text"
             value={formData.emergencyRelation}
             onChange={(e) => handleInputChange('emergencyRelation', e.target.value)}
+            onBlur={() => handleBlur('emergencyRelation')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+          {touched.emergencyRelation && fieldErrors.emergencyRelation && <p className="mt-1 text-xs text-red-600">{fieldErrors.emergencyRelation}</p>}
         </div>
 
         <div>
@@ -847,11 +1037,13 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
         <textarea
           value={formData.reason}
           onChange={(e) => handleInputChange('reason', e.target.value)}
+          onBlur={() => handleBlur('reason')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           rows={4}
           placeholder="Please explain why you need this welfare scheme..."
           required
         />
+        {touched.reason && fieldErrors.reason && <p className="mt-1 text-xs text-red-600">{fieldErrors.reason}</p>}
       </div>
 
       <div>
@@ -875,6 +1067,9 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
           placeholder="Any special circumstances that should be considered..."
         />
       </div>
+
+      {/* Dynamic required documents section */}
+      {renderRequiredDocuments()}
     </div>
   );
 

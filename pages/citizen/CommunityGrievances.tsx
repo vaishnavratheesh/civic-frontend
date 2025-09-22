@@ -5,9 +5,10 @@ import { ISSUE_TYPES, WARD_NUMBERS, STATUS_COLORS } from '../../constants';
 
 interface CommunityGrievancesProps {
     complaints: Complaint[];
+    loading?: boolean;
 }
 
-const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints }) => {
+const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints, loading = false }) => {
     const [wardFilter, setWardFilter] = useState<string>('all');
     const [priorityFilter, setPriorityFilter] = useState<string>('all');
     const [issueTypeFilter, setIssueTypeFilter] = useState<string>('all');
@@ -61,8 +62,14 @@ const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints })
             </div>
 
             <div className="bg-white rounded-xl">
-                 <ul className="divide-y divide-gray-200">
-                    {filteredComplaints.length > 0 ? filteredComplaints.map(c => (
+                {loading ? (
+                    <div className="p-6 text-center">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <p className="mt-2 text-gray-500">Loading grievances...</p>
+                    </div>
+                ) : (
+                    <ul className="divide-y divide-gray-200">
+                        {filteredComplaints.length > 0 ? filteredComplaints.map(c => (
                         <li key={c.id} className="p-4 sm:p-6">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                  <div className="flex items-start space-x-4 flex-grow">
@@ -80,10 +87,11 @@ const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints })
                                 </div>
                             </div>
                         </li>
-                    )) : (
-                        <p className="p-6 text-center text-gray-500">No grievances match the current filters.</p>
-                    )}
-                </ul>
+                        )) : (
+                            <p className="p-6 text-center text-gray-500">No grievances match the current filters.</p>
+                        )}
+                    </ul>
+                )}
             </div>
         </div>
     );

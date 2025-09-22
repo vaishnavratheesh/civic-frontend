@@ -39,6 +39,11 @@ export interface User {
   profilePicture?: string;
   registrationSource?: 'manual' | 'google';
   isVerified?: boolean;
+  idProof?: {
+    type?: 'aadhar' | 'voter_id' | 'driving_license' | 'ration_card' | 'passport';
+    fileUrl?: string;
+    uploadedAt?: string;
+  };
   googleId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -71,7 +76,21 @@ export interface WelfareScheme {
   postedBy: string;
   ward: number;
   totalItems: number;
+  // Additional optional fields used in UI
+  creatorName?: string;
+  availableSlots?: number;
   createdAt: string;
+  // Additional properties for scheme management
+  status?: 'active' | 'draft' | 'completed' | 'expired';
+  totalSlots?: number;
+  startDate?: string;
+  endDate?: string;
+  applicationDeadline?: string;
+  requiredDocuments?: Array<{
+    name: string;
+    type: string;
+    formats: string[];
+  }>;
 }
 
 export interface WelfareApplication {
@@ -94,6 +113,10 @@ export interface WelfareApplication {
   createdAt: string;
   score?: number;
   justification?: string;
+  documents?: Array<{
+    name: string;
+    url: string;
+  }>;
 }
 
 export interface ForecastData {

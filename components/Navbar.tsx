@@ -43,21 +43,16 @@ const Navbar: React.FC<NavbarProps> = ({ title = 'Dashboard', className = '', on
       }
     };
 
-    // Initial count and bootstrap seen set
-    (async () => {
-      if (user?.ward && user?.role === 'citizen' && user?.id) {
-        await notificationService.checkForNewSchemes(user.id, user.ward);
-        updateNotificationCount();
-      }
-    })();
+    // Initial count only (no immediate scheme check to prevent spam)
+    updateNotificationCount();
 
-    // Poll for new schemes (15s)
+    // Poll for new schemes (5 minutes - very reduced frequency to prevent spam)
     const interval = setInterval(async () => {
       if (user?.ward && user?.role === 'citizen' && user?.id) {
         await notificationService.checkForNewSchemes(user.id, user.ward);
         updateNotificationCount();
       }
-    }, 15000);
+    }, 300000); // 5 minutes
 
     return () => clearInterval(interval);
   }, [user?.ward, user?.role, user?.id]);

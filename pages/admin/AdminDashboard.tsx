@@ -444,7 +444,7 @@ const AdminDashboard: React.FC = () => {
                     </button>
                   ))}
                 </div>
-              </div>
+                </div>
 
               {/* Charts Row */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -455,7 +455,7 @@ const AdminDashboard: React.FC = () => {
                     Grievances by Ward
                   </h3>
                   <div style={{ height: 300 }}>
-                          <ResponsiveContainer>
+                        <ResponsiveContainer>
                     <BarChart data={grievanceData.slice(0, 10)}>
                                 <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="ward" />
@@ -667,8 +667,8 @@ const AdminDashboard: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
-  );
+        </div>
+    );
 };
 
 export default AdminDashboard;

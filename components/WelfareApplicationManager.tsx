@@ -39,6 +39,12 @@ interface WelfareApplication {
   appliedAt: string;
   reviewedAt?: string;
   completedAt?: string;
+  verification?: {
+    mode?: 'none' | 'manual' | 'auto';
+    autoScore?: number;
+    remarks?: string;
+  };
+  verificationStatus?: 'Pending' | 'Verified-Manual' | 'Verified-Auto' | 'Rejected';
 }
 
 interface WelfareApplicationManagerProps {
@@ -59,6 +65,8 @@ const WelfareApplicationManager: React.FC<WelfareApplicationManagerProps> = ({ o
     status: 'pending',
     reviewComments: ''
   });
+  const [verifying, setVerifying] = useState<{[id: string]: boolean}>({});
+  const [autoResult, setAutoResult] = useState<{[id: string]: { score: number; remarks: string }}>({});
 
   useEffect(() => {
     fetchApplications();
@@ -114,6 +122,60 @@ const WelfareApplicationManager: React.FC<WelfareApplicationManagerProps> = ({ o
       }
     } catch (error) {
       console.error('Failed to review application');
+    }
+  };
+
+  const manualVerify = async (appId: string, approve: boolean) => {
+    const remarks = window.prompt('Enter remarks (optional):') || '';
+    setVerifying(prev => ({ ...prev, [appId]: true }));
+    try {
+      const resp = await fetch(`http://localhost:3002/api/welfare/applications/${appId}/manual-verify`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ status: approve ? 'Verified-Manual' : 'Rejected', remarks })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setApplications(prev => prev.map(a => a._id === appId ? {
+          ...a,
+          reviewedAt: new Date().toISOString(),
+          verificationStatus: data.application?.verificationStatus,
+          verification: data.application?.verification
+        } : a));
+      }
+    } catch (e) {
+      console.error('Manual verify failed', e);
+    } finally {
+      setVerifying(prev => ({ ...prev, [appId]: false }));
+    }
+  };
+
+  const autoVerify = async (appId: string) => {
+    setVerifying(prev => ({ ...prev, [appId]: true }));
+    try {
+      const resp = await fetch(`http://localhost:3002/api/welfare/applications/${appId}/auto-verify`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const score = Number(data?.result?.score || 0);
+        const remarks = String(data?.result?.remarks || '');
+        setAutoResult(prev => ({ ...prev, [appId]: { score, remarks } }));
+        setApplications(prev => prev.map(a => a._id === appId ? {
+          ...a,
+          reviewedAt: new Date().toISOString(),
+          verificationStatus: data.application?.verificationStatus,
+          verification: data.application?.verification
+        } : a));
+      }
+    } catch (e) {
+      console.error('Auto verify failed', e);
+    } finally {
+      setVerifying(prev => ({ ...prev, [appId]: false }));
     }
   };
 
@@ -360,34 +422,47 @@ const WelfareApplicationManager: React.FC<WelfareApplicationManagerProps> = ({ o
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => {
-                            setSelectedApplication(application);
-                            setReviewData({
-                              status: application.status,
-                              reviewComments: application.reviewComments || ''
-                            });
-                            setShowReviewModal(true);
-                          }}
-                          className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors"
-                        >
-                          Review
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            setSelectedApplication(application);
-                            setReviewData({
-                              status: application.status,
-                              reviewComments: application.reviewComments || ''
-                            });
-                            setShowReviewModal(true);
-                          }}
-                          className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-lg hover:bg-green-200 transition-colors"
-                        >
-                          View Details
-                        </button>
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => manualVerify(application._id, true)}
+                            disabled={!!verifying[application._id]}
+                            className="px-3 py-1 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60"
+                          >
+                            {verifying[application._id] ? 'Verifying...' : 'Approve Manually'}
+                          </button>
+                          <button
+                            onClick={() => manualVerify(application._id, false)}
+                            disabled={!!verifying[application._id]}
+                            className="px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-60"
+                          >
+                            Reject Manually
+                          </button>
+                          <button
+                            onClick={() => autoVerify(application._id)}
+                            disabled={!!verifying[application._id]}
+                            className="px-3 py-1 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60"
+                          >
+                            {verifying[application._id] ? 'AI Checking...' : 'Auto Verify (Gemini)'}
+                          </button>
+                        </div>
+                        {(autoResult[application._id] || application.verification) && (
+                          <div className="text-xs text-gray-600">
+                            <div>
+                              <span className="font-semibold">Verification:</span> {application.verificationStatus || '—'}
+                            </div>
+                            {((autoResult[application._id]?.score !== undefined) || application.verification?.autoScore !== undefined) && (
+                              <div>
+                                <span className="font-semibold">AI Score:</span> {autoResult[application._id]?.score ?? application.verification?.autoScore}
+                              </div>
+                            )}
+                            {(autoResult[application._id]?.remarks || application.verification?.remarks) && (
+                              <div>
+                                <span className="font-semibold">Remarks:</span> {autoResult[application._id]?.remarks || application.verification?.remarks}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>

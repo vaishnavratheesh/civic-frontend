@@ -35,8 +35,13 @@ const Councillors: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const list = await getCouncillors();
-        setCouncillors(list || []);
+        const data = await getCouncillors();
+        const arr = Array.isArray(data?.councillors)
+          ? data.councillors
+          : Array.isArray(data)
+          ? data
+          : [];
+        setCouncillors(arr);
       } catch (e) {
         console.error('Failed to fetch councillors', e);
       } finally {
