@@ -68,6 +68,7 @@ const CompleteCouncillorProfile: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const [generalError, setGeneralError] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -203,6 +204,7 @@ const CompleteCouncillorProfile: React.FC = () => {
     e.preventDefault();
     setMessage('');
     setErrors({});
+    setGeneralError('');
 
     if (!validateForm()) {
       return;
@@ -231,21 +233,22 @@ const CompleteCouncillorProfile: React.FC = () => {
         // Update user data in context
         const updatedUser = {
           ...user,
+          id: user!.id,
           name: formData.name,
           ward: formData.ward,
           role: 'councillor' as const
         };
-        login(updatedUser);
+        login(updatedUser as any);
 
         // Redirect to dashboard after 2 seconds
         setTimeout(() => {
           navigate('/councillor/dashboard');
         }, 2000);
       } else {
-        setErrors({ general: data.error || 'Failed to complete profile' });
+        setGeneralError(data.error || 'Failed to complete profile');
       }
     } catch (error) {
-      setErrors({ general: 'Network error. Please try again.' });
+      setGeneralError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -253,7 +256,7 @@ const CompleteCouncillorProfile: React.FC = () => {
 
   const handlePasswordChange = async () => {
     if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
-      setErrors({ general: 'Please fill all password fields' });
+      setGeneralError('Please fill all password fields');
       return;
     }
 
@@ -264,7 +267,7 @@ const CompleteCouncillorProfile: React.FC = () => {
 
     const passwordValidation = validatePassword(formData.newPassword);
     if (!passwordValidation.isValid) {
-      setErrors({ newPassword: passwordValidation.error });
+      setErrors(prev => ({ ...prev, newPassword: passwordValidation.error }));
       return;
     }
 
@@ -297,7 +300,7 @@ const CompleteCouncillorProfile: React.FC = () => {
         setErrors({ currentPassword: data.error || 'Failed to change password' });
       }
     } catch (error) {
-      setErrors({ general: 'Network error. Please try again.' });
+      setGeneralError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -328,10 +331,10 @@ const CompleteCouncillorProfile: React.FC = () => {
             </div>
           )}
 
-          {errors.general && (
+          {generalError && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
               <i className="fas fa-exclamation-circle mr-2"></i>
-              {errors.general}
+              {generalError}
             </div>
           )}
 

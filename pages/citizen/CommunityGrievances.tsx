@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Complaint } from '../../types';
 import { ISSUE_TYPES, WARD_NUMBERS, STATUS_COLORS } from '../../constants';
+import Swal from 'sweetalert2';
 
 interface CommunityGrievancesProps {
     complaints: Complaint[];
@@ -12,6 +13,45 @@ const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints, l
     const [wardFilter, setWardFilter] = useState<string>('all');
     const [priorityFilter, setPriorityFilter] = useState<string>('all');
     const [issueTypeFilter, setIssueTypeFilter] = useState<string>('all');
+    const [upvoting, setUpvoting] = useState<string | null>(null);
+
+    const handleUpvote = async (grievanceId: string) => {
+        setUpvoting(grievanceId);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:3002/api/grievances/${grievanceId}/upvote`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            
+            if (response.ok) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Upvoted!',
+                    text: `Grievance upvoted successfully. Total upvotes: ${data.upvoteCount}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                // Refresh the page to show updated counts
+                window.location.reload();
+            } else {
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'Failed to upvote grievance'
+                });
+            }
+        } catch (error) {
+            await Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to upvote grievance'
+            });
+        } finally {
+            setUpvoting(null);
+        }
+    };
 
     const filteredComplaints = useMemo(() => {
         return complaints.filter(c => {
@@ -21,6 +61,23 @@ const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints, l
             return wardMatch && priorityMatch && issueTypeMatch;
         });
     }, [complaints, wardFilter, priorityFilter, issueTypeFilter]);
+
+    // Group duplicates by duplicateGroupId, falling back to individual id
+    const grouped = useMemo(() => {
+        const map = new Map<string, { head: Complaint; items: Complaint[]; count: number }>();
+        for (const c of filteredComplaints) {
+            const key = c.duplicateGroupId || c.id;
+            if (!map.has(key)) {
+                map.set(key, { head: c, items: [c], count: c.duplicateCount || 1 });
+            } else {
+                const g = map.get(key)!;
+                g.items.push(c);
+                g.count = Math.max(g.count, c.duplicateCount || g.items.length);
+            }
+        }
+        // sort by priorityScore desc, then by count desc, then newest
+        return Array.from(map.values()).sort((a,b) => (b.head.priorityScore - a.head.priorityScore) || (b.count - a.count) || (new Date(b.head.createdAt).getTime() - new Date(a.head.createdAt).getTime()));
+    }, [filteredComplaints]);
 
     const resetFilters = () => {
         setWardFilter('all');
@@ -69,21 +126,58 @@ const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints, l
                     </div>
                 ) : (
                     <ul className="divide-y divide-gray-200">
-                        {filteredComplaints.length > 0 ? filteredComplaints.map(c => (
-                        <li key={c.id} className="p-4 sm:p-6">
+                        {grouped.length > 0 ? grouped.map(group => (
+                        <li key={group.head.duplicateGroupId || group.head.id} className="p-4 sm:p-6">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                  <div className="flex items-start space-x-4 flex-grow">
-                                    <img src={c.imageURL} alt={c.issueType} className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover shadow-md"/>
+                                    <img src={group.head.imageURL} alt={group.head.issueType} className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover shadow-md"/>
                                     <div className="flex-grow">
-                                        <p className="text-sm font-semibold text-blue-600">{c.issueType} - Ward {c.ward}</p>
-                                        <p className="text-lg font-bold text-gray-800">{c.description}</p>
+                                        <p className="text-sm font-semibold text-blue-600">{group.head.issueType} - Ward {group.head.ward}</p>
+                                        <p className="text-lg font-bold text-gray-800">{group.head.description}</p>
                                         <p className="text-sm text-gray-500 mt-1">
-                                            Priority: {c.priorityScore}/5 | By: {c.userName} | Submitted: {new Date(c.createdAt).toLocaleDateString()}
+                                            Priority: {group.head.priorityScore}/5 | Credibility: {typeof group.head.credibilityScore === 'number' ? `${(group.head.credibilityScore*100).toFixed(0)}%` : '—'} | Reports: {group.count} | Submitted: {new Date(group.head.createdAt).toLocaleDateString()}
                                         </p>
+                                        {!!(group.head.flags && group.head.flags.length) && (
+                                            <p className="text-xs text-red-600 mt-1">
+                                                <i className="fas fa-flag mr-1"></i>
+                                                {group.head.flags.join(', ')}
+                                            </p>
+                                        )}
+                                        {group.head.location && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                <i className="fas fa-map-marker-alt mr-1"></i>
+                                                {group.head.location?.address ? 
+                                                    `${group.head.location.address} (${group.head.location?.lat?.toFixed?.(6)}, ${group.head.location?.lng?.toFixed?.(6)})` :
+                                                    `${group.head.location?.lat?.toFixed?.(6)}, ${group.head.location?.lng?.toFixed?.(6)}`
+                                                }
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex-shrink-0 self-center sm:self-auto">
-                                    <span className={`px-3 py-1 text-sm font-semibold rounded-full ${STATUS_COLORS[c.status]}`}>{c.status}</span>
+                                    <div className="flex items-center gap-2 mb-2 justify-end">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                            <i className="fas fa-arrow-up mr-1"></i>{group.count} upvotes
+                                        </span>
+                                        <button
+                                            onClick={() => handleUpvote(group.head.id)}
+                                            disabled={upvoting === group.head.id}
+                                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {upvoting === group.head.id ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></div>
+                                                    Upvoting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="fas fa-thumbs-up mr-1"></i>
+                                                    Upvote
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                    <span className={`px-3 py-1 text-sm font-semibold rounded-full ${STATUS_COLORS[group.head.status]}`}>{group.head.status}</span>
                                 </div>
                             </div>
                         </li>

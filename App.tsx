@@ -23,6 +23,7 @@ import Landing from './pages/Landing';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import EditProfile from './pages/citizen/EditProfile';
+import MapViewTest from './components/MapViewTest';
 
 const AppRoutes: React.FC = () => {
     const { user, isLoading } = useAuth();
@@ -54,6 +55,9 @@ const AppRoutes: React.FC = () => {
             <Route path="/officer" element={<ProtectedRoute allowedRoles={[Role.OFFICER]}><OfficerDashboard /></ProtectedRoute>} />
             <Route path="/citizen" element={<ProtectedRoute allowedRoles={[Role.CITIZEN]}><CitizenDashboard /></ProtectedRoute>} />
             <Route path="/citizen/edit-profile" element={<ProtectedRoute allowedRoles={[Role.CITIZEN]}><EditProfile /></ProtectedRoute>} />
+
+            {/* Development test route */}
+            <Route path="/test-map" element={<MapViewTest />} />
 
             <Route path="/" element={
                 user ? <Navigate to={`/${user.role}`} replace /> : <Landing />

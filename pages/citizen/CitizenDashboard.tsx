@@ -289,10 +289,16 @@ const CitizenDashboard: React.FC = () => {
                     userName: g.userName,
                     ward: g.ward,
                     imageURL: g.imageURL,
+                    attachments: g.attachments || [],
                     issueType: g.issueType,
+                    title: g.title || '',
+                    category: g.category || '',
                     description: g.description,
                     location: g.location,
                     priorityScore: g.priorityScore,
+                    credibilityScore: g.credibilityScore,
+                    flags: g.flags || [],
+                    audit: g.audit || {},
                     status: g.status as ComplaintStatus,
                     assignedTo: g.assignedTo,
                     officerName: g.officerName,
@@ -332,10 +338,16 @@ const CitizenDashboard: React.FC = () => {
                     userName: g.userName,
                     ward: g.ward,
                     imageURL: g.imageURL,
+                    attachments: g.attachments || [],
                     issueType: g.issueType,
+                    title: g.title || '',
+                    category: g.category || '',
                     description: g.description,
                     location: g.location,
                     priorityScore: g.priorityScore,
+                    credibilityScore: g.credibilityScore,
+                    flags: g.flags || [],
+                    audit: g.audit || {},
                     status: g.status as ComplaintStatus,
                     assignedTo: g.assignedTo,
                     officerName: g.officerName,
@@ -518,7 +530,7 @@ const CitizenDashboard: React.FC = () => {
             case 'community-grievances':
                 return <CommunityGrievances complaints={communityComplaints} loading={grievancesLoading} />;
             case 'welfare-schemes':
-                return <WelfareSchemesTab schemes={availableSchemes} applications={myApplications} onApplyClick={handleApplyClick} loading={schemesLoading} printingPDF={printingPDF} generateApplicationPDF={generateApplicationPDF} />;
+                return <WelfareSchemesTab schemes={availableSchemes} applications={myApplications} onApplyClick={handleApplyClick} loading={schemesLoading} printingPDF={printingPDF} generateApplicationPDF={generateApplicationPDF} disabledActions={!isVerified} />;
             default:
                 return null;
         }
@@ -944,6 +956,20 @@ const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted:
                                                         <i className="fas fa-calendar mr-2"></i>
                                                         {new Date(c.createdAt).toLocaleDateString()}
                                                     </span>
+                                                    {typeof c.credibilityScore === 'number' && (
+                                                        <span className="flex items-center" title="Credibility Score">
+                                                            <i className="fas fa-shield-alt mr-2"></i>
+                                                            {(c.credibilityScore * 100).toFixed(0)}%
+                                                        </span>
+                                                    )}
+                                                    {c.location && (
+                                                        <span className="flex items-center">
+                                                            <i className="fas fa-map-marker-alt mr-2"></i>
+                                                            <span title={`${c.location?.lat?.toFixed?.(6)}, ${c.location?.lng?.toFixed?.(6)}`}>
+                                                                {c.location?.address || `${c.location?.lat?.toFixed?.(6)}, ${c.location?.lng?.toFixed?.(6)}`}
+                                                            </span>
+                                                        </span>
+                                                    )}
                                                     {c.assignedTo && (
                                                         <span className="flex items-center">
                                                             <i className="fas fa-user-tie mr-2"></i>
@@ -951,6 +977,12 @@ const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted:
                                                         </span>
                                                     )}
                                                 </div>
+                                                {!!(c.flags && c.flags.length) && (
+                                                    <div className="mt-2 text-xs text-red-600">
+                                                        <i className="fas fa-flag mr-1"></i>
+                                                        {c.flags.join(', ')}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="flex-shrink-0">
                                                 <span className={`px-4 py-2 text-sm font-semibold rounded-xl ${STATUS_COLORS[c.status]} shadow-lg`}>
@@ -986,7 +1018,7 @@ const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted:
     );
 };
 
-const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: WelfareApplication[], onApplyClick: (scheme: WelfareScheme) => void, loading?: boolean, printingPDF: string | null, generateApplicationPDF: (application: WelfareApplication) => void }> = ({ schemes, applications, onApplyClick, loading = false, printingPDF, generateApplicationPDF }) => {
+const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: WelfareApplication[], onApplyClick: (scheme: WelfareScheme) => void, loading?: boolean, printingPDF: string | null, generateApplicationPDF: (application: WelfareApplication) => void, disabledActions?: boolean }> = ({ schemes, applications, onApplyClick, loading = false, printingPDF, generateApplicationPDF, disabledActions = false }) => {
     const hasAppliedForScheme = (schemeId: string) => {
         return applications.some(app => String(app.schemeId) === String(schemeId));
     };
@@ -1078,13 +1110,13 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                                 </div>
                                 <button 
                                     onClick={() => onApplyClick(s)} 
-                                    disabled={hasAppliedForScheme(s.id) || !isVerified}
+                                    disabled={hasAppliedForScheme(s.id) || disabledActions}
                                     className={`w-full text-white font-medium py-2.5 px-4 rounded-md flex items-center justify-center ${
-                                        hasAppliedForScheme(s.id) || !isVerified ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-800 hover:bg-gray-700'
+                                        hasAppliedForScheme(s.id) || disabledActions ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-800 hover:bg-gray-700'
                                     }`}
                                 >
                                     <i className="fas fa-edit mr-2"></i>
-                                    {hasAppliedForScheme(s.id) ? 'Already Applied' : (!isVerified ? 'Verify to Apply' : 'Apply Now')}
+                                    {hasAppliedForScheme(s.id) ? 'Already Applied' : (disabledActions ? 'Verify to Apply' : 'Apply Now')}
                                 </button>
                             </div>
                         ))}

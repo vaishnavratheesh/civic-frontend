@@ -9,6 +9,8 @@ import { Complaint, ComplaintStatus, WelfareApplication, ApplicationStatus, Welf
 import { API_ENDPOINTS } from '../../src/config/config';
 // ML scoring now handled by backend endpoint
 import Spinner from '../../components/Spinner';
+import { STATUS_COLORS } from '../../constants';
+import MapView from '../../components/MapView';
 
 
 // Councillor sidebar navigation items
@@ -550,6 +552,8 @@ const WardComplaints: React.FC = () => {
     const { user } = useAuth();
     const [complaints, setComplaints] = useState<Complaint[]>([]);
     const [loading, setLoading] = useState(true);
+    const [acting, setActing] = useState<{[id: string]: string | undefined}>({});
+    const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
 
     useEffect(() => {
         const fetchWardComplaints = async () => {
@@ -568,16 +572,22 @@ const WardComplaints: React.FC = () => {
                         id: g.id,
                         userId: g.userId,
                         userName: g.userName,
+                        userEmail: g.userEmail,
                         ward: g.ward,
                         imageURL: g.imageURL,
                         issueType: g.issueType,
                         description: g.description,
                         location: g.location,
                         priorityScore: g.priorityScore,
+                        credibilityScore: g.credibilityScore,
                         status: g.status as ComplaintStatus,
                         source: g.source,
-                        createdAt: g.createdAt
+                        createdAt: g.createdAt,
+                        duplicateGroupId: g.duplicateGroupId,
+                        duplicateCount: g.duplicateCount,
+                        attachments: g.attachments || []
                     }));
+                    mapped.sort((a: any, b: any) => (b.priorityScore - a.priorityScore) || ((b.duplicateCount||0) - (a.duplicateCount||0)) || (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
                     setComplaints(mapped);
                 } else {
                     setComplaints([]);
@@ -592,6 +602,46 @@ const WardComplaints: React.FC = () => {
         fetchWardComplaints();
     }, [user?.ward]);
 
+    const updateStatus = async (id: string, status: 'Under Review' | 'Assigned' | 'In Progress' | 'Resolved' | 'Rejected') => {
+        try {
+            setActing(prev => ({ ...prev, [id]: status }));
+            const token = localStorage.getItem('token');
+            const res = await fetch(`http://localhost:3002/api/grievances/${id}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status, remarks: `Set to ${status} by councillor` })
+            });
+            if (res.ok) {
+                setComplaints(prev => prev.map(c => c.id === id ? { ...c, status: status as any } : c));
+            }
+        } catch (e) {
+            // no-op
+        } finally {
+            setActing(prev => ({ ...prev, [id]: undefined }));
+        }
+    };
+
+    const autoVerify = async (id: string) => {
+        try {
+            setActing(prev => ({ ...prev, [id]: 'auto' }));
+            const token = localStorage.getItem('token');
+            const res = await fetch(`http://localhost:3002/api/grievances/${id}/verify/auto`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                // Refresh that complaint from API or optimistically mark Under Review
+                setComplaints(prev => prev.map(c => c.id === id ? { ...c, status: 'Under Review' as any } : c));
+            }
+        } catch (_) {
+        } finally {
+            setActing(prev => ({ ...prev, [id]: undefined }));
+        }
+    };
+
     return (
         <div>
             <div className="flex items-center justify-between mb-6">
@@ -604,13 +654,18 @@ const WardComplaints: React.FC = () => {
                     <div className="text-gray-600 text-sm">No active complaints in your ward.</div>
                 ) : (
                     complaints.map(c => (
-                        <div key={c.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                        <div key={c.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200 cursor-pointer" onClick={() => setSelectedComplaint(c)}>
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                     <div className="flex items-center mb-2">
                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-3">
                                             Priority {c.priorityScore}
                                         </span>
+                                        {c.duplicateCount ? (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 mr-3">
+                                                <i className="fas fa-arrow-up mr-1"></i>{c.duplicateCount} upvotes
+                                            </span>
+                                        ) : null}
                                         <span className="text-sm text-gray-500">
                                             <i className="fas fa-clock mr-1"></i>
                                             {new Date(c.createdAt).toLocaleDateString()}
@@ -618,12 +673,27 @@ const WardComplaints: React.FC = () => {
                                     </div>
                                     <h4 className="font-semibold text-gray-800 mb-2">{c.issueType}</h4>
                                     <p className="text-gray-600 mb-3">{c.description}</p>
-                                    <div className="flex items-center text-sm text-gray-500">
+                                    <div className="flex items-center text-sm text-gray-500 flex-wrap gap-2">
                                         <i className="fas fa-user mr-2"></i>
                                         <span>Reported by: {c.userName}</span>
                                         <span className="mx-2">•</span>
                                         <i className="fas fa-map-marker-alt mr-2"></i>
+                                        <span>
+                                            {c.location?.address || `${c.location?.lat?.toFixed?.(6)}, ${c.location?.lng?.toFixed?.(6)}`} {c.location?.lat !== undefined && c.location?.lng !== undefined ? `(${c.location.lat.toFixed(6)}, ${c.location.lng.toFixed(6)})` : ''}
+                                        </span>
+                                        <span className="mx-2">•</span>
                                         <span>Ward {c.ward}</span>
+                                    </div>
+                                </div>
+                                <div className="ml-4 flex flex-col items-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${STATUS_COLORS[c.status]}`}>{c.status}</span>
+                                    <div className="flex flex-wrap gap-2 justify-end">
+                                        <button onClick={() => autoVerify(c.id)} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-indigo-600 text-white disabled:opacity-50">
+                                            {acting[c.id] ? 'Processing…' : 'Auto Verify'}
+                                        </button>
+                                        <button onClick={() => updateStatus(c.id, 'In Progress')} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white disabled:opacity-50">In Progress</button>
+                                        <button onClick={() => updateStatus(c.id, 'Resolved')} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-green-600 text-white disabled:opacity-50">Resolve</button>
+                                        <button onClick={() => updateStatus(c.id, 'Rejected')} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-red-600 text-white disabled:opacity-50">Reject</button>
                                     </div>
                                 </div>
                             </div>
@@ -631,6 +701,51 @@ const WardComplaints: React.FC = () => {
                     ))
                 )}
             </div>
+            {/* Complaint Details Modal */}
+            {selectedComplaint && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl p-6">
+                        <div className="flex items-start justify-between mb-4">
+                            <h4 className="text-lg font-semibold">Complaint Details</h4>
+                            <button onClick={() => setSelectedComplaint(null)} className="px-3 py-1 rounded-md border hover:bg-gray-50">Close</button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <img src={selectedComplaint.imageURL} alt={selectedComplaint.issueType} className="w-full h-48 object-cover rounded-lg border" />
+                                <div className="mt-3 text-sm text-gray-600 space-y-1">
+                                    <div><span className="font-semibold text-gray-700">Issue:</span> {selectedComplaint.issueType}</div>
+                                    <div><span className="font-semibold text-gray-700">Description:</span> {selectedComplaint.description}</div>
+                                    <div><span className="font-semibold text-gray-700">Reporter:</span> {selectedComplaint.userName}</div>
+                                    <div><span className="font-semibold text-gray-700">Upvotes:</span> {selectedComplaint.duplicateCount || 1}</div>
+                                    <div>
+                                        <span className="font-semibold text-gray-700">Location:</span> {selectedComplaint.location?.address || ''}
+                                        {selectedComplaint.location ? (
+                                            <span> ({selectedComplaint.location.lat.toFixed(6)}, {selectedComplaint.location.lng.toFixed(6)})</span>
+                                        ) : null}
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                {selectedComplaint.location && (
+                                    <div className="h-56 rounded-lg overflow-hidden border">
+                                        <MapView center={[selectedComplaint.location.lat, selectedComplaint.location.lng]} marker={{ position: [selectedComplaint.location.lat, selectedComplaint.location.lng], popupText: selectedComplaint.location.address || selectedComplaint.issueType }} />
+                                    </div>
+                                )}
+                                <div className="mt-4 flex flex-col gap-2">
+                                    <a href={selectedComplaint.userEmail ? `mailto:${selectedComplaint.userEmail}?subject=Regarding your complaint&body=Please provide more details.` : undefined} target="_blank" rel="noreferrer" className={`px-3 py-2 rounded-md text-sm font-medium text-white ${selectedComplaint.userEmail ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed pointer-events-none'}`}>
+                                        <i className="fas fa-envelope mr-2"></i>
+                                        Contact Reporter
+                                    </a>
+                                    <button className="px-3 py-2 rounded-md text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white text-left" onClick={() => alert('Request sent: Please upload an additional video evidencing the issue.') }>
+                                        <i className="fas fa-video mr-2"></i>
+                                        Request Extra Video Evidence
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

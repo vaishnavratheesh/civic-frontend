@@ -8,8 +8,7 @@ export const config = {
   // Google OAuth Configuration
   GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID || '289773391020-da1s5ueqalq5v2ppe01ujm9m0ordiomg.apps.googleusercontent.com',
   
-  // Google Maps Configuration
-  GOOGLE_MAPS_API_KEY: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBvaAFVs6SkzyL2inovZqFYgcpjPLhO8I8',
+  // Maps Configuration (using OpenStreetMap - no API key required)
   
   // Application Configuration
   APP_NAME: 'Civic+',

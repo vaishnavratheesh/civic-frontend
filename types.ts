@@ -53,20 +53,27 @@ export interface Complaint {
   id: string;
   userId: string;
   userName: string;
+  userEmail?: string;
   ward: number;
-  imageURL: string;
+  imageURL?: string;
   issueType: string;
   description: string;
-  location: { lat: number; lng: number };
+  location: { lat: number; lng: number; address?: string };
   priorityScore: number;
+  credibilityScore?: number;
+  flags?: string[];
   status: ComplaintStatus;
   assignedTo?: string;
   officerName?: string;
   source: 'user' | 'iot';
+  audit?: { submittedAt?: string; ip?: string; device?: string };
   createdAt: string;
   resolvedAt?: string;
   beforeImageUrl?: string;
   afterImageUrl?: string;
+  duplicateGroupId?: string;
+  duplicateCount?: number;
+  attachments?: Array<{ url: string; type?: string }>;
 }
 
 export interface WelfareScheme {

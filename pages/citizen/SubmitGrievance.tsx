@@ -1,8 +1,10 @@
 
 import React, { useState, useRef } from 'react';
+import Swal from 'sweetalert2';
 import Spinner from '../../components/Spinner';
 import { analyzeGrievance } from '../../services/geminiService';
 import { Complaint, ComplaintStatus, Role, User } from '../../types';
+import LocationPicker from '../../components/LocationPicker';
 import { useAuth } from '../../hooks/useAuth';
 
 // Mock function to simulate saving to a backend
@@ -32,12 +34,17 @@ const fileToBase64 = (file: File): Promise<string> => {
 
 const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) => void}> = ({ onGrievanceSubmitted }) => {
     const { user } = useAuth();
+    const [title, setTitle] = useState('');
+    const [category, setCategory] = useState('');
+    const [ward, setWard] = useState<number | null>(null);
+    const [pickedLocation, setPickedLocation] = useState<{ latitude: number; longitude: number; formattedAddress: string } | null>(null);
     const [description, setDescription] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [analysisResult, setAnalysisResult] = useState<{title: string, issueType: string, priorityScore: number, summary: string} | null>(null);
+    const [upvoteToast, setUpvoteToast] = useState<{ visible: boolean; message: string }>(() => ({ visible: false, message: '' }));
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -93,8 +100,24 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!description || !imageFile || !user) {
-            setError('Please provide a description and an image.');
+        if (!user) {
+            setError('Not authenticated.');
+            return;
+        }
+        if (!title.trim()) {
+            setError('Title is required.');
+            return;
+        }
+        if (!description.trim()) {
+            setError('Description is required.');
+            return;
+        }
+        if (!pickedLocation) {
+            setError('Please select a location on the map.');
+            return;
+        }
+        if (!imageFile) {
+            setError('Please attach at least one photo.');
             return;
         }
 
@@ -107,22 +130,85 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
             const analysis = await analyzeGrievance(description, imageBase64);
             setAnalysisResult(analysis);
 
-            // Now save the full complaint data
-            const newGrievanceData: Omit<Complaint, 'id' | 'createdAt' | 'userName'> = {
-                userId: user.id,
-                ward: user.ward,
-                description: description,
-                imageURL: imagePreview!, // The preview URL can be used for display
-                issueType: analysis.issueType,
-                location: { lat: 0, lng: 0 }, // Placeholder for actual location capture
-                priorityScore: analysis.priorityScore,
-                status: ComplaintStatus.PENDING,
-                source: 'user',
-            };
+            // Send multipart to backend
+            const form = new FormData();
+            form.append('title', title);
+            form.append('description', description);
+            if (category) form.append('category', category);
+            const effectiveWard = ward ?? user.ward;
+            form.append('location', JSON.stringify({ ward: effectiveWard, lat: pickedLocation.latitude, lng: pickedLocation.longitude, address: pickedLocation.formattedAddress }));
+            form.append('issueType', title); // Use title as issueType to maintain consistency
+            form.append('attachments', imageFile);
 
-            const savedComplaint = await saveGrievance(newGrievanceData);
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:3002/api/grievances', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: form
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                if (response.status === 409) {
+                    // Same-user duplicate (backend ensured)
+                    try { await Swal.fire({ icon: 'info', title: 'Already Submitted', text: data?.message || 'You’ve already reported this issue. Please check your grievance list for updates.', confirmButtonText: 'OK' }); } catch {}
+                    setError('');
+                    setIsSubmitting(false);
+                    // Do not treat as failure banner
+                    return;
+                }
+                throw new Error(data?.message || 'Submission failed');
+            }
+            // If backend returns a duplicate upvote without a grievance object, show message and stop
+            if (data?.duplicate && !data?.grievance) {
+                // success path already alerted above
+                // Reset form
+                setTitle('');
+                setCategory('');
+                setWard(null);
+                setPickedLocation(null);
+                setDescription('');
+                setImageFile(null);
+                setImagePreview(null);
+                setAnalysisResult(null);
+                return;
+            }
+
+            const g = data.grievance;
+            const savedComplaint: Complaint = {
+                id: g._id || g.id,
+                userId: g.userId,
+                userName: g.userName,
+                ward: g.ward,
+                imageURL: (g.attachments && g.attachments[0] && g.attachments[0].url) || '',
+                issueType: g.issueType,
+                description: g.description,
+                location: { lat: g.location?.lat || 0, lng: g.location?.lng || 0 },
+                priorityScore: g.priorityScore || 0,
+                status: g.status || ComplaintStatus.PENDING,
+                source: 'user',
+                createdAt: g.createdAt || new Date().toISOString(),
+                resolvedAt: g.resolvedAt || undefined,
+            };
             onGrievanceSubmitted(savedComplaint);
+
+            if (data?.duplicate) {
+                setError('');
+                try { 
+                    await Swal.fire({ 
+                        icon: 'success', 
+                        title: 'Complaint Upvoted!', 
+                        text: `Thanks for reporting. This issue was already reported and your report has increased its priority. Upvotes: ${data.upvoteCount || 2}`, 
+                        timer: 3500, 
+                        timerProgressBar: true,
+                        showConfirmButton: false 
+                    }); 
+                } catch {}
+            }
             // Reset form
+            setTitle('');
+            setCategory('');
+            setWard(null);
+            setPickedLocation(null);
             setDescription('');
             setImageFile(null);
             setImagePreview(null);
@@ -135,12 +221,77 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
         }
     };
 
+    // When user selects a map location, auto-detect ward from backend and update form
+    const handlePickedLocation = async (loc: { latitude: number; longitude: number; formattedAddress: string }) => {
+        setPickedLocation(loc);
+        try {
+            const params = new URLSearchParams({ lat: String(loc.latitude), lng: String(loc.longitude) });
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`http://localhost:3002/api/grievances/ward-lookup?${params.toString()}` , {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : undefined
+            });
+            if (resp.ok) {
+                const d = await resp.json();
+                if (typeof d?.ward === 'number') setWard(d.ward);
+            }
+        } catch (_) {
+            // best-effort only; leave ward as-is on failure
+        }
+    };
+
     return (
-        <div className="bg-white p-8 rounded-xl shadow-lg">
+        <div className="bg-white p-8 rounded-xl shadow-lg relative">
             <h3 className="text-2xl font-bold text-gray-800 mb-6">Report a New Grievance</h3>
             {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
             
+            {/* Upvote toast */}
+            {upvoteToast.visible && (
+                <div className="absolute top-4 right-4 z-10">
+                    <div className="flex items-start gap-3 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-md">
+                        <i className="fas fa-thumbs-up mt-0.5"></i>
+                        <div className="text-sm">
+                            <div className="font-semibold">Upvoted</div>
+                            <div>{upvoteToast.message}</div>
+                        </div>
+                        <button type="button" onClick={() => setUpvoteToast({ visible: false, message: '' })} className="ml-2 text-green-700 hover:text-green-900">
+                            <i className="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Short title for the issue"
+                        required
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category (optional)</label>
+                    <input
+                        type="text"
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., Road, Waste, Water"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ward</label>
+                    <input
+                        type="number"
+                        value={ward ?? user?.ward ?? ''}
+                        onChange={(e) => setWard(parseInt(e.target.value))}
+                        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Ward number"
+                    />
+                </div>
                 <div>
                     <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                         Describe the issue
@@ -154,6 +305,10 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
                         placeholder="e.g., There is a large pothole on Main Street near the bus stop..."
                         required
                     />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Location</label>
+                    <LocationPicker onLocationSelect={handlePickedLocation} className="mt-2" />
                 </div>
 
                 <div>
@@ -218,3 +373,4 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
 };
 
 export default SubmitGrievance;
+
