@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { notificationService, Notification } from '../services/notificationService';
 import NotificationDropdown from './NotificationDropdown';
+import { io } from 'socket.io-client';
 
 interface NavbarProps {
   title?: string;
@@ -56,6 +57,49 @@ const Navbar: React.FC<NavbarProps> = ({ title = 'Dashboard', className = '', on
 
     return () => clearInterval(interval);
   }, [user?.ward, user?.role, user?.id]);
+
+  // Real-time announcement/event notifications
+  useEffect(() => {
+    if (!user?.id) return;
+    const socket = io('http://localhost:3002', { withCredentials: true });
+    const onAnnouncement = (payload: any) => {
+      const a = payload?.item;
+      if (!a) return;
+      // citizens see citizens/all; councillors see councillors/all
+      const audience = String(a.audience || 'all');
+      const role = String((user as any).role || 'citizen');
+      const allowed = audience === 'all' || (audience === 'citizens' && role === 'citizen') || (audience === 'councillors' && role === 'councillor');
+      if (!allowed) return;
+      notificationService.addNotification(user.id, {
+        type: 'announcement',
+        title: 'New Announcement',
+        message: a.title ? `${a.title}: ${a.description || ''}` : (a.description || 'New announcement'),
+        createdAt: new Date().toISOString()
+      });
+      setHasNewDot(true);
+      setNotificationCount(notificationService.getUnreadCount(user.id));
+    };
+    const onEvent = (payload: any) => {
+      const e = payload?.item;
+      if (!e) return;
+      const audience = String(e.audience || 'all');
+      const role = String((user as any).role || 'citizen');
+      const allowed = audience === 'all' || (audience === 'citizens' && role === 'citizen') || (audience === 'councillors' && role === 'councillor');
+      if (!allowed) return;
+      const when = e.time ? new Date(e.time).toLocaleString() : '';
+      notificationService.addNotification(user.id, {
+        type: 'event',
+        title: 'New Event Scheduled',
+        message: `${e.title || 'Event'} on ${when} at ${e.location || ''}`.trim(),
+        createdAt: new Date().toISOString()
+      });
+      setHasNewDot(true);
+      setNotificationCount(notificationService.getUnreadCount(user.id));
+    };
+    socket.on('announcement:new', onAnnouncement);
+    socket.on('event:new', onEvent);
+    return () => { socket.disconnect(); };
+  }, [user?.id, (user as any)?.role]);
 
   const handleLogout = () => {
     logout();

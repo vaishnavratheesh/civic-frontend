@@ -164,6 +164,9 @@ const Login: React.FC = () => {
                 case Role.OFFICER:
                     navigate('/officer', { replace: true });
                     break;
+                case Role.PRESIDENT:
+                    navigate('/president', { replace: true });
+                    break;
                 default:
                     navigate('/citizen', { replace: true });
                     break;

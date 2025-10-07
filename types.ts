@@ -4,6 +4,7 @@ export enum Role {
   OFFICER = 'officer',
   COUNCILLOR = 'councillor',
   ADMIN = 'admin',
+  PRESIDENT = 'president',
 }
 
 export enum ComplaintStatus {
@@ -15,9 +16,14 @@ export enum ComplaintStatus {
 }
 
 export enum ApplicationStatus {
+  DRAFT = 'Draft',
+  SUBMITTED = 'Submitted',
   PENDING = 'Pending',
+  UNDER_REVIEW = 'Under Review',
+  VERIFIED = 'Verified',
   APPROVED = 'Approved',
   REJECTED = 'Rejected',
+  COMPLETED = 'Completed',
 }
 
 export interface User {

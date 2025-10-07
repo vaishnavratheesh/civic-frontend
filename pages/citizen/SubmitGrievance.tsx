@@ -126,6 +126,48 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
         setAnalysisResult(null);
 
         try {
+            const token = localStorage.getItem('token');
+
+            // Quick duplicate preflight (no upload) so we can short-circuit
+            try {
+                const dupResp = await fetch('http://localhost:3002/api/grievances/check-duplicate', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title,
+                        issueType: title,
+                        description,
+                        location: { lat: pickedLocation.latitude, lng: pickedLocation.longitude }
+                    })
+                });
+                if (dupResp.ok) {
+                    const dup = await dupResp.json();
+                    if (dup?.duplicate) {
+                        if (dup.sameUser || dup.hasUpvoted) {
+                            await Swal.fire({ icon: 'info', title: 'Already Submitted', text: 'You’ve already reported this issue. Please check your grievance list for updates.' });
+                            setIsSubmitting(false);
+                            return;
+                        }
+                        // Different user -> trigger group upvote endpoint and show success toast
+                        if (dup.groupId) {
+                            const up = await fetch(`http://localhost:3002/api/grievances/${dup.groupId}/upvote`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            const upData = await up.json();
+                            if (up.ok) {
+                                await Swal.fire({ icon: 'success', title: 'Similar complaint already exists', text: `Thanks for reporting. Your report has increased its priority. Upvotes: ${upData.upvoteCount || dup.upvoteCount + 1 || 2}`, timer: 3000, showConfirmButton: false });
+                                setIsSubmitting(false);
+                                return;
+                            }
+                        }
+                    }
+                }
+            } catch (_) { /* best-effort preflight */ }
+
             const imageBase64 = await fileToBase64(imageFile);
             const analysis = await analyzeGrievance(description, imageBase64);
             setAnalysisResult(analysis);
@@ -140,7 +182,6 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
             form.append('issueType', title); // Use title as issueType to maintain consistency
             form.append('attachments', imageFile);
 
-            const token = localStorage.getItem('token');
             const response = await fetch('http://localhost:3002/api/grievances', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
@@ -160,7 +201,16 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
             }
             // If backend returns a duplicate upvote without a grievance object, show message and stop
             if (data?.duplicate && !data?.grievance) {
-                // success path already alerted above
+                try {
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Similar complaint already exists',
+                        text: `Thanks for reporting. Your report has increased its priority. Upvotes: ${data.upvoteCount || 2}`,
+                        timer: 3500,
+                        timerProgressBar: true,
+                        showConfirmButton: false
+                    });
+                } catch {}
                 // Reset form
                 setTitle('');
                 setCategory('');
@@ -196,8 +246,8 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
                 try { 
                     await Swal.fire({ 
                         icon: 'success', 
-                        title: 'Complaint Upvoted!', 
-                        text: `Thanks for reporting. This issue was already reported and your report has increased its priority. Upvotes: ${data.upvoteCount || 2}`, 
+                        title: 'Similar complaint already exists', 
+                        text: `Thanks for reporting. Your report has increased its priority. Upvotes: ${data.upvoteCount || 2}`, 
                         timer: 3500, 
                         timerProgressBar: true,
                         showConfirmButton: false 

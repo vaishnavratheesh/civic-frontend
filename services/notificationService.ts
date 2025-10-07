@@ -1,13 +1,14 @@
 // Notification service for managing welfare scheme notifications
 export interface Notification {
   id: string;
-  type: 'new_scheme';
+  type: 'new_scheme' | 'announcement' | 'event';
   title: string;
   message: string;
-  schemeId: string;
-  schemeTitle: string;
   createdAt: string;
   read: boolean;
+  // Optional fields for specific types
+  schemeId?: string;
+  schemeTitle?: string;
 }
 
 class NotificationService {
@@ -84,14 +85,11 @@ class NotificationService {
   addNotification(userId: string, notification: Omit<Notification, 'id' | 'read'>): void {
     try {
       const notifications = this.getNotifications(userId);
-      
-      // Check if notification already exists for this scheme
-      const existingNotification = notifications.find(n => n.schemeId === notification.schemeId);
-      if (existingNotification) {
-        console.log('Notification already exists for scheme:', notification.schemeId);
-        return;
-      }
-      
+      // De-dup simple: skip if an identical message with same type exists in last 5 minutes
+      const now = Date.now();
+      const exists = notifications.some(n => n.type === notification.type && n.message === notification.message && (now - new Date(n.createdAt).getTime()) < 5*60*1000);
+      if (exists) return;
+
       const newNotification: Notification = {
         ...notification,
         id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -149,7 +147,7 @@ class NotificationService {
 
         // Create notifications for new schemes
         newSchemes.forEach((scheme: any) => {
-          this.addNotification(userId, {
+        this.addNotification(userId, {
             type: 'new_scheme',
             title: 'New Welfare Scheme Available',
             message: `A new scheme "${scheme.title}" is now available for your ward.`,

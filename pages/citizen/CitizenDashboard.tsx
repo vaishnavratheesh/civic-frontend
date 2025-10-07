@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
+import { io } from 'socket.io-client';
 import Sidebar from '../../components/Sidebar';
 import Navbar from '../../components/Navbar';
 import { Complaint, ComplaintStatus, WelfareScheme, ApplicationStatus, WelfareApplication } from '../../types';
@@ -21,6 +23,8 @@ const tabs = [
     { id: 'my-grievances', name: 'My Grievances', icon: 'fa-bullhorn' },
     { id: 'community-grievances', name: 'Community Grievances', icon: 'fa-users' },
     { id: 'welfare-schemes', name: 'Welfare Schemes', icon: 'fa-hands-helping' },
+    { id: 'announcements', name: 'Announcements', icon: 'fa-bullhorn' },
+    { id: 'events', name: 'Events', icon: 'fa-calendar-alt' },
 ];
 
 const CitizenDashboard: React.FC = () => {
@@ -32,6 +36,8 @@ const CitizenDashboard: React.FC = () => {
     const [grievancesLoading, setGrievancesLoading] = useState(false);
     const [myApplications, setMyApplications] = useState<WelfareApplication[]>([]);
     const [printingPDF, setPrintingPDF] = useState<string | null>(null);
+    const [announcements, setAnnouncements] = useState<any[]>([]);
+    const [events, setEvents] = useState<any[]>([]);
 
     // PDF Generation function
     const generateApplicationPDF = (application: WelfareApplication) => {
@@ -372,6 +378,46 @@ const CitizenDashboard: React.FC = () => {
         fetchMyApplications();
         fetchMyGrievances();
         fetchCommunityGrievances();
+        // Load president announcements and upcoming events (public endpoints)
+        (async () => {
+            try {
+                const [a, e] = await Promise.all([
+                    fetch(`${API_ENDPOINTS.PRESIDENT_ANNOUNCEMENTS}?audience=citizens`),
+                    fetch(`${API_ENDPOINTS.PRESIDENT_EVENTS}?audience=citizens`)
+                ]);
+                const aj = await a.json();
+                const ej = await e.json();
+                if (aj.success) setAnnouncements(aj.items || []);
+                if (ej.success) setEvents(ej.items || []);
+            } catch {}
+        })();
+    }, []);
+
+    useEffect(() => {
+        const socket = io('http://localhost:3002', { withCredentials: true });
+        const refreshAnnouncements = async () => {
+            try {
+                const res = await fetch(`${API_ENDPOINTS.PRESIDENT_ANNOUNCEMENTS}?audience=citizens`);
+                const data = await res.json();
+                if (data.success) {
+                    setAnnouncements(data.items || []);
+                    Swal.fire({ toast: true, icon: 'info', title: 'New announcement', position: 'top-end', timer: 3000, showConfirmButton: false });
+                }
+            } catch {}
+        };
+        const refreshEvents = async () => {
+            try {
+                const res = await fetch(`${API_ENDPOINTS.PRESIDENT_EVENTS}?audience=citizens`);
+                const data = await res.json();
+                if (data.success) {
+                    setEvents(data.items || []);
+                    Swal.fire({ toast: true, icon: 'info', title: 'New event', position: 'top-end', timer: 3000, showConfirmButton: false });
+                }
+            } catch {}
+        };
+        socket.on('announcement:new', refreshAnnouncements);
+        socket.on('event:new', refreshEvents);
+        return () => { socket.disconnect(); };
     }, []);
 
 
@@ -531,6 +577,52 @@ const CitizenDashboard: React.FC = () => {
                 return <CommunityGrievances complaints={communityComplaints} loading={grievancesLoading} />;
             case 'welfare-schemes':
                 return <WelfareSchemesTab schemes={availableSchemes} applications={myApplications} onApplyClick={handleApplyClick} loading={schemesLoading} printingPDF={printingPDF} generateApplicationPDF={generateApplicationPDF} disabledActions={!isVerified} />;
+            case 'announcements':
+                return (
+                    <div className="bg-white rounded-lg border border-gray-200 p-5">
+                        <h3 className="text-base font-semibold text-gray-900 mb-3">Announcements</h3>
+                        <div className="space-y-3">
+                            {announcements.map(a => (
+                                <details key={a._id} className="border rounded-md p-3 group">
+                                    <summary className="font-semibold cursor-pointer select-none flex items-center justify-between">
+                                        <span>{a.title}</span>
+                                        <span className="ml-2 text-xs text-gray-500">by {a.createdByRole === 'councillor' ? 'Councillor' : (a.createdByRole === 'president' ? 'President' : 'Authority')}</span>
+                                        <span className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</span>
+                                    </summary>
+                                    <div className="text-sm text-gray-700 mt-2">{a.description}</div>
+                                </details>
+                            ))}
+                            {announcements.length === 0 && <div className="text-sm text-gray-500">No announcements.</div>}
+                        </div>
+                    </div>
+                );
+            case 'events':
+                return (
+                    <div className="bg-white rounded-lg border border-gray-200 p-5">
+                        <h3 className="text-base font-semibold text-gray-900 mb-3">Upcoming Events</h3>
+                        <div className="space-y-3">
+                            {events.map(ev => {
+                                const start = new Date(ev.time);
+                                const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${start.toISOString().replace(/[-:]/g,'').split('.')[0]}Z\nSUMMARY:${(ev.title||'Event').replace(/\n/g,' ')}\nDESCRIPTION:${(ev.description||'').replace(/\n/g,' ')}\nLOCATION:${(ev.location||'').replace(/\n/g,' ')}\nEND:VEVENT\nEND:VCALENDAR`;
+                                const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8;' });
+                                const url = URL.createObjectURL(blob);
+                                return (
+                                    <div key={ev._id} className="border rounded-md p-3 flex items-start justify-between">
+                                        <div>
+                                            <div className="font-semibold">{ev.title}</div>
+                                            <div className="text-sm text-gray-700">{ev.description}</div>
+                                            <div className="text-xs text-gray-500 mt-1">{start.toLocaleString()} • {ev.location}</div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <a href={url} download={`${ev.title||'event'}.ics`} className="text-blue-600 text-sm underline">Add to Calendar</a>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {events.length === 0 && <div className="text-sm text-gray-500">No events scheduled.</div>}
+                        </div>
+                    </div>
+                );
             default:
                 return null;
         }

@@ -2,13 +2,23 @@
 import { ComplaintStatus, ApplicationStatus } from './types';
 
 export const STATUS_COLORS: { [key in ComplaintStatus | ApplicationStatus]: string } = {
+  // Complaint Status Colors
   [ComplaintStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
   [ComplaintStatus.ASSIGNED]: 'bg-blue-100 text-blue-800',
   [ComplaintStatus.IN_PROGRESS]: 'bg-indigo-100 text-indigo-800',
   [ComplaintStatus.RESOLVED]: 'bg-green-100 text-green-800',
   [ComplaintStatus.REJECTED]: 'bg-red-100 text-red-800',
-  [ApplicationStatus.APPROVED]: 'bg-green-100 text-green-800',
+
+  // Application Status Colors
+  [ApplicationStatus.DRAFT]: 'bg-gray-500 text-gray-800',
+  [ApplicationStatus.SUBMITTED]: 'bg-blue-600 text-white',
+  [ApplicationStatus.UNDER_REVIEW]: 'bg-yellow-600 text-white',
+  [ApplicationStatus.VERIFIED]: 'bg-purple-600 text-white',
+  [ApplicationStatus.APPROVED]: 'bg-green-600 text-white',
+  [ApplicationStatus.COMPLETED]: 'bg-green-700 text-white',
+  [ApplicationStatus.REJECTED]: 'bg-red-600 text-white',
 };
+
 
 export const ISSUE_TYPES = [
   'Waste Management',

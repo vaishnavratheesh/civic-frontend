@@ -66,4 +66,16 @@ export const API_ENDPOINTS = {
   
   // Test
   TEST: `${config.API_BASE_URL}/api/test`
+  ,
+  // President
+  PRESIDENT_WARDS: `${config.API_BASE_URL}/api/president/wards`,
+  PRESIDENT_WELFARE: `${config.API_BASE_URL}/api/president/welfare`,
+  PRESIDENT_ANNOUNCEMENTS: `${config.API_BASE_URL}/api/president/announcements`,
+  PRESIDENT_EVENTS: `${config.API_BASE_URL}/api/president/events`,
+  PRESIDENT_MESSAGES: `${config.API_BASE_URL}/api/president/messages`,
+  PRESIDENT_VIDEO: `${config.API_BASE_URL}/api/president/video`,
+  
+  // Councillor create (citizens-only)
+  COUNCILLOR_ANNOUNCEMENTS: `${config.API_BASE_URL}/api/councillors/announcements`,
+  COUNCILLOR_EVENTS: `${config.API_BASE_URL}/api/councillors/events`
 }; 

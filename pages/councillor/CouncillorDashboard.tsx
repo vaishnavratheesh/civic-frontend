@@ -7,10 +7,13 @@ import Navbar from '../../components/Navbar';
 import VerificationModal from '../../components/VerificationModal';
 import { Complaint, ComplaintStatus, WelfareApplication, ApplicationStatus, WelfareScheme } from '../../types';
 import { API_ENDPOINTS } from '../../src/config/config';
+import Swal from 'sweetalert2';
+import { io } from 'socket.io-client';
 // ML scoring now handled by backend endpoint
 import Spinner from '../../components/Spinner';
 import { STATUS_COLORS } from '../../constants';
 import MapView from '../../components/MapView';
+import { API_ENDPOINTS } from '../../src/config/config';
 
 
 // Councillor sidebar navigation items
@@ -28,7 +31,7 @@ const councillorSidebarItems = [
 
 
 
-type Tab = 'complaints' | 'welfare' | 'verification' | 'view-schemes' | 'add-schemes';
+type Tab = 'complaints' | 'welfare' | 'verification' | 'view-schemes' | 'add-schemes' | 'announcements' | 'events';
 
 const CouncillorDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -267,18 +270,275 @@ const CouncillorDashboard: React.FC = () => {
                                     <i className="fas fa-plus-circle mr-2"></i>
                                     Add Schemes
                         </button>
+                                <button 
+                                    onClick={() => setActiveTab('announcements')} 
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                                        activeTab === 'announcements' 
+                                            ? 'border-blue-500 text-blue-600' 
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <i className="fas fa-bullhorn mr-2"></i>
+                                    Announcements
+                        </button>
+                                <button 
+                                    onClick={() => setActiveTab('events')} 
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                                        activeTab === 'events' 
+                                            ? 'border-blue-500 text-blue-600' 
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <i className="fas fa-calendar-alt mr-2"></i>
+                                    Events
+                        </button>
                     </nav>
                 </div>
                         <div className="p-6">
                             {activeTab === 'complaints' && <WardComplaints />}
                             {activeTab === 'welfare' && <WelfareQueue />}
                             {activeTab === 'view-schemes' && <ViewSchemes />}
+                            {activeTab === 'announcements' && <PresidentAnnouncements />}
+                            {activeTab === 'events' && <PresidentEvents />}
                             {activeTab === 'verification' && <VerificationTab />}
                             {activeTab === 'add-schemes' && <AddSchemes />}
                         </div>
                     </div>
             </main>
             </div>
+        </div>
+    );
+};
+
+const PresidentAnnouncements: React.FC = () => {
+    const [items, setItems] = useState<any[]>([]);
+    const [mine, setMine] = useState<any[]>([]);
+    const [editingId, setEditingId] = useState<string|null>(null);
+    const [editTitle, setEditTitle] = useState('');
+    const [editDesc, setEditDesc] = useState('');
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch(`${API_ENDPOINTS.PRESIDENT_ANNOUNCEMENTS}?audience=councillors`);
+                const data = await res.json();
+                if (data.success) setItems(data.items || []);
+            } catch {}
+        })();
+        (async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_ANNOUNCEMENTS}/mine`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.success) setMine(data.items || []);
+            } catch {}
+        })();
+        const socket = io('http://localhost:3002', { withCredentials: true });
+        socket.on('announcement:new', async () => {
+            try {
+                const res = await fetch(`${API_ENDPOINTS.PRESIDENT_ANNOUNCEMENTS}?audience=councillors`);
+                const data = await res.json();
+                if (data.success) setItems(data.items || []);
+                Swal.fire({ toast: true, icon: 'info', title: 'New announcement', position: 'top-end', timer: 3000, showConfirmButton: false });
+            } catch {}
+        });
+        return () => { socket.disconnect(); };
+    }, []);
+    return (
+        <div className="space-y-3">
+            <div className="border rounded-md p-4 bg-white">
+                <div className="font-semibold mb-2">Post Announcement (Citizens only)</div>
+                <div className="grid md:grid-cols-3 gap-2">
+                    <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title" className="border rounded px-3 py-2" />
+                    <input value={description} onChange={e=>setDescription(e.target.value)} placeholder="Description" className="border rounded px-3 py-2 md:col-span-2" />
+                </div>
+                <div className="mt-2 text-right">
+                    <button onClick={async()=>{
+                        if (!title.trim() || !description.trim()) return;
+                        try {
+                            const token = localStorage.getItem('token');
+                            const res = await fetch(API_ENDPOINTS.COUNCILLOR_ANNOUNCEMENTS, { method:'POST', headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ title, description }) });
+                            const data = await res.json();
+                            if (res.ok && data.success) {
+                                setTitle(''); setDescription('');
+                                setMine(prev => [data.item, ...prev]);
+                                Swal.fire({ toast: true, icon:'success', title:'Announcement posted', timer:2000, position:'top-end', showConfirmButton:false });
+                            }
+                        } catch {}
+                    }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Publish</button>
+                </div>
+            </div>
+            {/* My announcements */}
+            <div className="border rounded-md p-4 bg-gray-50">
+                <div className="font-semibold mb-2">My Announcements</div>
+                <div className="space-y-2">
+                    {mine.map(m => (
+                        <div key={m._id} className="border rounded p-3 bg-white">
+                            {editingId === m._id ? (
+                                <div className="space-y-2">
+                                    <input value={editTitle} onChange={e=>setEditTitle(e.target.value)} className="border rounded px-2 py-1 w-full" />
+                                    <input value={editDesc} onChange={e=>setEditDesc(e.target.value)} className="border rounded px-2 py-1 w-full" />
+                                    <div className="text-right space-x-2">
+                                        <button onClick={async()=>{
+                                            const token = localStorage.getItem('token');
+                                            const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_ANNOUNCEMENTS}/${m._id}`, { method:'PUT', headers:{ 'Content-Type':'application/json','Authorization':`Bearer ${token}` }, body: JSON.stringify({ title: editTitle, description: editDesc }) });
+                                            const data = await res.json();
+                                            if (res.ok && data.success) {
+                                                setMine(prev => prev.map(x => x._id === m._id ? data.item : x));
+                                                setEditingId(null);
+                                            }
+                                        }} className="px-3 py-1 bg-green-600 text-white rounded">Save</button>
+                                        <button onClick={()=>setEditingId(null)} className="px-3 py-1 border rounded">Cancel</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <div className="font-semibold">{m.title} <span className="text-xs text-gray-500">(by Councillor)</span></div>
+                                        <div className="text-sm text-gray-700">{m.description}</div>
+                                        <div className="text-xs text-gray-500 mt-1">{new Date(m.createdAt).toLocaleString()}</div>
+                                    </div>
+                                    <div className="space-x-2">
+                                        <button onClick={()=>{ setEditingId(m._id); setEditTitle(m.title); setEditDesc(m.description); }} className="px-3 py-1 border rounded">Edit</button>
+                                        <button onClick={async()=>{
+                                            const token = localStorage.getItem('token');
+                                            const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_ANNOUNCEMENTS}/${m._id}`, { method:'DELETE', headers:{ 'Authorization':`Bearer ${token}` } });
+                                            if (res.ok) setMine(prev => prev.filter(x => x._id !== m._id));
+                                        }} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                    {mine.length === 0 && <div className="text-sm text-gray-500">No announcements yet.</div>}
+                </div>
+            </div>
+            {items.map(a => (
+                <div key={a._id} className="border rounded-md p-4 bg-gray-50">
+                    <div className="font-semibold">{a.title} <span className="text-xs text-gray-500">(by {a.createdByRole === 'president' ? 'President' : 'Authority'})</span></div>
+                    <div className="text-sm text-gray-700">{a.description}</div>
+                    <div className="text-xs text-gray-500 mt-1">Audience: {a.audience} • {new Date(a.createdAt).toLocaleString()}</div>
+                </div>
+            ))}
+            {items.length === 0 && <div className="text-sm text-gray-500">No announcements.</div>}
+        </div>
+    );
+};
+
+const PresidentEvents: React.FC = () => {
+    const [items, setItems] = useState<any[]>([]);
+    const [mine, setMine] = useState<any[]>([]);
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [time, setTime] = useState('');
+    const [location, setLocation] = useState('');
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch(`${API_ENDPOINTS.PRESIDENT_EVENTS}?audience=councillors`);
+                const data = await res.json();
+                if (data.success) setItems(data.items || []);
+            } catch {}
+        })();
+        (async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_EVENTS}/mine`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.success) setMine(data.items || []);
+            } catch {}
+        })();
+        const socket = io('http://localhost:3002', { withCredentials: true });
+        socket.on('event:new', async () => {
+            try {
+                const res = await fetch(`${API_ENDPOINTS.PRESIDENT_EVENTS}?audience=councillors`);
+                const data = await res.json();
+                if (data.success) setItems(data.items || []);
+                Swal.fire({ toast: true, icon: 'info', title: 'New event', position: 'top-end', timer: 3000, showConfirmButton: false });
+            } catch {}
+        });
+        return () => { socket.disconnect(); };
+    }, []);
+    return (
+        <div className="space-y-3">
+            <div className="border rounded-md p-4 bg-white">
+                <div className="font-semibold mb-2">Create Event (Citizens only)</div>
+                <div className="grid md:grid-cols-4 gap-2">
+                    <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title" className="border rounded px-3 py-2" />
+                    <input value={description} onChange={e=>setDescription(e.target.value)} placeholder="Description" className="border rounded px-3 py-2 md:col-span-2" />
+                    <input type="datetime-local" value={time} onChange={e=>setTime(e.target.value)} className="border rounded px-3 py-2" />
+                    <input value={location} onChange={e=>setLocation(e.target.value)} placeholder="Location" className="border rounded px-3 py-2 md:col-span-3" />
+                </div>
+                <div className="mt-2 text-right">
+                    <button onClick={async()=>{
+                        if (!title.trim() || !description.trim() || !time.trim()) return;
+                        try {
+                            const token = localStorage.getItem('token');
+                            const res = await fetch(API_ENDPOINTS.COUNCILLOR_EVENTS, { method:'POST', headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ title, description, time, location }) });
+                            const data = await res.json();
+                            if (res.ok && data.success) {
+                                setTitle(''); setDescription(''); setTime(''); setLocation('');
+                                setMine(prev => [data.item, ...prev]);
+                                Swal.fire({ toast: true, icon:'success', title:'Event created', timer:2000, position:'top-end', showConfirmButton:false });
+                            }
+                        } catch {}
+                    }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Create</button>
+                </div>
+            </div>
+            {/* My events */}
+            <div className="border rounded-md p-4 bg-gray-50">
+                <div className="font-semibold mb-2">My Events</div>
+                <div className="space-y-2">
+                    {mine.map(e => {
+                        const start = new Date(e.time);
+                        return (
+                            <div key={e._id} className="border rounded p-3 bg-white flex items-start justify-between">
+                                <div>
+                                    <div className="font-semibold">{e.title} <span className="text-xs text-gray-500">(by Councillor)</span></div>
+                                    <div className="text-sm text-gray-700">{e.description}</div>
+                                    <div className="text-xs text-gray-500 mt-1">{start.toLocaleString()} • {e.location}</div>
+                                </div>
+                                <div className="space-x-2">
+                                    <button onClick={async()=>{
+                                        const nt = prompt('New title', e.title) || e.title;
+                                        const nd = prompt('New description', e.description) || e.description;
+                                        const ntime = prompt('New time (YYYY-MM-DDTHH:mm)', e.time?.slice?.(0,16) || '') || e.time;
+                                        const nloc = prompt('New location', e.location || '') || e.location;
+                                        const token = localStorage.getItem('token');
+                                        const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_EVENTS}/${e._id}`, { method:'PUT', headers:{ 'Content-Type':'application/json','Authorization':`Bearer ${token}` }, body: JSON.stringify({ title: nt, description: nd, time: ntime, location: nloc }) });
+                                        const data = await res.json();
+                                        if (res.ok && data.success) setMine(prev => prev.map(x => x._id === e._id ? data.item : x));
+                                    }} className="px-3 py-1 border rounded">Edit</button>
+                                    <button onClick={async()=>{
+                                        const token = localStorage.getItem('token');
+                                        const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_EVENTS}/${e._id}`, { method:'DELETE', headers:{ 'Authorization':`Bearer ${token}` } });
+                                        if (res.ok) setMine(prev => prev.filter(x => x._id !== e._id));
+                                    }} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {mine.length === 0 && <div className="text-sm text-gray-500">No events yet.</div>}
+                </div>
+            </div>
+            {items.map(e => {
+                const start = new Date(e.time);
+                const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${start.toISOString().replace(/[-:]/g,'').split('.')[0]}Z\nSUMMARY:${(e.title||'Event').replace(/\n/g,' ')}\nDESCRIPTION:${(e.description||'').replace(/\n/g,' ')}\nLOCATION:${(e.location||'').replace(/\n/g,' ')}\nEND:VEVENT\nEND:VCALENDAR`;
+                const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                return (
+                    <div key={e._id} className="border rounded-md p-4 bg-gray-50 flex items-start justify-between">
+                        <div>
+                            <div className="font-semibold">{e.title} <span className="text-xs text-gray-500">(by {e.createdByRole === 'president' ? 'President' : 'Authority'})</span></div>
+                            <div className="text-sm text-gray-700">{e.description}</div>
+                            <div className="text-xs text-gray-500 mt-1">{start.toLocaleString()} • {e.location}</div>
+                        </div>
+                        <a href={url} download={`${e.title||'event'}.ics`} className="text-blue-600 text-sm underline">Add to Calendar</a>
+                    </div>
+                );
+            })}
+            {items.length === 0 && <div className="text-sm text-gray-500">No upcoming events.</div>}
         </div>
     );
 };

@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Complaint } from '../../types';
 import { ISSUE_TYPES, WARD_NUMBERS, STATUS_COLORS } from '../../constants';
 import Swal from 'sweetalert2';
@@ -14,6 +14,12 @@ const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints, l
     const [priorityFilter, setPriorityFilter] = useState<string>('all');
     const [issueTypeFilter, setIssueTypeFilter] = useState<string>('all');
     const [upvoting, setUpvoting] = useState<string | null>(null);
+    // Keep a local copy so we can update UI without full page reload
+    const [localComplaints, setLocalComplaints] = useState<Complaint[]>(complaints || []);
+
+    useEffect(() => {
+        setLocalComplaints(complaints || []);
+    }, [complaints]);
 
     const handleUpvote = async (grievanceId: string) => {
         setUpvoting(grievanceId);
@@ -33,8 +39,22 @@ const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints, l
                     timer: 2000,
                     showConfirmButton: false
                 });
-                // Refresh the page to show updated counts
-                window.location.reload();
+                // Update local state so counts change without a full reload
+                setLocalComplaints(prev => {
+                    // Find the clicked grievance to determine its group key
+                    const clicked = prev.find(c => c.id === grievanceId);
+                    const groupKey = clicked?.duplicateGroupId || clicked?.id;
+                    if (!groupKey) return prev;
+                    return prev.map(c => {
+                        const sameGroup = (c.duplicateGroupId || c.id) === groupKey;
+                        if (!sameGroup) return c;
+                        return {
+                            ...c,
+                            duplicateCount: typeof data.upvoteCount === 'number' ? data.upvoteCount : ((c.duplicateCount || 1) + 1),
+                            priorityScore: typeof data.priorityScore === 'number' ? data.priorityScore : c.priorityScore
+                        } as Complaint;
+                    });
+                });
             } else {
                 await Swal.fire({
                     icon: 'error',
@@ -54,13 +74,13 @@ const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints, l
     };
 
     const filteredComplaints = useMemo(() => {
-        return complaints.filter(c => {
+        return localComplaints.filter(c => {
             const wardMatch = wardFilter === 'all' || c.ward === Number(wardFilter);
             const priorityMatch = priorityFilter === 'all' || c.priorityScore === Number(priorityFilter);
             const issueTypeMatch = issueTypeFilter === 'all' || c.issueType === issueTypeFilter;
             return wardMatch && priorityMatch && issueTypeMatch;
         });
-    }, [complaints, wardFilter, priorityFilter, issueTypeFilter]);
+    }, [localComplaints, wardFilter, priorityFilter, issueTypeFilter]);
 
     // Group duplicates by duplicateGroupId, falling back to individual id
     const grouped = useMemo(() => {
