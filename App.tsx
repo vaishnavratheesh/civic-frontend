@@ -13,7 +13,7 @@ import AdminWelfareSchemes from './pages/admin/AdminWelfareSchemes';
 import AdminWelfareApplications from './pages/admin/AdminWelfareApplications';
 import UserManagement from './pages/admin/UserManagement';
 import GrievanceManagement from './pages/admin/GrievanceManagement';
-import Councillors from './pages/admin/Councillors';
+
 import CouncillorDashboard from './pages/councillor/CouncillorDashboard';
 import OfficerDashboard from './pages/officer/OfficerDashboard';
 import PresidentDashboard from './pages/president/PresidentDashboard';
@@ -50,7 +50,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/welfare-applications" element={<ProtectedRoute allowedRoles={[Role.ADMIN]}><AdminWelfareApplications /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute allowedRoles={[Role.ADMIN]}><UserManagement /></ProtectedRoute>} />
             <Route path="/admin/grievances" element={<ProtectedRoute allowedRoles={[Role.ADMIN]}><GrievanceManagement /></ProtectedRoute>} />
-            <Route path="/admin/councillors" element={<ProtectedRoute allowedRoles={[Role.ADMIN]}><Councillors /></ProtectedRoute>} />
+
             <Route path="/councillor" element={<ProtectedRoute allowedRoles={[Role.COUNCILLOR]}><CouncillorDashboard /></ProtectedRoute>} />
             <Route path="/councillor/dashboard" element={<ProtectedRoute allowedRoles={[Role.COUNCILLOR]}><CouncillorDashboard /></ProtectedRoute>} />
             <Route path="/officer" element={<ProtectedRoute allowedRoles={[Role.OFFICER]}><OfficerDashboard /></ProtectedRoute>} />

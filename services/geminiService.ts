@@ -104,29 +104,33 @@ export const scoreWelfareApplication = async (reason: string, familyIncome: numb
 };
 
 export const askAboutWard = async (question: string, wardNumber: number): Promise<string> => {
-    if (!ai) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:3002/api/ai/chatbot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                message: question,
+                userId: localStorage.getItem('userId'),
+                ward: wardNumber
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return data.response || 'Sorry, I could not process your request.';
+        } else {
+            throw new Error('API request failed');
+        }
+    } catch (error) {
+        console.error('AI Chatbot API error:', error);
+        
+        // Fallback to mock response
         return new Promise(resolve => setTimeout(() => resolve(
-            "Mock Answer: The next garbage collection for Ward " + wardNumber + " is scheduled for Wednesday at 8 AM. Please ensure your bins are placed on the curb by 7:30 AM. For more details, you can visit the municipal website's waste management section."
+            "I'm having trouble connecting to the AI service right now. Here's some general information about Ward " + wardNumber + ": The next garbage collection is scheduled for Wednesday at 8 AM. Please ensure your bins are placed on the curb by 7:30 AM. For more details, you can contact your ward councillor or visit the panchayath office."
         ), 1500));
     }
-
-    const systemInstruction = `You are a helpful and friendly AI assistant for Ward ${wardNumber} of the city. Your role is to provide concise and accurate information about local services, events, rules, and personnel.
-    - Councillor for Ward ${wardNumber}: Jane Doe
-    - Councillor's Office: Room 201, City Hall, 123 Main St.
-    - Office Hours: Mon-Fri, 9 AM - 5 PM.
-    - Garbage Collection: Every Wednesday and Saturday morning.
-    - Recycling: Every second and fourth Friday.
-    - Local Park: "Harmony Park", open 6 AM to 10 PM.
-    - Upcoming event: Community cleanup day on the first Saturday of next month.
-    Based on this context and general knowledge, answer the user's question. If the question is outside the scope of ward information, politely state that you can only answer ward-related questions.`;
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: question,
-        config: {
-            systemInstruction: systemInstruction,
-        }
-    });
-
-    return response.text;
 };

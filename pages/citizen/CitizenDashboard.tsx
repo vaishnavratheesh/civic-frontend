@@ -1,3 +1,109 @@
+// Sabha Meeting Join Button
+const SabhaMeetingJoin: React.FC = () => {
+    const [meetingUrl, setMeetingUrl] = useState<string|null>(null);
+    useEffect(() => {
+        let interval: any;
+        const fetchMeeting = async () => {
+            try {
+                const res = await fetch(API_ENDPOINTS.MEETING_PUBLIC);
+                const data = await res.json();
+                setMeetingUrl(data.url || null);
+            } catch {}
+        };
+        fetchMeeting();
+        interval = setInterval(fetchMeeting, 15000); // poll every 15s
+        return () => clearInterval(interval);
+    }, []);
+    if (!meetingUrl) return null;
+    return (
+        <div className="mb-4">
+            <a href={meetingUrl} target="_blank" rel="noopener noreferrer">
+                <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                    <i className="fas fa-video mr-2"></i>Join Sabha Meeting
+                </button>
+            </a>
+        </div>
+    );
+};
+
+// E-Sabha Tab Component
+const ESabhaTab: React.FC = () => {
+    const [meetingUrl, setMeetingUrl] = useState<string|null>(null);
+    const [loading, setLoading] = useState(true);
+    
+    useEffect(() => {
+        let interval: any;
+        const fetchMeeting = async () => {
+            try {
+                const res = await fetch(API_ENDPOINTS.MEETING_PUBLIC);
+                const data = await res.json();
+                setMeetingUrl(data.url || null);
+                setLoading(false);
+            } catch {
+                setLoading(false);
+            }
+        };
+        fetchMeeting();
+        interval = setInterval(fetchMeeting, 15000); // poll every 15s
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">
+                    <i className="fas fa-video mr-2 text-purple-600"></i>
+                    E-Sabha Meeting
+                </h3>
+                
+                {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                        <span className="ml-2 text-gray-600">Checking for active meeting...</span>
+                    </div>
+                ) : meetingUrl ? (
+                    <div className="space-y-4">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="flex items-center justify-center mb-3">
+                                <i className="fas fa-check-circle text-green-600 text-2xl mr-2"></i>
+                                <span className="text-green-800 font-semibold">Active Sabha Meeting</span>
+                            </div>
+                            <p className="text-green-700 text-sm mb-4">
+                                The President has started an E-Sabha meeting. You can join as a viewer to participate in the democratic process.
+                            </p>
+                            <a href={meetingUrl} target="_blank" rel="noopener noreferrer">
+                                <button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg text-lg font-medium transition-colors duration-200 shadow-lg hover:shadow-xl">
+                                    <i className="fas fa-video mr-2"></i>
+                                    Join Sabha Meeting
+                                </button>
+                            </a>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                            <i className="fas fa-info-circle mr-1"></i>
+                            Meeting will open in a new tab. Make sure your microphone and camera permissions are enabled.
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                            <div className="flex items-center justify-center mb-3">
+                                <i className="fas fa-clock text-gray-500 text-2xl mr-2"></i>
+                                <span className="text-gray-700 font-semibold">No Active Meeting</span>
+                            </div>
+                            <p className="text-gray-600 text-sm mb-4">
+                                There is currently no active E-Sabha meeting. Please wait for the President to start a meeting.
+                            </p>
+                            <div className="text-xs text-gray-500">
+                                <i className="fas fa-info-circle mr-1"></i>
+                                This page will automatically update when a meeting becomes available.
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import { io } from 'socket.io-client';
@@ -25,6 +131,7 @@ const tabs = [
     { id: 'welfare-schemes', name: 'Welfare Schemes', icon: 'fa-hands-helping' },
     { id: 'announcements', name: 'Announcements', icon: 'fa-bullhorn' },
     { id: 'events', name: 'Events', icon: 'fa-calendar-alt' },
+    { id: 'esabha', name: 'E-Sabha', icon: 'fa-video' },
 ];
 
 const CitizenDashboard: React.FC = () => {
@@ -623,6 +730,8 @@ const CitizenDashboard: React.FC = () => {
                         </div>
                     </div>
                 );
+            case 'esabha':
+                return <ESabhaTab />;
             default:
                 return null;
         }
@@ -1164,6 +1273,7 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
     
     return (
     <div className="space-y-6 animate-fade-in">
+        <SabhaMeetingJoin />
         {/* Available Schemes */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200">

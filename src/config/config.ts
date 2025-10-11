@@ -73,9 +73,21 @@ export const API_ENDPOINTS = {
   PRESIDENT_ANNOUNCEMENTS: `${config.API_BASE_URL}/api/president/announcements`,
   PRESIDENT_EVENTS: `${config.API_BASE_URL}/api/president/events`,
   PRESIDENT_MESSAGES: `${config.API_BASE_URL}/api/president/messages`,
+  PRESIDENT_CONVERSATIONS: `${config.API_BASE_URL}/api/president/conversations`,
   PRESIDENT_VIDEO: `${config.API_BASE_URL}/api/president/video`,
+  MEETING_PUBLIC: `${config.API_BASE_URL}/api/meeting`,
   
   // Councillor create (citizens-only)
   COUNCILLOR_ANNOUNCEMENTS: `${config.API_BASE_URL}/api/councillors/announcements`,
-  COUNCILLOR_EVENTS: `${config.API_BASE_URL}/api/councillors/events`
+  COUNCILLOR_ANNOUNCEMENTS_MINE: `${config.API_BASE_URL}/api/councillors/announcements/mine`,
+  COUNCILLOR_EVENTS: `${config.API_BASE_URL}/api/councillors/events`,
+  COUNCILLOR_EVENTS_MINE: `${config.API_BASE_URL}/api/councillors/events/mine`,
+  
+  // Messaging
+  COUNCILLOR_MESSAGES: `${config.API_BASE_URL}/api/councillors/messages`,
+  COUNCILLOR_CONVERSATIONS: `${config.API_BASE_URL}/api/councillors/conversations`,
+  COUNCILLOR_MARK_READ: `${config.API_BASE_URL}/api/councillors/messages/mark-read`,
+  
+  // AI Chatbot
+  AI_CHATBOT: `${config.API_BASE_URL}/api/ai/chatbot`
 }; 

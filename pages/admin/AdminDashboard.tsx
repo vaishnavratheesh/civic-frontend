@@ -10,6 +10,8 @@ import StatCard from '../../components/StatCard';
 import { API_ENDPOINTS } from '../../src/config/config';
 import { getDashboardStats, getCouncillors } from '../../services/adminService';
 import AdminTopNav from '../../components/AdminTopNav';
+import Swal from 'sweetalert2';
+import axios from 'axios';
 
 interface DashboardStats {
   totalUsers: number;
@@ -31,6 +33,36 @@ interface GrievanceData {
 interface UserData {
   role: string;
   count: number;
+}
+
+interface Ward {
+  wardNumber: number;
+  councillor?: {
+    _id: string;
+    name: string;
+    email: string;
+    ward: number;
+    createdAt: string;
+  } | null;
+  population: number;
+  citizenCount: number;
+  isVacant: boolean;
+}
+
+interface President {
+  _id: string;
+  name: string;
+  email: string;
+  active: boolean;
+  createdAt: string;
+  appointmentDate?: string;
+}
+
+interface AssignModalData {
+  type: 'councillor' | 'president';
+  wardNumber?: number;
+  existingName?: string;
+  existingEmail?: string;
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
@@ -59,6 +91,16 @@ const AdminDashboard: React.FC = () => {
     totalApplications: 0,
     pendingApplications: 0
   });
+
+  // Councillor management state
+  const [wards, setWards] = useState<Ward[]>([]);
+  const [president, setPresident] = useState<President | null>(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignModalData, setAssignModalData] = useState<AssignModalData | null>(null);
+  const [assignForm, setAssignForm] = useState({ name: '', email: '' });
+  const [assignLoading, setAssignLoading] = useState(false);
+
+  const API_BASE = 'http://localhost:3002/api';
 
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -254,6 +296,194 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // Councillor management functions
+  const fetchCouncillorData = async () => {
+    try {
+      const [wardsResponse, presidentResponse] = await Promise.all([
+        axios.get(`${API_BASE}/admin/wards`, {
+          headers: { Authorization: `Bearer ${user?.token}` }
+        }),
+        axios.get(`${API_BASE}/admin/president`, {
+          headers: { Authorization: `Bearer ${user?.token}` }
+        })
+      ]);
+
+      if (wardsResponse.data.success) {
+        setWards(wardsResponse.data.wards);
+      }
+
+      if (presidentResponse.data.success) {
+        setPresident(presidentResponse.data.president);
+      }
+    } catch (error) {
+      console.error('Error fetching councillor data:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to load councillor data'
+      });
+    }
+  };
+
+  const openAssignModal = (type: 'councillor' | 'president', wardNumber?: number, existingName?: string, existingEmail?: string) => {
+    setAssignModalData({ type, wardNumber, existingName, existingEmail });
+    setAssignForm({ 
+      name: existingName || '', 
+      email: existingEmail || '' 
+    });
+    setShowAssignModal(true);
+  };
+
+  const closeAssignModal = () => {
+    setShowAssignModal(false);
+    setAssignModalData(null);
+    setAssignForm({ name: '', email: '' });
+  };
+
+  const handleAssign = async () => {
+    if (!assignForm.name.trim() || !assignForm.email.trim()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Validation Error',
+        text: 'Please fill in all fields'
+      });
+      return;
+    }
+
+    if (!assignModalData) return;
+
+    try {
+      setAssignLoading(true);
+
+      let endpoint = '';
+      let payload: any = {
+        name: assignForm.name.trim(),
+        email: assignForm.email.trim()
+      };
+
+      if (assignModalData.type === 'councillor') {
+        endpoint = `${API_BASE}/admin/councillors/assign`;
+        payload.wardNumber = assignModalData.wardNumber;
+      } else {
+        endpoint = `${API_BASE}/admin/president/assign`;
+      }
+
+      const response = await axios.post(endpoint, payload, {
+        headers: { Authorization: `Bearer ${user?.token}` }
+      });
+
+      if (response.data.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: response.data.message,
+          timer: 3000,
+          showConfirmButton: false
+        });
+
+        closeAssignModal();
+        fetchCouncillorData(); // Refresh data
+      }
+    } catch (error: any) {
+      console.error('Error assigning:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Assignment Failed',
+        text: error.response?.data?.message || 'Failed to assign. Please try again.'
+      });
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const handleRemove = async (type: 'councillor' | 'president', wardNumber?: number) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: `This will remove the ${type} and revoke their access immediately.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, remove access',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      let endpoint = '';
+      if (type === 'councillor') {
+        endpoint = `${API_BASE}/admin/councillors/remove/${wardNumber}`;
+      } else {
+        endpoint = `${API_BASE}/admin/president/remove`;
+      }
+
+      const response = await axios.delete(endpoint, {
+        headers: { Authorization: `Bearer ${user?.token}` }
+      });
+
+      if (response.data.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Removed!',
+          text: response.data.message,
+          timer: 3000,
+          showConfirmButton: false
+        });
+
+        fetchCouncillorData(); // Refresh data
+      }
+    } catch (error: any) {
+      console.error('Error removing:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Removal Failed',
+        text: error.response?.data?.message || 'Failed to remove. Please try again.'
+      });
+    }
+  };
+
+  const handleResendCredentials = async (userId: string, type: 'councillor' | 'president') => {
+    const result = await Swal.fire({
+      title: 'Resend Credentials?',
+      text: 'This will generate a new password and send it via email.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3b82f6',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, send credentials',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const response = await axios.post(`${API_BASE}/admin/send-credentials`, {
+        userId,
+        type
+      }, {
+        headers: { Authorization: `Bearer ${user?.token}` }
+      });
+
+      if (response.data.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Credentials Sent!',
+          text: 'New login credentials have been sent via email.',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      }
+    } catch (error: any) {
+      console.error('Error resending credentials:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Failed to Send',
+        text: error.response?.data?.message || 'Failed to send credentials. Please try again.'
+      });
+    }
+  };
+
   const handleTabChange = (tab: string) => {
     if (tab === 'users') {
       navigate('/admin/users');
@@ -264,6 +494,11 @@ const AdminDashboard: React.FC = () => {
       return;
     }
     setActiveTab(tab);
+    
+    // Load councillor data when switching to councillors tab
+    if (tab === 'councillors') {
+      fetchCouncillorData();
+    }
   };
 
   const handleQuickAction = (action: string) => {
@@ -276,6 +511,7 @@ const AdminDashboard: React.FC = () => {
         break;
       case 'manage-councillors':
         setActiveTab('councillors');
+        fetchCouncillorData();
         break;
       case 'welfare-schemes':
         navigate('/admin/welfare-schemes');
@@ -573,66 +809,164 @@ const AdminDashboard: React.FC = () => {
 
           {/* Councillors Tab */}
           {activeTab === 'councillors' && (
-            <div className="bg-white rounded-2xl shadow-xl p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                <i className="fas fa-user-tie mr-3 text-green-600"></i>
-                Councillor Management
-              </h3>
-              <p className="text-gray-600 mb-6">Manage ward councillors and their profiles.</p>
-              
-              {councillors.length === 0 ? (
-                <div className="text-center py-12">
-                  <i className="fas fa-users text-4xl text-gray-400 mb-4"></i>
-                  <p className="text-gray-500">No councillors found</p>
+            <div className="space-y-8">
+              {/* Header */}
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Councillor Management</h1>
+                <p className="text-gray-600">Manage ward councillors and panchayath president assignments</p>
+              </div>
+
+              {/* President Section */}
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                  <i className="fas fa-crown text-purple-600 mr-2"></i>
+                  Panchayath President
+                </h2>
+                
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  {president ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                          <i className="fas fa-user-tie text-purple-600 text-xl"></i>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{president.name}</h3>
+                          <p className="text-gray-600">{president.email}</p>
+                          <p className="text-sm text-gray-500">
+                            Appointed: {new Date(president.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => openAssignModal('president', undefined, president.name, president.email)}
+                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                          <i className="fas fa-edit mr-2"></i>
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleResendCredentials(president._id, 'president')}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <i className="fas fa-paper-plane mr-2"></i>
+                          Resend Credentials
+                        </button>
+                        <button
+                          onClick={() => handleRemove('president')}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          <i className="fas fa-trash mr-2"></i>
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i className="fas fa-crown text-gray-400 text-2xl"></i>
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No President Assigned</h3>
+                      <p className="text-gray-600 mb-4">Assign a panchayath president to manage overall operations</p>
+                      <button
+                        onClick={() => openAssignModal('president')}
+                        className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                      >
+                        <i className="fas fa-plus mr-2"></i>
+                        Assign President
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Ward</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Email</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Appointment Date</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">End Date</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Days in Office</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {councillors.map((councillor: any) => (
-                        <tr key={councillor._id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4 text-gray-600">Ward {councillor.ward}</td>
-                          <td className="py-3 px-4 font-medium text-gray-900">{councillor.name}</td>
-                          <td className="py-3 px-4 text-gray-600">{councillor.email}</td>
-                          <td className="py-3 px-4 text-gray-600">
-                            {councillor.appointmentDate ? new Date(councillor.appointmentDate).toLocaleDateString() : 'Not set'}
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">
-                            {councillor.endDate ? new Date(councillor.endDate).toLocaleDateString() : 'Not set'}
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">
-                            {councillor.daysInOffice ? `${councillor.daysInOffice} days` : 'N/A'}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              councillor.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {councillor.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              </div>
+
+              {/* Councillors Section */}
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                  <i className="fas fa-users text-blue-600 mr-2"></i>
+                  Ward Councillors ({wards.filter(w => !w.isVacant).length}/23)
+                </h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {wards.map((ward) => (
+                    <div key={ward.wardNumber} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Ward {ward.wardNumber}</h3>
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          ward.isVacant 
+                            ? 'bg-red-100 text-red-800' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {ward.isVacant ? 'Vacant' : 'Assigned'}
+                        </div>
+                      </div>
+
+                      {ward.isVacant ? (
+                        <div className="text-center py-4">
+                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i className="fas fa-user-plus text-gray-400"></i>
+                          </div>
+                          <p className="text-gray-600 text-sm mb-4">No councillor assigned</p>
+                          <button
+                            onClick={() => openAssignModal('councillor', ward.wardNumber)}
+                            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <i className="fas fa-plus mr-2"></i>
+                            Assign Councillor
+                          </button>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-center space-x-3 mb-4">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <i className="fas fa-user text-blue-600"></i>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 truncate">{ward.councillor?.name}</h4>
+                              <p className="text-sm text-gray-600 truncate">{ward.councillor?.email}</p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 mb-4">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Citizens:</span>
+                              <span className="font-medium">{ward.citizenCount}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Population:</span>
+                              <span className="font-medium">{ward.population.toLocaleString()}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => openAssignModal('councillor', ward.wardNumber, ward.councillor?.name, ward.councillor?.email)}
+                              className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                            >
+                              <i className="fas fa-edit mr-1"></i>
                               Edit
                             </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            <button
+                              onClick={() => handleResendCredentials(ward.councillor!._id, 'councillor')}
+                              className="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+                            >
+                              <i className="fas fa-paper-plane mr-1"></i>
+                              Send
+                            </button>
+                            <button
+                              onClick={() => handleRemove('councillor', ward.wardNumber)}
+                              className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -667,6 +1001,91 @@ const AdminDashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Assignment Modal */}
+      {showAssignModal && assignModalData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {assignModalData.type === 'president' ? 'Assign President' : `Assign Ward ${assignModalData.wardNumber} Councillor`}
+                </h3>
+                <button
+                  onClick={closeAssignModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={assignForm.name}
+                    onChange={(e) => setAssignForm({ ...assignForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter full name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={assignForm.email}
+                    onChange={(e) => setAssignForm({ ...assignForm, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter email address"
+                  />
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <i className="fas fa-info-circle text-blue-600 mt-0.5 mr-3"></i>
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium mb-1">Automatic Credential Generation</p>
+                      <p>A secure password will be generated automatically and sent to the provided email address along with login instructions.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={closeAssignModal}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssign}
+                  disabled={assignLoading}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {assignLoading ? (
+                    <div className="flex items-center justify-center">
+                      <Spinner />
+                      <span className="ml-2">Assigning...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <i className="fas fa-paper-plane mr-2"></i>
+                      Assign & Send Credentials
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
         </div>
     );
 };
