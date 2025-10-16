@@ -9,12 +9,30 @@ interface Document {
 interface PersonalDetails {
   address: string;
   phoneNumber: string;
+  houseNumber: string;
+  caste: string;
+  isKudumbasreeMember: boolean;
+  paysHarithakarmasenaFee: boolean;
+  hasFamilyMemberWithGovtJob: boolean;
+  hasDisabledPersonInHouse: boolean;
+  hasFamilyMemberWithPension: boolean;
+  totalIncome: number;
+  familyIncome?: number; // Keep for backward compatibility
+  incomeCategory: string;
+  ownsLand: boolean;
+  landDetails?: {
+    villageName?: string;
+    surveyNumber?: string;
+    area?: string;
+  };
+  drinkingWaterSource: string;
+  hasToilet: boolean;
+  // Legacy fields for backward compatibility
   rationCardNumber?: string;
   aadharNumber?: string;
-  familyIncome: number;
-  dependents: number;
-  isHandicapped: boolean;
-  isSingleWoman: boolean;
+  dependents?: number;
+  isHandicapped?: boolean;
+  isSingleWoman?: boolean;
 }
 
 interface Assessment {
@@ -126,20 +144,29 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
   return (
     <>
       {/* Main Modal */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000] p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1000] p-4">
+        <div className="bg-white shadow-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden border-2 border-gray-300">
+          {/* Government Document Header */}
+          <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-6 border-b-4 border-red-600">
             <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold">Application Verification</h2>
-                <p className="text-blue-100 mt-1">
-                  Review application details and documents before making a decision
-                </p>
+              <div className="text-center flex-1">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mr-4">
+                    <i className="fas fa-landmark text-slate-800 text-xl"></i>
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-wide">GOVERNMENT OF KERALA</h1>
+                    <h2 className="text-lg font-semibold text-gray-200">WELFARE APPLICATION VERIFICATION</h2>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-300 mt-2">
+                  <p>Application ID: {application._id.slice(-8).toUpperCase()}</p>
+                  <p>Verification Date: {new Date().toLocaleDateString('en-IN')}</p>
+                </div>
               </div>
               <button
                 onClick={onClose}
-                className="text-white hover:text-gray-200 text-2xl"
+                className="text-white hover:text-gray-300 text-2xl bg-red-600 hover:bg-red-700 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
               >
                 <i className="fas fa-times"></i>
               </button>
@@ -147,285 +174,306 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column - Application Details */}
-              <div className="space-y-6">
-                {/* Scheme Information */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <i className="fas fa-clipboard-list text-blue-600 mr-2"></i>
-                    Scheme Information
+          <div className="p-8 overflow-y-auto max-h-[calc(95vh-200px)] bg-gray-50">
+            {/* Official Document Body */}
+            <div className="bg-white border-2 border-gray-400 shadow-lg">
+              <div className="p-8">
+                {/* Document Header */}
+                <div className="text-center border-b-2 border-gray-300 pb-6 mb-8">
+                  <h3 className="text-xl font-bold text-gray-800 uppercase tracking-wide">
+                    WELFARE SCHEME APPLICATION VERIFICATION REPORT
                   </h3>
-                  <div className="space-y-2">
-                    <div>
-                      <span className="font-medium text-gray-600">Scheme:</span>
-                      <span className="ml-2 text-gray-800">{application.schemeTitle}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Scope:</span>
-                      <span className="ml-2 text-gray-800 capitalize">{application.schemeId.scope}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Applied On:</span>
-                      <span className="ml-2 text-gray-800">
-                        {new Date(application.appliedAt).toLocaleDateString('en-IN', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
-                    </div>
-                  </div>
+                  <p className="text-sm text-gray-600 mt-2">Official Government Document</p>
                 </div>
 
-                {/* Applicant Information */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <i className="fas fa-user text-green-600 mr-2"></i>
-                    Applicant Information
-                  </h3>
-                  <div className="space-y-2">
-                    <div>
-                      <span className="font-medium text-gray-600">Name:</span>
-                      <span className="ml-2 text-gray-800">{application.userName}</span>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Left Column - Application Details */}
+                  <div className="space-y-6">
+                    {/* Scheme Information */}
+                    <div className="border border-gray-400 bg-gray-50">
+                      <div className="bg-slate-700 text-white p-3 border-b border-gray-400">
+                        <h3 className="text-lg font-bold uppercase tracking-wide flex items-center">
+                          <i className="fas fa-clipboard-list mr-3"></i>
+                          SCHEME DETAILS
+                        </h3>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div className="border-b border-gray-300 pb-2">
+                          <span className="font-bold text-gray-700 uppercase text-sm">Scheme Name:</span>
+                          <p className="text-gray-900 font-semibold mt-1">{application.schemeTitle}</p>
+                        </div>
+                        <div className="border-b border-gray-300 pb-2">
+                          <span className="font-bold text-gray-700 uppercase text-sm">Application Date:</span>
+                          <p className="text-gray-900 font-semibold mt-1">
+                            {new Date(application.appliedAt).toLocaleDateString('en-IN', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Email:</span>
-                      <span className="ml-2 text-gray-800">{application.userEmail}</span>
+
+                    {/* Applicant Information */}
+                    <div className="border border-gray-400 bg-gray-50">
+                      <div className="bg-slate-700 text-white p-3 border-b border-gray-400">
+                        <h3 className="text-lg font-bold uppercase tracking-wide flex items-center">
+                          <i className="fas fa-user mr-3"></i>
+                          APPLICANT INFORMATION
+                        </h3>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Full Name:</span>
+                            <p className="text-gray-900 font-semibold mt-1">{application.userName}</p>
+                          </div>
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Ward Number:</span>
+                            <p className="text-gray-900 font-semibold mt-1">Ward {application.userWard}</p>
+                          </div>
+                        </div>
+                        <div className="border-b border-gray-300 pb-2">
+                          <span className="font-bold text-gray-700 uppercase text-sm">Email Address:</span>
+                          <p className="text-gray-900 font-semibold mt-1">{application.userEmail || 'Not Provided'}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Ward:</span>
-                      <span className="ml-2 text-gray-800">Ward {application.userWard}</span>
+
+                    {/* Personal Details */}
+                    <div className="border border-gray-400 bg-gray-50">
+                      <div className="bg-slate-700 text-white p-3 border-b border-gray-400">
+                        <h3 className="text-lg font-bold uppercase tracking-wide flex items-center">
+                          <i className="fas fa-id-card mr-3"></i>
+                          PERSONAL DETAILS
+                        </h3>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Contact Number:</span>
+                            <p className="text-gray-900 font-semibold mt-1">{application.personalDetails.phoneNumber}</p>
+                          </div>
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">House Number:</span>
+                            <p className="text-gray-900 font-semibold mt-1">{application.personalDetails.houseNumber || 'Not Provided'}</p>
+                          </div>
+                        </div>
+                        <div className="border-b border-gray-300 pb-2">
+                          <span className="font-bold text-gray-700 uppercase text-sm">Residential Address:</span>
+                          <p className="text-gray-900 font-semibold mt-1">{application.personalDetails.address}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Caste Category:</span>
+                            <p className="text-gray-900 font-semibold mt-1 uppercase">{application.personalDetails.caste || 'Not Provided'}</p>
+                          </div>
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Income Category:</span>
+                            <p className="text-gray-900 font-semibold mt-1 uppercase">{application.personalDetails.incomeCategory || 'Not Provided'}</p>
+                          </div>
+                        </div>
+                        <div className="border-b border-gray-300 pb-2">
+                          <span className="font-bold text-gray-700 uppercase text-sm">Total Annual Income:</span>
+                          <p className="text-gray-900 font-semibold mt-1">{formatCurrency(application.personalDetails.totalIncome || application.personalDetails.familyIncome || 0)}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Land Ownership:</span>
+                            <p className="text-gray-900 font-semibold mt-1">{application.personalDetails.ownsLand ? 'Yes' : 'No'}</p>
+                          </div>
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Toilet Facility:</span>
+                            <p className="text-gray-900 font-semibold mt-1">{application.personalDetails.hasToilet ? 'Yes' : 'No'}</p>
+                          </div>
+                        </div>
+                        <div className="border-b border-gray-300 pb-2">
+                          <span className="font-bold text-gray-700 uppercase text-sm">Drinking Water Source:</span>
+                          <p className="text-gray-900 font-semibold mt-1 capitalize">{(application.personalDetails.drinkingWaterSource || 'Not Provided').replace('_', ' ')}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Kudumbasree Member:</span>
+                            <p className="text-gray-900 font-semibold mt-1">{application.personalDetails.isKudumbasreeMember ? 'Yes' : 'No'}</p>
+                          </div>
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Harithakarmasena Fee:</span>
+                            <p className="text-gray-900 font-semibold mt-1">{application.personalDetails.paysHarithakarmasenaFee ? 'Yes' : 'No'}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Govt. Job in Family:</span>
+                            <p className="text-gray-900 font-semibold mt-1">{application.personalDetails.hasFamilyMemberWithGovtJob ? 'Yes' : 'No'}</p>
+                          </div>
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Disabled Person:</span>
+                            <p className="text-gray-900 font-semibold mt-1">{application.personalDetails.hasDisabledPersonInHouse ? 'Yes' : 'No'}</p>
+                          </div>
+                        </div>
+                        <div className="border-b border-gray-300 pb-2">
+                          <span className="font-bold text-gray-700 uppercase text-sm">Family Member with Pension:</span>
+                          <p className="text-gray-900 font-semibold mt-1">{application.personalDetails.hasFamilyMemberWithPension ? 'Yes' : 'No'}</p>
+                        </div>
+                      </div>
                     </div>
+
                   </div>
-                </div>
 
-                {/* Personal Details */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <i className="fas fa-id-card text-purple-600 mr-2"></i>
-                    Personal Details
-                  </h3>
-                  <div className="space-y-2">
-                    <div>
-                      <span className="font-medium text-gray-600">Address:</span>
-                      <span className="ml-2 text-gray-800">{application.personalDetails.address}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Phone:</span>
-                      <span className="ml-2 text-gray-800">{application.personalDetails.phoneNumber}</span>
-                    </div>
-                    {application.personalDetails.aadharNumber && (
-                      <div>
-                        <span className="font-medium text-gray-600">Aadhar:</span>
-                        <span className="ml-2 text-gray-800">{application.personalDetails.aadharNumber}</span>
+                  {/* Right Column - Documents and Verification */}
+                  <div className="space-y-6">
+                    {/* Documents */}
+                    <div className="border border-gray-400 bg-gray-50">
+                      <div className="bg-slate-700 text-white p-3 border-b border-gray-400">
+                        <h3 className="text-lg font-bold uppercase tracking-wide flex items-center">
+                          <i className="fas fa-file-alt mr-3"></i>
+                          SUPPORTING DOCUMENTS
+                        </h3>
                       </div>
-                    )}
-                    {application.personalDetails.rationCardNumber && (
-                      <div>
-                        <span className="font-medium text-gray-600">Ration Card:</span>
-                        <span className="ml-2 text-gray-800">{application.personalDetails.rationCardNumber}</span>
-                      </div>
-                    )}
-                    <div>
-                      <span className="font-medium text-gray-600">Family Income:</span>
-                      <span className="ml-2 text-gray-800">{formatCurrency(application.personalDetails.familyIncome)}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Dependents:</span>
-                      <span className="ml-2 text-gray-800">{application.personalDetails.dependents}</span>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="flex items-center">
-                        <span className="font-medium text-gray-600">Handicapped:</span>
-                        <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                          application.personalDetails.isHandicapped 
-                            ? 'bg-red-100 text-red-800' 
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {application.personalDetails.isHandicapped ? 'Yes' : 'No'}
-                        </span>
-                      </div>
-                      <div className="flex items-center">
-                        <span className="font-medium text-gray-600">Single Woman:</span>
-                        <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                          application.personalDetails.isSingleWoman 
-                            ? 'bg-red-100 text-red-800' 
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {application.personalDetails.isSingleWoman ? 'Yes' : 'No'}
-                        </span>
+                      <div className="p-4">
+                        {application.documents && application.documents.length > 0 ? (
+                          <div className="space-y-3">
+                            {application.documents.map((doc, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between p-3 bg-white border border-gray-300 hover:bg-gray-50 cursor-pointer transition-colors"
+                                onClick={() => openDocumentViewer(doc)}
+                              >
+                                <div className="flex items-center">
+                                  <i className={`fas ${getDocumentIcon(doc.type, doc.url)} text-red-600 mr-3 text-lg`}></i>
+                                  <div>
+                                    <p className="font-bold text-gray-800 uppercase text-sm">{doc.name}</p>
+                                    <p className="text-xs text-gray-500">{doc.type || 'Document'}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center text-gray-500">
+                                  <span className="text-xs mr-2">VIEW</span>
+                                  <i className="fas fa-eye"></i>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <i className="fas fa-file-alt text-4xl text-gray-400 mb-3"></i>
+                            <p className="text-gray-500 font-semibold">No supporting documents uploaded</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Assessment Details */}
-                {application.assessment && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                      <i className="fas fa-chart-line text-orange-600 mr-2"></i>
-                      Assessment Details
-                    </h3>
-                    <div className="space-y-2">
-                      {application.assessment.age && (
-                        <div>
-                          <span className="font-medium text-gray-600">Age:</span>
-                          <span className="ml-2 text-gray-800">{application.assessment.age} years</span>
+                    {/* Current Status */}
+                    <div className="border border-gray-400 bg-gray-50">
+                      <div className="bg-slate-700 text-white p-3 border-b border-gray-400">
+                        <h3 className="text-lg font-bold uppercase tracking-wide flex items-center">
+                          <i className="fas fa-info-circle mr-3"></i>
+                          APPLICATION STATUS
+                        </h3>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div className="border-b border-gray-300 pb-2">
+                          <span className="font-bold text-gray-700 uppercase text-sm">Current Status:</span>
+                          <div className="mt-2">
+                            <span className={`inline-block px-3 py-1 rounded text-sm font-bold uppercase ${
+                              application.status === 'approved' ? 'bg-green-100 text-green-800 border border-green-300' :
+                              application.status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-300' :
+                              'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                            }`}>
+                              {application.status}
+                            </span>
+                          </div>
                         </div>
-                      )}
-                      {application.assessment.educationLevel && (
-                        <div>
-                          <span className="font-medium text-gray-600">Education:</span>
-                          <span className="ml-2 text-gray-800 capitalize">{application.assessment.educationLevel}</span>
-                        </div>
-                      )}
-                      {application.assessment.employmentStatus && (
-                        <div>
-                          <span className="font-medium text-gray-600">Employment:</span>
-                          <span className="ml-2 text-gray-800 capitalize">{application.assessment.employmentStatus}</span>
-                        </div>
-                      )}
-                      {application.assessment.houseOwnership && (
-                        <div>
-                          <span className="font-medium text-gray-600">House Ownership:</span>
-                          <span className="ml-2 text-gray-800 capitalize">{application.assessment.houseOwnership}</span>
-                        </div>
-                      )}
-                      {application.assessment.monthlyIncome && (
-                        <div>
-                          <span className="font-medium text-gray-600">Monthly Income:</span>
-                          <span className="ml-2 text-gray-800">{formatCurrency(application.assessment.monthlyIncome)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Reason */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <i className="fas fa-comment-alt text-indigo-600 mr-2"></i>
-                    Application Reason
-                  </h3>
-                  <p className="text-gray-700 leading-relaxed">{application.reason}</p>
-                </div>
-              </div>
-
-              {/* Right Column - Documents and Verification */}
-              <div className="space-y-6">
-                {/* Documents */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <i className="fas fa-file-alt text-red-600 mr-2"></i>
-                    Uploaded Documents
-                  </h3>
-                  {application.documents && application.documents.length > 0 ? (
-                    <div className="space-y-2">
-                      {application.documents.map((doc, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-white rounded border hover:bg-gray-50 cursor-pointer"
-                          onClick={() => openDocumentViewer(doc)}
-                        >
-                          <div className="flex items-center">
-                            <i className={`fas ${getDocumentIcon(doc.type, doc.url)} text-blue-600 mr-3`}></i>
-                            <div>
-                              <p className="font-medium text-gray-800">{doc.name}</p>
-                              <p className="text-sm text-gray-500">{doc.type || 'Document'}</p>
+                        {application.verificationStatus && (
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">Verification Status:</span>
+                            <div className="mt-2">
+                              <span className={`inline-block px-3 py-1 rounded text-sm font-bold uppercase ${
+                                application.verificationStatus === 'Verified-Manual' || application.verificationStatus === 'Verified-Auto' 
+                                  ? 'bg-green-100 text-green-800 border border-green-300' :
+                                application.verificationStatus === 'Rejected' 
+                                  ? 'bg-red-100 text-red-800 border border-red-300' :
+                                  'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                              }`}>
+                                {application.verificationStatus}
+                              </span>
                             </div>
                           </div>
-                          <i className="fas fa-eye text-gray-400"></i>
-                        </div>
-                      ))}
+                        )}
+                        {application.verification?.autoScore && (
+                          <div className="border-b border-gray-300 pb-2">
+                            <span className="font-bold text-gray-700 uppercase text-sm">AI Assessment Score:</span>
+                            <p className="text-gray-900 font-bold text-lg mt-1">{Math.round(application.verification.autoScore * 100)}%</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-gray-500 italic">No documents uploaded</p>
-                  )}
-                </div>
 
-                {/* Current Status */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <i className="fas fa-info-circle text-yellow-600 mr-2"></i>
-                    Current Status
-                  </h3>
-                  <div className="space-y-2">
-                    <div>
-                      <span className="font-medium text-gray-600">Status:</span>
-                      <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                        application.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        application.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {application.status}
-                      </span>
+                    {/* Verification Remarks */}
+                    <div className="border border-gray-400 bg-gray-50">
+                      <div className="bg-slate-700 text-white p-3 border-b border-gray-400">
+                        <h3 className="text-lg font-bold uppercase tracking-wide flex items-center">
+                          <i className="fas fa-edit mr-3"></i>
+                          VERIFICATION REMARKS
+                        </h3>
+                      </div>
+                      <div className="p-4">
+                        <textarea
+                          value={remarks}
+                          onChange={(e) => setRemarks(e.target.value)}
+                          placeholder="Enter official verification remarks and observations..."
+                          className="w-full p-4 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono text-sm"
+                          rows={6}
+                        />
+                        <p className="text-xs text-gray-500 mt-2 italic">
+                          * Official remarks will be recorded in the government database
+                        </p>
+                      </div>
                     </div>
-                    {application.verificationStatus && (
-                      <div>
-                        <span className="font-medium text-gray-600">Verification:</span>
-                        <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                          application.verificationStatus === 'Verified-Manual' || application.verificationStatus === 'Verified-Auto' 
-                            ? 'bg-green-100 text-green-800' :
-                          application.verificationStatus === 'Rejected' 
-                            ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {application.verificationStatus}
-                        </span>
-                      </div>
-                    )}
-                    {application.verification?.autoScore && (
-                      <div>
-                        <span className="font-medium text-gray-600">AI Score:</span>
-                        <span className="ml-2 text-gray-800">{Math.round(application.verification.autoScore * 100)}%</span>
-                      </div>
-                    )}
                   </div>
-                </div>
-
-                {/* Verification Remarks */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <i className="fas fa-edit text-teal-600 mr-2"></i>
-                    Verification Remarks
-                  </h3>
-                  <textarea
-                    value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
-                    placeholder="Enter your verification remarks here..."
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    rows={4}
-                  />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Footer: only Close inside modal; Approve/Reject are outside on the list */}
-          <div className="bg-gray-50 px-6 py-4 flex justify-end">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-gray-500"
-            >
-              Close
-            </button>
+          {/* Government Document Footer */}
+          <div className="bg-slate-800 text-white p-4 border-t-4 border-red-600">
+            <div className="flex justify-between items-center">
+              <div className="text-sm">
+                <p className="font-semibold">GOVERNMENT OF KERALA - WELFARE DEPARTMENT</p>
+                <p className="text-gray-300">Official Verification Document - Confidential</p>
+              </div>
+              <div className="flex space-x-4">
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-bold uppercase tracking-wide rounded border-2 border-red-500 transition-colors"
+                >
+                  Close Document
+                </button>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-gray-600 text-xs text-gray-300 text-center">
+              <p>This document is generated by the official Government of Kerala Welfare Management System</p>
+              <p>Document ID: {application._id.slice(-12).toUpperCase()} | Generated: {new Date().toLocaleString('en-IN')}</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Document Viewer Modal */}
+      {/* Government Document Viewer Modal */}
       {showDocumentViewer && selectedDocument && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[1100] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
-              <h3 className="text-lg font-semibold">{selectedDocument.name}</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[1100] p-4">
+          <div className="bg-white shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-hidden border-2 border-gray-400">
+            <div className="bg-slate-800 text-white p-4 border-b-2 border-red-600 flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-bold uppercase tracking-wide">{selectedDocument.name}</h3>
+                <p className="text-sm text-gray-300">Official Government Document Viewer</p>
+              </div>
               <button
                 onClick={() => setShowDocumentViewer(false)}
-                className="text-white hover:text-gray-300 text-xl"
+                className="text-white hover:text-gray-300 text-xl bg-red-600 hover:bg-red-700 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
               >
                 <i className="fas fa-times"></i>
               </button>

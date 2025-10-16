@@ -1,3 +1,33 @@
+import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
+import { io } from 'socket.io-client';
+import Sidebar from '../../components/Sidebar';
+import Navbar from '../../components/Navbar';
+import { Complaint, ComplaintStatus, WelfareScheme, ApplicationStatus, WelfareApplication } from '../../types';
+import { STATUS_COLORS } from '../../constants';
+import SubmitGrievance from './SubmitGrievance';
+import { useAuth } from '../../hooks/useAuth';
+import { askAboutWard } from '../../services/geminiService';
+import Spinner from '../../components/Spinner';
+import CommunityGrievances from './CommunityGrievances';
+import WelfareApplicationForm from '../../components/WelfareApplicationForm';
+import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../../src/config/config';
+import { notificationService } from '../../services/notificationService';
+import jsPDF from 'jspdf';
+
+// No mock data - using real data from backend
+
+const tabs = [
+    { id: 'my-ward', name: 'My Ward', icon: 'fa-map-marker-alt' },
+    { id: 'my-grievances', name: 'My Grievances', icon: 'fa-bullhorn' },
+    { id: 'community-grievances', name: 'Community Grievances', icon: 'fa-users' },
+    { id: 'welfare-schemes', name: 'Welfare Schemes', icon: 'fa-hands-helping' },
+    { id: 'announcements', name: 'Announcements', icon: 'fa-bullhorn' },
+    { id: 'events', name: 'Events', icon: 'fa-calendar-alt' },
+    { id: 'esabha', name: 'E-Sabha', icon: 'fa-video' },
+];
+
 // Sabha Meeting Join Button
 const SabhaMeetingJoin: React.FC = () => {
     const [meetingUrl, setMeetingUrl] = useState<string|null>(null);
@@ -104,35 +134,6 @@ const ESabhaTab: React.FC = () => {
         </div>
     );
 };
-import React, { useState, useEffect } from 'react';
-import Swal from 'sweetalert2';
-import { io } from 'socket.io-client';
-import Sidebar from '../../components/Sidebar';
-import Navbar from '../../components/Navbar';
-import { Complaint, ComplaintStatus, WelfareScheme, ApplicationStatus, WelfareApplication } from '../../types';
-import { STATUS_COLORS } from '../../constants';
-import SubmitGrievance from './SubmitGrievance';
-import { useAuth } from '../../hooks/useAuth';
-import { askAboutWard } from '../../services/geminiService';
-import Spinner from '../../components/Spinner';
-import CommunityGrievances from './CommunityGrievances';
-import WelfareApplicationForm from '../../components/WelfareApplicationForm';
-import { useNavigate } from 'react-router-dom';
-import { API_ENDPOINTS } from '../../src/config/config';
-import { notificationService } from '../../services/notificationService';
-import jsPDF from 'jspdf';
-
-// No mock data - using real data from backend
-
-const tabs = [
-    { id: 'my-ward', name: 'My Ward', icon: 'fa-map-marker-alt' },
-    { id: 'my-grievances', name: 'My Grievances', icon: 'fa-bullhorn' },
-    { id: 'community-grievances', name: 'Community Grievances', icon: 'fa-users' },
-    { id: 'welfare-schemes', name: 'Welfare Schemes', icon: 'fa-hands-helping' },
-    { id: 'announcements', name: 'Announcements', icon: 'fa-bullhorn' },
-    { id: 'events', name: 'Events', icon: 'fa-calendar-alt' },
-    { id: 'esabha', name: 'E-Sabha', icon: 'fa-video' },
-];
 
 const CitizenDashboard: React.FC = () => {
     const { user, login } = useAuth();
@@ -210,10 +211,10 @@ const CitizenDashboard: React.FC = () => {
             // Create a table-like layout for personal info
             const personalInfo = [
                 ['Full Name', application.userName],
-                ['Address', application.address],
-                ['Phone Number', application.phoneNumber],
-                ['Aadhar Number', application.aadharNumber],
-                ['Ration Card Number', application.rationCardNumber]
+                ['Address', application.address || 'N/A'],
+                ['Phone Number', application.phoneNumber || 'N/A'],
+                ['House Number', (application as any).houseNumber || 'N/A'],
+                ['Caste', (application as any).caste || 'N/A']
             ];
             
             let yPos = 150;
@@ -234,10 +235,10 @@ const CitizenDashboard: React.FC = () => {
             
             yPos += 25;
             const financialInfo = [
-                ['Annual Family Income', `₹${application.familyIncome.toLocaleString()}`],
-                ['Number of Dependents', application.dependents.toString()],
-                ['Handicapped Member', application.isHandicapped ? 'Yes' : 'No'],
-                ['Single Woman Headed Family', application.isSingleWoman ? 'Yes' : 'No']
+                ['Total Annual Income', `₹${(application as any).totalIncome?.toLocaleString() || 'N/A'}`],
+                ['Income Category', (application as any).incomeCategory?.toUpperCase() || 'N/A'],
+                ['Kudumbasree Member', (application as any).isKudumbasreeMember ? 'Yes' : 'No'],
+                ['Pays Harithakarmasena Fee', (application as any).paysHarithakarmasenaFee ? 'Yes' : 'No']
             ];
             
             financialInfo.forEach(([label, value]) => {
@@ -248,6 +249,73 @@ const CitizenDashboard: React.FC = () => {
                 doc.text(value, margin + 60, yPos);
                 yPos += 8;
             });
+
+            // Family Information Section
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('FAMILY INFORMATION', margin, yPos + 10);
+            doc.line(margin, yPos + 15, pageWidth - margin, yPos + 15);
+            
+            yPos += 25;
+            const familyInfo = [
+                ['Family Member with Govt Job', (application as any).hasFamilyMemberWithGovtJob ? 'Yes' : 'No'],
+                ['Disabled Person in House', (application as any).hasDisabledPersonInHouse ? 'Yes' : 'No'],
+                ['Family Member with Pension', (application as any).hasFamilyMemberWithPension ? 'Yes' : 'No']
+            ];
+            
+            familyInfo.forEach(([label, value]) => {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${label}:`, margin, yPos);
+                doc.setFont('helvetica', 'normal');
+                doc.text(value, margin + 60, yPos);
+                yPos += 8;
+            });
+
+            // Utilities Information Section
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('UTILITIES & AMENITIES', margin, yPos + 10);
+            doc.line(margin, yPos + 15, pageWidth - margin, yPos + 15);
+            
+            yPos += 25;
+            const utilitiesInfo = [
+                ['Drinking Water Source', (application as any).drinkingWaterSource?.replace('_', ' ').toUpperCase() || 'N/A'],
+                ['Has Toilet', (application as any).hasToilet ? 'Yes' : 'No']
+            ];
+            
+            utilitiesInfo.forEach(([label, value]) => {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${label}:`, margin, yPos);
+                doc.setFont('helvetica', 'normal');
+                doc.text(value, margin + 60, yPos);
+                yPos += 8;
+            });
+
+            // Land Information Section (if applicable)
+            if ((application as any).ownsLand) {
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text('LAND OWNERSHIP', margin, yPos + 10);
+                doc.line(margin, yPos + 15, pageWidth - margin, yPos + 15);
+                
+                yPos += 25;
+                const landInfo = [
+                    ['Village Name', (application as any).landDetails?.villageName || 'N/A'],
+                    ['Survey Number', (application as any).landDetails?.surveyNumber || 'N/A'],
+                    ['Area', (application as any).landDetails?.area || 'N/A']
+                ];
+                
+                landInfo.forEach(([label, value]) => {
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`${label}:`, margin, yPos);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(value, margin + 60, yPos);
+                    yPos += 8;
+                });
+            }
             
             // Justification Section
             if (application.justification) {
@@ -348,25 +416,32 @@ const CitizenDashboard: React.FC = () => {
                         (schemeIdRaw && (schemeIdRaw._id || schemeIdRaw.id)) || schemeIdRaw || ''
                     ).toString();
                     return {
-                        id: a._id,
+                        id: a._id || a.id || `temp-${Date.now()}-${Math.random()}`,
                         schemeId: schemeIdStr,
                         schemeTitle: a.schemeTitle,
                         userId: a.userId,
                         userName: a.userName,
                         address: a.personalDetails?.address || '',
                         phoneNumber: a.personalDetails?.phoneNumber || '',
-                        rationCardNumber: a.personalDetails?.rationCardNumber || '',
-                        aadharNumber: a.personalDetails?.aadharNumber || '',
                         ward: a.userWard,
-                        reason: a.reason,
-                        isHandicapped: a.personalDetails?.isHandicapped || false,
-                        isSingleWoman: a.personalDetails?.isSingleWoman || false,
-                        familyIncome: a.personalDetails?.familyIncome || 0,
-                        dependents: a.personalDetails?.dependents || 0,
                         status: (a.status || 'pending') as ApplicationStatus,
                         createdAt: a.appliedAt,
                         score: a.score,
                         justification: a.justification,
+                        // New fields
+                        houseNumber: a.personalDetails?.houseNumber || '',
+                        caste: a.personalDetails?.caste || '',
+                        isKudumbasreeMember: a.personalDetails?.isKudumbasreeMember || false,
+                        paysHarithakarmasenaFee: a.personalDetails?.paysHarithakarmasenaFee || false,
+                        hasFamilyMemberWithGovtJob: a.personalDetails?.hasFamilyMemberWithGovtJob || false,
+                        hasDisabledPersonInHouse: a.personalDetails?.hasDisabledPersonInHouse || false,
+                        hasFamilyMemberWithPension: a.personalDetails?.hasFamilyMemberWithPension || false,
+                        totalIncome: a.personalDetails?.totalIncome || 0,
+                        incomeCategory: a.personalDetails?.incomeCategory || '',
+                        ownsLand: a.personalDetails?.ownsLand || false,
+                        landDetails: a.personalDetails?.landDetails || { villageName: '', surveyNumber: '', area: '' },
+                        drinkingWaterSource: a.personalDetails?.drinkingWaterSource || '',
+                        hasToilet: a.personalDetails?.hasToilet || false
                     };
                 });
                 console.log(`${TAG} mapped`, { count: mapped.length, schemeIds: mapped.map((m:any)=>m.schemeId) });
@@ -587,7 +662,8 @@ const CitizenDashboard: React.FC = () => {
                         availableSlots: s.availableSlots,
                         creatorName: s.creatorName,
                         category: s.category,
-                        eligibilityCriteria: s.eligibilityCriteria,
+                        minAge: s.minAge,
+                        maxAge: s.maxAge,
                         benefits: s.benefits,
                         documentsRequired: s.documentsRequired,
                         startDate: s.startDate,
@@ -1385,10 +1461,10 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                                                 <span className="font-medium">Applied:</span> {new Date(app.createdAt).toLocaleDateString()}
                                             </div>
                                             <div>
-                                                <span className="font-medium">Family Income:</span> ₹{app.familyIncome.toLocaleString()}
+                                                <span className="font-medium">Total Income:</span> ₹{(app.totalIncome || 0).toLocaleString()}
                                             </div>
                                             <div>
-                                                <span className="font-medium">Dependents:</span> {app.dependents}
+                                                <span className="font-medium">Income Category:</span> {(app.incomeCategory || 'N/A').toUpperCase()}
                                             </div>
                                             <div>
                                                 <span className="font-medium">Address:</span> {app.address}

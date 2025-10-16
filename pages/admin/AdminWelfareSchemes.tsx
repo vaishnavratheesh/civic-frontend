@@ -11,7 +11,8 @@ interface WelfareScheme {
   title: string;
   description: string;
   category: string;
-  eligibilityCriteria: string;
+  minAge: number;
+  maxAge: number;
   benefits: string;
   documentsRequired: string[];
   totalSlots: number;

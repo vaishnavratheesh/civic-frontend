@@ -3,19 +3,17 @@ import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
 import { API_ENDPOINTS } from '../../src/config/config';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
-import io from 'socket.io-client';
 
 interface WardRow { ward: number; councillor: { id: string; name: string; email: string }; population: number | null; totalComplaints: number }
 interface WelfareDetail { schemeId: string; schemeTitle: string; category: string; applicants: number; approved: number; rejected: number }
 
-type PresTab = 'overview' | 'welfare' | 'announce' | 'events' | 'comm' | 'esabha';
+type PresTab = 'overview' | 'welfare' | 'announce' | 'events' | 'esabha';
 
 const sidebarItems = [
   { id: 'overview', name: 'Ward Overview', icon: 'fa-university', path: '/president' },
   { id: 'welfare', name: 'Welfare Statistics', icon: 'fa-chart-pie', path: '/president' },
   { id: 'announce', name: 'Announcements', icon: 'fa-bullhorn', path: '/president' },
   { id: 'events', name: 'Events', icon: 'fa-calendar-alt', path: '/president' },
-  { id: 'comm', name: 'Communication', icon: 'fa-comments', path: '/president' },
   { id: 'esabha', name: 'E-Sabha', icon: 'fa-video', path: '/president' }
 ];
 
@@ -34,9 +32,6 @@ const PresidentDashboard: React.FC = () => {
   const [evtTime, setEvtTime] = useState('');
   const [evtLocation, setEvtLocation] = useState('');
   const [evtList, setEvtList] = useState<any[]>([]);
-  const [chatWard, setChatWard] = useState<number | ''>('');
-  const [chatText, setChatText] = useState('');
-  const [messages, setMessages] = useState<any[]>([]);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [meetingUrl, setMeetingUrl] = useState<string | null>(null);
 
@@ -65,29 +60,6 @@ const PresidentDashboard: React.FC = () => {
     fetchAll();
   }, [authHeaders]);
 
-  // Socket.IO for real-time messaging
-  useEffect(() => {
-    const socket = io('http://localhost:3002', { withCredentials: true });
-    try {
-      // president joins a dedicated room to receive replies
-      socket.emit('join', { role: 'president' });
-      if (chatWard) socket.emit('join', { ward: chatWard });
-    } catch {}
-    
-    socket.on('message:new', (data: { message: any, threadId: string, ward: number }) => {
-      if (data.ward === chatWard || chatWard === '') {
-        setMessages(prev => [...prev, data.message]);
-      }
-    });
-    // Mark incoming messages delivered/read
-    socket.on('message:new', (data: { message: any }) => {
-      try { socket.emit('message:delivered', { messageId: data.message._id, userId: 'president' }); } catch {}
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [chatWard]);
 
   const sendAnnouncement = async () => {
     if (!annTitle.trim() || !annDesc.trim()) return;
@@ -117,40 +89,6 @@ const PresidentDashboard: React.FC = () => {
     if (res.ok) setEvtList(prev => prev.filter(e => e._id !== id));
   };
 
-  const loadMessages = async () => {
-    const url = chatWard ? `${API_ENDPOINTS.PRESIDENT_MESSAGES}?ward=${chatWard}` : API_ENDPOINTS.PRESIDENT_MESSAGES;
-    const res = await fetch(url, { headers: authHeaders });
-    if (res.ok) { const data = await res.json(); setMessages(data.items || []); }
-  };
-
-  // Load messages when ward selection changes
-  useEffect(() => {
-    if (chatWard !== undefined) {
-      loadMessages();
-    }
-  }, [chatWard]);
-  const sendMessage = async () => {
-    if (!chatText.trim()) return;
-    // If a ward is selected, also include the councillor's user id as receiverId for direct delivery
-    const receiverId = chatWard ? (wards.find(w => w.ward === chatWard)?.councillor?.id || undefined) : undefined;
-    const body = chatWard ? { ward: chatWard, message: chatText, receiverId } : { message: chatText, broadcast: true };
-    const res = await fetch(API_ENDPOINTS.PRESIDENT_MESSAGES, { method: 'POST', headers: authHeaders, body: JSON.stringify(body) });
-    if (res.ok) { setChatText(''); loadMessages(); }
-  };
-
-  const sendFile = async (file: File) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    if (chatWard) {
-      fd.append('ward', String(chatWard));
-      const receiverId = wards.find(w => w.ward === chatWard)?.councillor?.id;
-      if (receiverId) fd.append('receiverId', receiverId);
-    } else {
-      fd.append('broadcast', 'true');
-    }
-    const res = await fetch(`${API_ENDPOINTS.PRESIDENT_MESSAGES}/file`, { method: 'POST', headers: { Authorization: authHeaders.Authorization }, body: fd as any });
-    if (res.ok) loadMessages();
-  };
 
   const startMeeting = async () => {
     setCreatingMeeting(true);
@@ -364,157 +302,6 @@ const PresidentDashboard: React.FC = () => {
                 </div>
               )}
 
-              {activeTab === 'comm' && (
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4">
-                    <i className="fas fa-comments mr-2 text-blue-600"></i>
-                    Communication with Councillors
-                  </h3>
-                  
-                  <div className="flex h-96">
-                    {/* Ward Selection */}
-                    <div className="w-1/4 border-r border-gray-200 pr-4">
-                      <h4 className="font-semibold text-gray-700 mb-3">Select Ward</h4>
-                      <div className="space-y-2 max-h-80 overflow-y-auto">
-                        <button
-                          onClick={() => setChatWard('')}
-                          className={`w-full text-left p-3 rounded-lg transition-colors ${
-                            chatWard === '' ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 hover:bg-gray-100'
-                          }`}
-                        >
-                          <div className="font-medium text-sm">All Wards</div>
-                          <div className="text-xs text-gray-600">Broadcast message</div>
-                        </button>
-                        {Array.from(new Set(wards.map(w=>w.ward))).map(w => (
-                          <button
-                            key={w}
-                            onClick={() => setChatWard(w)}
-                            className={`w-full text-left p-3 rounded-lg transition-colors ${
-                              chatWard === w ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 hover:bg-gray-100'
-                            }`}
-                          >
-                            <div className="font-medium text-sm">Ward {w}</div>
-                            <div className="text-xs text-gray-600">
-                              {wards.find(ward => ward.ward === w)?.councillor?.name || 'No councillor'}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Messages Area */}
-                    <div className="flex-1 pl-4">
-                      {chatWard !== '' ? (
-                        <>
-                          <div className="h-64 overflow-y-auto border border-gray-200 rounded-lg p-3 mb-3 bg-gray-50">
-                            {messages.map((m, idx) => (
-                              <div key={idx} className="mb-3">
-                                <div className="flex justify-between items-start mb-1">
-                                  <div className="font-medium text-xs text-gray-600">
-                                    {m.senderId?.name || 'Unknown'} ({m.senderId?.role || 'Unknown'})
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {new Date(m.createdAt).toLocaleTimeString()}
-                                  </div>
-                                </div>
-                                <div className="bg-white border border-gray-200 rounded-lg p-2 text-sm">
-                              {m.messageType === 'file' ? (
-                                <a href={`http://localhost:3002${m.fileUrl}`} target="_blank" rel="noreferrer" className="text-blue-600 underline">
-                                  {m.fileName || m.message}
-                                </a>
-                              ) : (
-                                m.message
-                              )}
-                                </div>
-                              </div>
-                            ))}
-                            {messages.length === 0 && (
-                              <div className="text-sm text-gray-500 text-center py-4">
-                                No messages in this conversation
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Message Input */}
-                          <div className="flex gap-2">
-                            <input
-                              value={chatText}
-                              onChange={e => setChatText(e.target.value)}
-                              placeholder={`Type a message to Ward ${chatWard}...`}
-                              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                            />
-                            <label className="cursor-pointer bg-gray-100 border border-gray-300 px-3 py-2 rounded-lg text-sm text-gray-700">
-                              Attach
-                              <input type="file" className="hidden" onChange={e => e.target.files && e.target.files[0] && sendFile(e.target.files[0])} />
-                            </label>
-                            <button
-                              onClick={sendMessage}
-                              disabled={!chatText.trim()}
-                              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-                            >
-                              Send
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="h-64 overflow-y-auto border border-gray-200 rounded-lg p-3 mb-3 bg-gray-50">
-                            {messages.map((m, idx) => (
-                              <div key={idx} className="mb-3">
-                                <div className="flex justify-between items-start mb-1">
-                                  <div className="font-medium text-xs text-gray-600">
-                                    {m.senderId?.name || 'Unknown'} ({m.senderId?.role || 'Unknown'}) • Ward {m.ward || '—'}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {new Date(m.createdAt).toLocaleTimeString()}
-                                  </div>
-                                </div>
-                                <div className="bg-white border border-gray-200 rounded-lg p-2 text-sm">
-                                  {m.messageType === 'file' ? (
-                                    <a href={`http://localhost:3002${m.fileUrl}`} target="_blank" rel="noreferrer" className="text-blue-600 underline">
-                                      {m.fileName || m.message}
-                                    </a>
-                                  ) : (
-                                    m.message
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                            {messages.length === 0 && (
-                              <div className="text-sm text-gray-500 text-center py-4">
-                                No messages yet. Select a ward to start a conversation.
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Message Input */}
-                          <div className="flex gap-2">
-                            <input
-                              value={chatText}
-                              onChange={e => setChatText(e.target.value)}
-                              placeholder="Type a broadcast message to all councillors..."
-                              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                            />
-                            <label className="cursor-pointer bg-gray-100 border border-gray-300 px-3 py-2 rounded-lg text-sm text-gray-700">
-                              Attach
-                              <input type="file" className="hidden" onChange={e => e.target.files && e.target.files[0] && sendFile(e.target.files[0])} />
-                            </label>
-                            <button
-                              onClick={sendMessage}
-                              disabled={!chatText.trim()}
-                              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-                            >
-                              Broadcast
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {activeTab === 'esabha' && (
                 <div>

@@ -84,21 +84,26 @@ export interface Complaint {
 
 export interface WelfareScheme {
   id: string;
+  _id?: string; // MongoDB ObjectId
   title: string;
   description: string;
-  postedBy: string;
-  ward: number;
-  totalItems: number;
+  postedBy?: string;
+  ward?: number;
+  totalItems?: number;
   // Additional optional fields used in UI
   creatorName?: string;
   availableSlots?: number;
-  createdAt: string;
+  createdAt?: string;
   // Additional properties for scheme management
   status?: 'active' | 'draft' | 'completed' | 'expired';
   totalSlots?: number;
   startDate?: string;
   endDate?: string;
   applicationDeadline?: string;
+  minAge?: number;
+  maxAge?: number;
+  category?: string;
+  scope?: string;
   requiredDocuments?: Array<{
     name: string;
     type: string;
@@ -114,14 +119,7 @@ export interface WelfareApplication {
   userName: string;
   address: string;
   phoneNumber: string;
-  rationCardNumber: string;
-  aadharNumber: string;
   ward: number;
-  reason: string;
-  isHandicapped: boolean;
-  isSingleWoman: boolean;
-  familyIncome: number;
-  dependents: number;
   status: ApplicationStatus;
   createdAt: string;
   score?: number;
@@ -130,6 +128,34 @@ export interface WelfareApplication {
     name: string;
     url: string;
   }>;
+  // Personal details from backend
+  rationCardNumber?: string;
+  aadharNumber?: string;
+  familyIncome?: number;
+  dependents?: number;
+  isHandicapped?: boolean;
+  isSingleWoman?: boolean;
+  reason?: string;
+  caste?: string;
+  incomeCategory?: string;
+  ownsLand?: boolean;
+  // New fields
+  houseNumber?: string;
+  isKudumbasreeMember?: boolean;
+  paysHarithakarmasenaFee?: boolean;
+  hasFamilyMemberWithGovtJob?: boolean;
+  hasDisabledPersonInHouse?: boolean;
+  hasFamilyMemberWithPension?: boolean;
+  totalIncome?: number;
+  incomeCategory?: string;
+  ownsLand?: boolean;
+  landDetails?: {
+    villageName: string;
+    surveyNumber: string;
+    area: string;
+  };
+  drinkingWaterSource?: string;
+  hasToilet?: boolean;
 }
 
 export interface ForecastData {

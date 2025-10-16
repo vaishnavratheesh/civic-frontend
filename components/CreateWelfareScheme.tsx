@@ -6,7 +6,8 @@ interface WelfareSchemeForm {
   title: string;
   description: string;
   category: string;
-  eligibilityCriteria: string;
+  minAge: number;
+  maxAge: number;
   benefits: string;
   documentsRequired: string[]; // legacy, still sent for backward-compat
   requiredDocuments?: { name: string; formats?: string[] }[];
@@ -42,7 +43,8 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
     title: '',
     description: '',
     category: '',
-    eligibilityCriteria: '',
+    minAge: 0,
+    maxAge: 120,
     benefits: '',
     documentsRequired: [],
     requiredDocuments: [{ name: '', formats: [] }],
@@ -68,7 +70,7 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'minAge' || name === 'maxAge' || name === 'totalSlots' ? parseInt(value) || 0 : value
     }));
 
     // Clear error when user starts typing
@@ -158,9 +160,11 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (!formData.category) newErrors.category = 'Category is required';
-    if (!formData.eligibilityCriteria.trim()) newErrors.eligibilityCriteria = 'Eligibility criteria is required';
+    if (formData.minAge < 0 || formData.minAge > 120) (newErrors as any).minAge = 'Minimum age must be between 0 and 120';
+    if (formData.maxAge < 0 || formData.maxAge > 120) (newErrors as any).maxAge = 'Maximum age must be between 0 and 120';
+    if (formData.minAge > formData.maxAge) (newErrors as any).maxAge = 'Maximum age must be greater than or equal to minimum age';
     if (!formData.benefits.trim()) newErrors.benefits = 'Benefits are required';
-    if (formData.totalSlots < 1) newErrors.totalSlots = 'Total slots must be at least 1';
+    if (formData.totalSlots < 1) (newErrors as any).totalSlots = 'Total slots must be at least 1';
     if (!formData.applicationDeadline) newErrors.applicationDeadline = 'Application deadline is required';
     if (!formData.startDate) newErrors.startDate = 'Start date is required';
     if (!formData.endDate) newErrors.endDate = 'End date is required';
@@ -183,7 +187,7 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
 
     // Validate ward-specific requirements
     if (formData.scope === 'ward' && !formData.ward) {
-      newErrors.ward = 'Ward number is required for ward-specific schemes';
+      (newErrors as any).ward = 'Ward number is required for ward-specific schemes';
     }
 
     // Validate required documents: must have at least one, and each name in allowed list
@@ -409,24 +413,48 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
               Scheme Details
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Eligibility Criteria *
+                  Minimum Age to Apply *
                 </label>
-                <textarea
-                  name="eligibilityCriteria"
-                  value={formData.eligibilityCriteria}
+                <input
+                  type="number"
+                  name="minAge"
+                  value={formData.minAge}
                   onChange={handleInputChange}
-                  rows={3}
+                  min="0"
+                  max="120"
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 ${
-                    errors.eligibilityCriteria ? 'border-red-300' : 'border-gray-300'
+                    (errors as any).minAge ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="Who is eligible for this scheme?"
+                  placeholder="e.g., 18"
                   required
                 />
-                {errors.eligibilityCriteria && (
-                  <p className="text-red-600 text-sm mt-1">{errors.eligibilityCriteria}</p>
+                {(errors as any).minAge && (
+                  <p className="text-red-600 text-sm mt-1">{(errors as any).minAge}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Maximum Age to Apply *
+                </label>
+                <input
+                  type="number"
+                  name="maxAge"
+                  value={formData.maxAge}
+                  onChange={handleInputChange}
+                  min="0"
+                  max="120"
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 ${
+                    (errors as any).maxAge ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="e.g., 60"
+                  required
+                />
+                {(errors as any).maxAge && (
+                  <p className="text-red-600 text-sm mt-1">{(errors as any).maxAge}</p>
                 )}
               </div>
 
@@ -579,8 +607,8 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
                 Add Required Document
               </button>
               
-              {errors.requiredDocuments && (
-                <p className="text-red-600 text-sm mt-2">{errors.requiredDocuments}</p>
+              {(errors as any).requiredDocuments && (
+                <p className="text-red-600 text-sm mt-2">{(errors as any).requiredDocuments}</p>
               )}
             </div>
           </div>

@@ -10,57 +10,38 @@ interface WelfareApplicationFormProps {
 }
 
 interface FormData {
-  // Personal Details
+  // Basic Information
   address: string;
   phoneNumber: string;
-  rationCardNumber: string;
-  aadharNumber: string;
-  familyIncome: number;
-  dependents: number;
-  isHandicapped: boolean;
-  isSingleWoman: boolean;
-
-  // Assessment Details
-  familyMembers: number;
-  childrenCount: number;
-  elderlyCount: number;
-  disabledMembers: number;
-  monthlyIncome: number;
-  incomeSource: string;
-  hasOtherIncome: boolean;
-  otherIncomeAmount: number;
-  houseOwnership: string;
-  houseType: string;
-  hasElectricity: boolean;
-  hasWaterConnection: boolean;
+  houseNumber: string;
+  
+  // Social Information
+  caste: 'general' | 'sc' | 'st' | '';
+  
+  // Membership & Participation
+  isKudumbasreeMember: boolean;
+  paysHarithakarmasenaFee: boolean;
+  
+  // Family Employment & Benefits
+  hasFamilyMemberWithGovtJob: boolean;
+  hasDisabledPersonInHouse: boolean;
+  hasFamilyMemberWithPension: boolean;
+  
+  // Financial Information
+  totalIncome: number;
+  incomeCategory: 'apl' | 'bpl' | '';
+  
+  // Land Ownership
+  ownsLand: boolean;
+  landDetails: {
+    villageName: string;
+    surveyNumber: string;
+    area: string;
+  };
+  
+  // Utilities
+  drinkingWaterSource: 'own_well' | 'public_well' | 'tap' | 'public_tap' | '';
   hasToilet: boolean;
-  educationLevel: string;
-  childrenEducation: string;
-  hasHealthInsurance: boolean;
-  chronicIllness: boolean;
-  illnessDetails: string;
-  hasDisability: boolean;
-  disabilityType: string;
-  employmentStatus: string;
-  jobStability: string;
-  hasBankAccount: boolean;
-  hasVehicle: boolean;
-  vehicleType: string;
-  hasLand: boolean;
-  landArea: number;
-  caste: string;
-  religion: string;
-  isWidow: boolean;
-  isOrphan: boolean;
-  isSeniorCitizen: boolean;
-  hasEmergencyFund: boolean;
-  emergencyContact: string;
-  emergencyRelation: string;
-  previousApplications: number;
-  previousSchemes: string[];
-  additionalNeeds: string;
-  specialCircumstances: string;
-  reason: string;
 }
 
 const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
@@ -70,7 +51,6 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
   onSuccess
 }) => {
   const { user } = useAuth();
-  const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -102,60 +82,39 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
   }, [schemeId]);
 
   const [formData, setFormData] = useState<FormData>({
-    // Personal Details
+    // Basic Information
     address: '',
     phoneNumber: '',
-    rationCardNumber: '',
-    aadharNumber: '',
-    familyIncome: 0,
-    dependents: 0,
-    isHandicapped: false,
-    isSingleWoman: false,
-
-    // Assessment Details
-    familyMembers: 0,
-    childrenCount: 0,
-    elderlyCount: 0,
-    disabledMembers: 0,
-    monthlyIncome: 0,
-    incomeSource: '',
-    hasOtherIncome: false,
-    otherIncomeAmount: 0,
-    houseOwnership: '',
-    houseType: '',
-    hasElectricity: false,
-    hasWaterConnection: false,
-    hasToilet: false,
-    educationLevel: '',
-    childrenEducation: '',
-    hasHealthInsurance: false,
-    chronicIllness: false,
-    illnessDetails: '',
-    hasDisability: false,
-    disabilityType: '',
-    employmentStatus: '',
-    jobStability: '',
-    hasBankAccount: false,
-    hasVehicle: false,
-    vehicleType: '',
-    hasLand: false,
-    landArea: 0,
+    houseNumber: '',
+    
+    // Social Information
     caste: '',
-    religion: '',
-    isWidow: false,
-    isOrphan: false,
-    isSeniorCitizen: false,
-    hasEmergencyFund: false,
-    emergencyContact: '',
-    emergencyRelation: '',
-    previousApplications: 0,
-    previousSchemes: [],
-    additionalNeeds: '',
-    specialCircumstances: '',
-    reason: ''
+    
+    // Membership & Participation
+    isKudumbasreeMember: false,
+    paysHarithakarmasenaFee: false,
+    
+    // Family Employment & Benefits
+    hasFamilyMemberWithGovtJob: false,
+    hasDisabledPersonInHouse: false,
+    hasFamilyMemberWithPension: false,
+    
+    // Financial Information
+    totalIncome: 0,
+    incomeCategory: '',
+    
+    // Land Ownership
+    ownsLand: false,
+    landDetails: {
+      villageName: '',
+      surveyNumber: '',
+      area: ''
+    },
+    
+    // Utilities
+    drinkingWaterSource: '',
+    hasToilet: false
   });
-
-  const totalSteps = 6;
 
   const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData(prev => ({
@@ -177,48 +136,52 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
     const errs: Record<string, string> = {};
 
     const isEmpty = (v: any) => v === undefined || v === null || String(v).trim() === '';
-    const isPositiveInt = (v: any) => Number.isFinite(Number(v)) && Number(v) >= 0 && Number.isInteger(Number(v));
+    const isPositiveNumber = (v: any) => Number.isFinite(Number(v)) && Number(v) >= 0;
 
-    // Step 1
-    if (isEmpty(values.address) || String(values.address).trim().length < 10) errs.address = 'Provide a full address (min 10 chars).';
-    if (!/^\+?\d{10}$/.test(String(values.phoneNumber).replace(/\s|-/g, ''))) errs.phoneNumber = 'Enter a valid 10-digit phone number.';
-    if (!isPositiveInt(values.familyIncome)) errs.familyIncome = 'Enter a valid non-negative income.';
-    if (!isPositiveInt(values.dependents)) errs.dependents = 'Enter a valid number of dependents.';
+    // Basic Information
+    if (isEmpty(values.address) || String(values.address).trim().length < 10) {
+      errs.address = 'Provide a complete address (minimum 10 characters).';
+    }
+    
+    if (!/^\+?\d{10}$/.test(String(values.phoneNumber).replace(/\s|-/g, ''))) {
+      errs.phoneNumber = 'Enter a valid 10-digit phone number.';
+    }
+    
+    if (isEmpty(values.houseNumber)) {
+      errs.houseNumber = 'House number is required.';
+    }
 
-    // Optional formats
-    if (values.aadharNumber && !/^(\d{12}|\d{4}-\d{4}-\d{4})$/.test(values.aadharNumber)) errs.aadharNumber = 'Aadhar must be 12 digits (with or without dashes).';
-    if (values.rationCardNumber && String(values.rationCardNumber).length < 5) errs.rationCardNumber = 'Ration card number seems too short.';
+    // Social Information
+    if (isEmpty(values.caste)) {
+      errs.caste = 'Please select your caste category.';
+    }
 
-    // Step 2
-    if (!isPositiveInt(values.familyMembers)) errs.familyMembers = 'Enter total family members (0 or more).';
-    if (!isPositiveInt(values.childrenCount)) errs.childrenCount = 'Enter a valid number of children.';
-    if (!isPositiveInt(values.elderlyCount)) errs.elderlyCount = 'Enter a valid number of elderly members.';
-    if (!isPositiveInt(values.disabledMembers)) errs.disabledMembers = 'Enter a valid number of disabled members.';
-    if (!isPositiveInt(values.monthlyIncome)) errs.monthlyIncome = 'Enter a valid monthly income.';
-    if (isEmpty(values.incomeSource)) errs.incomeSource = 'Select an income source.';
-    if (values.hasOtherIncome && !isPositiveInt(values.otherIncomeAmount)) errs.otherIncomeAmount = 'Enter other income as a non-negative integer.';
+    // Financial Information
+    if (!isPositiveNumber(values.totalIncome)) {
+      errs.totalIncome = 'Enter a valid total income amount.';
+    }
+    
+    if (values.totalIncome > 0 && isEmpty(values.incomeCategory)) {
+      errs.incomeCategory = 'Please select APL or BPL based on your income.';
+    }
 
-    // Step 3
-    if (isEmpty(values.houseOwnership)) errs.houseOwnership = 'Select house ownership.';
-    if (isEmpty(values.houseType)) errs.houseType = 'Select house type.';
-    if (isEmpty(values.educationLevel)) errs.educationLevel = 'Select education level.';
-    if (isEmpty(values.childrenEducation)) errs.childrenEducation = 'Select children education.';
+    // Utilities
+    if (isEmpty(values.drinkingWaterSource)) {
+      errs.drinkingWaterSource = 'Please select your drinking water source.';
+    }
 
-    // Step 4
-    if (isEmpty(values.employmentStatus)) errs.employmentStatus = 'Select employment status.';
-    if (isEmpty(values.jobStability)) errs.jobStability = 'Select job stability.';
-    if (values.chronicIllness && String(values.illnessDetails).trim().length < 3) errs.illnessDetails = 'Add a brief illness detail.';
-    if (values.hasDisability && String(values.disabilityType).trim().length < 3) errs.disabilityType = 'Specify disability type.';
-
-    // Step 5
-    if (isEmpty(values.caste)) errs.caste = 'Select caste.';
-    if (isEmpty(values.religion)) errs.religion = 'Select religion.';
-    if (values.hasLand && !isPositiveInt(values.landArea)) errs.landArea = 'Enter land area as a non-negative integer.';
-
-    // Step 6
-    if (String(values.emergencyContact).trim().length < 3) errs.emergencyContact = 'Provide emergency contact name.';
-    if (String(values.emergencyRelation).trim().length < 3) errs.emergencyRelation = 'Provide relation to emergency contact.';
-    if (String(values.reason).trim().length < 20) errs.reason = 'Reason must be at least 20 characters.';
+    // Land Details (if owns land)
+    if (values.ownsLand) {
+      if (isEmpty(values.landDetails.villageName)) {
+        errs.landVillageName = 'Village name is required for land ownership.';
+      }
+      if (isEmpty(values.landDetails.surveyNumber)) {
+        errs.landSurveyNumber = 'Survey number is required for land ownership.';
+      }
+      if (isEmpty(values.landDetails.area)) {
+        errs.landArea = 'Land area is required for land ownership.';
+      }
+    }
 
     return errs;
   };
@@ -227,29 +190,19 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
     // Keep errors up to date on dependent fields
     setFieldErrors(validate());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.address, formData.phoneNumber, formData.familyIncome, formData.dependents, formData.aadharNumber, formData.rationCardNumber, formData.familyMembers, formData.childrenCount, formData.elderlyCount, formData.disabledMembers, formData.monthlyIncome, formData.incomeSource, formData.otherIncomeAmount, formData.houseOwnership, formData.houseType, formData.educationLevel, formData.childrenEducation, formData.employmentStatus, formData.jobStability, formData.illnessDetails, formData.disabilityType, formData.caste, formData.religion, formData.landArea, formData.emergencyContact, formData.emergencyRelation, formData.reason]);
-
-  const handleNext = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+  }, [formData.address, formData.phoneNumber, formData.houseNumber, formData.caste, formData.totalIncome, formData.incomeCategory, formData.drinkingWaterSource, formData.ownsLand, formData.landDetails]);
 
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
     const errs = validate();
     setFieldErrors(errs);
+    
     // Mark all as touched for final submit
     const allTouched: Record<string, boolean> = {};
     Object.keys(formData).forEach(k => (allTouched[k] = true));
     setTouched(allTouched);
+    
     if (Object.keys(errs).length > 0) {
       setLoading(false);
       setError('Please review the highlighted fields.');
@@ -259,58 +212,25 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
     try {
       const token = localStorage.getItem('token');
       const fd = new FormData();
+      
+      // New simplified structure
       fd.append('personalDetails', JSON.stringify({
         address: formData.address,
         phoneNumber: formData.phoneNumber,
-        rationCardNumber: formData.rationCardNumber,
-        aadharNumber: formData.aadharNumber,
-        familyIncome: formData.familyIncome,
-        dependents: formData.dependents,
-        isHandicapped: formData.isHandicapped,
-        isSingleWoman: formData.isSingleWoman
-      }));
-      fd.append('assessment', JSON.stringify({
-        familyMembers: formData.familyMembers,
-        childrenCount: formData.childrenCount,
-        elderlyCount: formData.elderlyCount,
-        disabledMembers: formData.disabledMembers,
-        monthlyIncome: formData.monthlyIncome,
-        incomeSource: formData.incomeSource,
-        hasOtherIncome: formData.hasOtherIncome,
-        otherIncomeAmount: formData.otherIncomeAmount,
-        houseOwnership: formData.houseOwnership,
-        houseType: formData.houseType,
-        hasElectricity: formData.hasElectricity,
-        hasWaterConnection: formData.hasWaterConnection,
-        hasToilet: formData.hasToilet,
-        educationLevel: formData.educationLevel,
-        childrenEducation: formData.childrenEducation,
-        hasHealthInsurance: formData.hasHealthInsurance,
-        chronicIllness: formData.chronicIllness,
-        illnessDetails: formData.illnessDetails,
-        hasDisability: formData.hasDisability,
-        disabilityType: formData.disabilityType,
-        employmentStatus: formData.employmentStatus,
-        jobStability: formData.jobStability,
-        hasBankAccount: formData.hasBankAccount,
-        hasVehicle: formData.hasVehicle,
-        vehicleType: formData.vehicleType,
-        hasLand: formData.hasLand,
-        landArea: formData.landArea,
+        houseNumber: formData.houseNumber,
         caste: formData.caste,
-        religion: formData.religion,
-        isWidow: formData.isWidow,
-        isOrphan: formData.isOrphan,
-        isSeniorCitizen: formData.isSeniorCitizen,
-        hasEmergencyFund: formData.hasEmergencyFund,
-        emergencyContact: formData.emergencyContact,
-        emergencyRelation: formData.emergencyRelation,
-        previousApplications: formData.previousApplications,
-        previousSchemes: formData.previousSchemes,
-        additionalNeeds: formData.additionalNeeds,
-        specialCircumstances: formData.specialCircumstances
+        isKudumbasreeMember: formData.isKudumbasreeMember,
+        paysHarithakarmasenaFee: formData.paysHarithakarmasenaFee,
+        hasFamilyMemberWithGovtJob: formData.hasFamilyMemberWithGovtJob,
+        hasDisabledPersonInHouse: formData.hasDisabledPersonInHouse,
+        hasFamilyMemberWithPension: formData.hasFamilyMemberWithPension,
+        totalIncome: formData.totalIncome,
+        incomeCategory: formData.incomeCategory,
+        ownsLand: formData.ownsLand,
+        landDetails: formData.landDetails,
+        drinkingWaterSource: formData.drinkingWaterSource,
+        hasToilet: formData.hasToilet
       }));
-      fd.append('reason', formData.reason);
 
       // Append required documents with agreed field names: doc_<normalized_name>
       requiredDocuments.forEach(doc => {
@@ -368,722 +288,335 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
     </div>
   );
 
-  const renderStep1 = () => (
-    <div className="space-y-4">
-      <h3 className="text-base font-semibold text-gray-800 mb-2">Personal Information</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Address *</label>
-          <textarea
-            value={formData.address}
-            onChange={(e) => handleInputChange('address', e.target.value)}
-            onBlur={() => handleBlur('address')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            rows={2}
-            required
-          />
-          {touched.address && fieldErrors.address && <p className="mt-1 text-xs text-red-600">{fieldErrors.address}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
-          <input
-            type="tel"
-            value={formData.phoneNumber}
-            onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-            onBlur={() => handleBlur('phoneNumber')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {touched.phoneNumber && fieldErrors.phoneNumber && <p className="mt-1 text-xs text-red-600">{fieldErrors.phoneNumber}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Ration Card Number</label>
-          <input
-            type="text"
-            value={formData.rationCardNumber}
-            onChange={(e) => handleInputChange('rationCardNumber', e.target.value)}
-            onBlur={() => handleBlur('rationCardNumber')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {touched.rationCardNumber && fieldErrors.rationCardNumber && <p className="mt-1 text-xs text-red-600">{fieldErrors.rationCardNumber}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Aadhar Number</label>
-          <input
-            type="text"
-            value={formData.aadharNumber}
-            onChange={(e) => handleInputChange('aadharNumber', e.target.value)}
-            onBlur={() => handleBlur('aadharNumber')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {touched.aadharNumber && fieldErrors.aadharNumber && <p className="mt-1 text-xs text-red-600">{fieldErrors.aadharNumber}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Family Income (Monthly) *</label>
-          <input
-            type="number"
-            value={formData.familyIncome}
-            onChange={(e) => handleInputChange('familyIncome', parseInt(e.target.value) || 0)}
-            onBlur={() => handleBlur('familyIncome')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {touched.familyIncome && fieldErrors.familyIncome && <p className="mt-1 text-xs text-red-600">{fieldErrors.familyIncome}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Number of Dependents *</label>
-          <input
-            type="number"
-            value={formData.dependents}
-            onChange={(e) => handleInputChange('dependents', parseInt(e.target.value) || 0)}
-            onBlur={() => handleBlur('dependents')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {touched.dependents && fieldErrors.dependents && <p className="mt-1 text-xs text-red-600">{fieldErrors.dependents}</p>}
-        </div>
+  const renderApplicationForm = () => (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="text-center border-b border-gray-200 pb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Welfare Scheme Application</h2>
+        <p className="text-gray-600">Please fill out all required fields accurately</p>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="isHandicapped"
-            checked={formData.isHandicapped}
-            onChange={(e) => handleInputChange('isHandicapped', e.target.checked)}
-            className="mr-2"
-          />
-          <label htmlFor="isHandicapped" className="text-sm text-gray-700">Are you handicapped?</label>
-        </div>
-
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="isSingleWoman"
-            checked={formData.isSingleWoman}
-            onChange={(e) => handleInputChange('isSingleWoman', e.target.checked)}
-            className="mr-2"
-          />
-          <label htmlFor="isSingleWoman" className="text-sm text-gray-700">Are you a single woman?</label>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderStep2 = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Family & Income Details</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Total Family Members *</label>
-          <input
-            type="number"
-            value={formData.familyMembers}
-            onChange={(e) => handleInputChange('familyMembers', parseInt(e.target.value) || 0)}
-            onBlur={() => handleBlur('familyMembers')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {touched.familyMembers && fieldErrors.familyMembers && <p className="mt-1 text-xs text-red-600">{fieldErrors.familyMembers}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Number of Children *</label>
-          <input
-            type="number"
-            value={formData.childrenCount}
-            onChange={(e) => handleInputChange('childrenCount', parseInt(e.target.value) || 0)}
-            onBlur={() => handleBlur('childrenCount')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {touched.childrenCount && fieldErrors.childrenCount && <p className="mt-1 text-xs text-red-600">{fieldErrors.childrenCount}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Number of Elderly (60+) *</label>
-          <input
-            type="number"
-            value={formData.elderlyCount}
-            onChange={(e) => handleInputChange('elderlyCount', parseInt(e.target.value) || 0)}
-            onBlur={() => handleBlur('elderlyCount')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {touched.elderlyCount && fieldErrors.elderlyCount && <p className="mt-1 text-xs text-red-600">{fieldErrors.elderlyCount}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Number of Disabled Members *</label>
-          <input
-            type="number"
-            value={formData.disabledMembers}
-            onChange={(e) => handleInputChange('disabledMembers', parseInt(e.target.value) || 0)}
-            onBlur={() => handleBlur('disabledMembers')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {touched.disabledMembers && fieldErrors.disabledMembers && <p className="mt-1 text-xs text-red-600">{fieldErrors.disabledMembers}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Income *</label>
-          <input
-            type="number"
-            value={formData.monthlyIncome}
-            onChange={(e) => handleInputChange('monthlyIncome', parseInt(e.target.value) || 0)}
-            onBlur={() => handleBlur('monthlyIncome')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {touched.monthlyIncome && fieldErrors.monthlyIncome && <p className="mt-1 text-xs text-red-600">{fieldErrors.monthlyIncome}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Income Source *</label>
-          <select
-            value={formData.incomeSource}
-            onChange={(e) => handleInputChange('incomeSource', e.target.value)}
-            onBlur={() => handleBlur('incomeSource')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-          {touched.incomeSource && fieldErrors.incomeSource && <p className="mt-1 text-xs text-red-600">{fieldErrors.incomeSource}</p>}
-            <option value="">Select Income Source</option>
-            <option value="salary">Salary</option>
-            <option value="business">Business</option>
-            <option value="agriculture">Agriculture</option>
-            <option value="daily_wage">Daily Wage</option>
-            <option value="pension">Pension</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="hasOtherIncome"
-            checked={formData.hasOtherIncome}
-            onChange={(e) => handleInputChange('hasOtherIncome', e.target.checked)}
-            className="mr-2"
-          />
-          <label htmlFor="hasOtherIncome" className="text-sm text-gray-700">Do you have other sources of income?</label>
-        </div>
-
-        {formData.hasOtherIncome && (
+      {/* Basic Information Section */}
+      <div className="bg-blue-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <i className="fas fa-user mr-2 text-blue-600"></i>
+          Basic Information
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Other Income Amount</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Address *</label>
+            <textarea
+              value={formData.address}
+              onChange={(e) => handleInputChange('address', e.target.value)}
+              onBlur={() => handleBlur('address')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              rows={3}
+              placeholder="Enter your complete address"
+              required
+            />
+            {touched.address && fieldErrors.address && <p className="mt-1 text-xs text-red-600">{fieldErrors.address}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+            <input
+              type="tel"
+              value={formData.phoneNumber}
+              onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+              onBlur={() => handleBlur('phoneNumber')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter 10-digit phone number"
+              required
+            />
+            {touched.phoneNumber && fieldErrors.phoneNumber && <p className="mt-1 text-xs text-red-600">{fieldErrors.phoneNumber}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">House Number *</label>
+            <input
+              type="text"
+              value={formData.houseNumber}
+              onChange={(e) => handleInputChange('houseNumber', e.target.value)}
+              onBlur={() => handleBlur('houseNumber')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter house number"
+              required
+            />
+            {touched.houseNumber && fieldErrors.houseNumber && <p className="mt-1 text-xs text-red-600">{fieldErrors.houseNumber}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Caste *</label>
+            <select
+              value={formData.caste}
+              onChange={(e) => handleInputChange('caste', e.target.value)}
+              onBlur={() => handleBlur('caste')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Select Caste Category</option>
+              <option value="general">General</option>
+              <option value="sc">SC (Scheduled Caste)</option>
+              <option value="st">ST (Scheduled Tribe)</option>
+            </select>
+            {touched.caste && fieldErrors.caste && <p className="mt-1 text-xs text-red-600">{fieldErrors.caste}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Membership & Participation Section */}
+      <div className="bg-green-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <i className="fas fa-users mr-2 text-green-600"></i>
+          Membership & Participation
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="isKudumbasreeMember"
+              checked={formData.isKudumbasreeMember}
+              onChange={(e) => handleInputChange('isKudumbasreeMember', e.target.checked)}
+              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+            />
+            <label htmlFor="isKudumbasreeMember" className="text-sm font-medium text-gray-700">
+              Kudumbasree Member
+            </label>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="paysHarithakarmasenaFee"
+              checked={formData.paysHarithakarmasenaFee}
+              onChange={(e) => handleInputChange('paysHarithakarmasenaFee', e.target.checked)}
+              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+            />
+            <label htmlFor="paysHarithakarmasenaFee" className="text-sm font-medium text-gray-700">
+              Pays Harithakarmasena Fee
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Family Information Section */}
+      <div className="bg-yellow-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <i className="fas fa-home mr-2 text-yellow-600"></i>
+          Family Information
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="hasFamilyMemberWithGovtJob"
+              checked={formData.hasFamilyMemberWithGovtJob}
+              onChange={(e) => handleInputChange('hasFamilyMemberWithGovtJob', e.target.checked)}
+              className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+            />
+            <label htmlFor="hasFamilyMemberWithGovtJob" className="text-sm font-medium text-gray-700">
+              Family Member with Government Job
+            </label>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="hasDisabledPersonInHouse"
+              checked={formData.hasDisabledPersonInHouse}
+              onChange={(e) => handleInputChange('hasDisabledPersonInHouse', e.target.checked)}
+              className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+            />
+            <label htmlFor="hasDisabledPersonInHouse" className="text-sm font-medium text-gray-700">
+              Disabled Person in House
+            </label>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="hasFamilyMemberWithPension"
+              checked={formData.hasFamilyMemberWithPension}
+              onChange={(e) => handleInputChange('hasFamilyMemberWithPension', e.target.checked)}
+              className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+            />
+            <label htmlFor="hasFamilyMemberWithPension" className="text-sm font-medium text-gray-700">
+              Family Member with Pension
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Financial Information Section */}
+      <div className="bg-purple-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <i className="fas fa-rupee-sign mr-2 text-purple-600"></i>
+          Financial Information
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Total Income (Annual) *</label>
             <input
               type="number"
-              value={formData.otherIncomeAmount}
-              onChange={(e) => handleInputChange('otherIncomeAmount', parseInt(e.target.value) || 0)}
-              onBlur={() => handleBlur('otherIncomeAmount')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={formData.totalIncome}
+              onChange={(e) => {
+                const income = parseInt(e.target.value) || 0;
+                handleInputChange('totalIncome', income);
+                // Auto-select APL/BPL based on income
+                if (income > 0) {
+                  const category = income <= 120000 ? 'bpl' : 'apl'; // BPL if income <= 1.2 lakh
+                  handleInputChange('incomeCategory', category);
+                }
+              }}
+              onBlur={() => handleBlur('totalIncome')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Enter annual income in rupees"
+              required
             />
-            {touched.otherIncomeAmount && fieldErrors.otherIncomeAmount && <p className="mt-1 text-xs text-red-600">{fieldErrors.otherIncomeAmount}</p>}
+            {touched.totalIncome && fieldErrors.totalIncome && <p className="mt-1 text-xs text-red-600">{fieldErrors.totalIncome}</p>}
           </div>
-        )}
-      </div>
-    </div>
-  );
 
-  const renderStep3 = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Housing & Education</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">House Ownership *</label>
-          <select
-            value={formData.houseOwnership}
-            onChange={(e) => handleInputChange('houseOwnership', e.target.value)}
-            onBlur={() => handleBlur('houseOwnership')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-          {touched.houseOwnership && fieldErrors.houseOwnership && <p className="mt-1 text-xs text-red-600">{fieldErrors.houseOwnership}</p>}
-            <option value="">Select Ownership</option>
-            <option value="owned">Owned</option>
-            <option value="rented">Rented</option>
-            <option value="government">Government</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">House Type *</label>
-          <select
-            value={formData.houseType}
-            onChange={(e) => handleInputChange('houseType', e.target.value)}
-            onBlur={() => handleBlur('houseType')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-          {touched.houseType && fieldErrors.houseType && <p className="mt-1 text-xs text-red-600">{fieldErrors.houseType}</p>}
-            <option value="">Select House Type</option>
-            <option value="concrete">Concrete</option>
-            <option value="semi_concrete">Semi Concrete</option>
-            <option value="thatched">Thatched</option>
-            <option value="temporary">Temporary</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Education Level *</label>
-          <select
-            value={formData.educationLevel}
-            onChange={(e) => handleInputChange('educationLevel', e.target.value)}
-            onBlur={() => handleBlur('educationLevel')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-          {touched.educationLevel && fieldErrors.educationLevel && <p className="mt-1 text-xs text-red-600">{fieldErrors.educationLevel}</p>}
-            <option value="">Select Education Level</option>
-            <option value="illiterate">Illiterate</option>
-            <option value="primary">Primary</option>
-            <option value="secondary">Secondary</option>
-            <option value="higher_secondary">Higher Secondary</option>
-            <option value="graduate">Graduate</option>
-            <option value="post_graduate">Post Graduate</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Children Education *</label>
-          <select
-            value={formData.childrenEducation}
-            onChange={(e) => handleInputChange('childrenEducation', e.target.value)}
-            onBlur={() => handleBlur('childrenEducation')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-          {touched.childrenEducation && fieldErrors.childrenEducation && <p className="mt-1 text-xs text-red-600">{fieldErrors.childrenEducation}</p>}
-            <option value="">Select Education Type</option>
-            <option value="not_applicable">Not Applicable</option>
-            <option value="government">Government School</option>
-            <option value="private">Private School</option>
-            <option value="not_attending">Not Attending</option>
-          </select>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Income Category *</label>
+            <select
+              value={formData.incomeCategory}
+              onChange={(e) => handleInputChange('incomeCategory', e.target.value)}
+              onBlur={() => handleBlur('incomeCategory')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+              required
+            >
+              <option value="">Select Category</option>
+              <option value="apl">APL (Above Poverty Line)</option>
+              <option value="bpl">BPL (Below Poverty Line)</option>
+            </select>
+            {touched.incomeCategory && fieldErrors.incomeCategory && <p className="mt-1 text-xs text-red-600">{fieldErrors.incomeCategory}</p>}
+          </div>
         </div>
       </div>
 
-      <div className="space-y-3">
-        <h4 className="font-medium text-gray-700">Basic Amenities</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center">
+      {/* Land Ownership Section */}
+      <div className="bg-orange-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <i className="fas fa-map mr-2 text-orange-600"></i>
+          Land Ownership
+        </h3>
+        
+        <div className="space-y-4">
+          <div className="flex items-center space-x-3">
             <input
               type="checkbox"
-              id="hasElectricity"
-              checked={formData.hasElectricity}
-              onChange={(e) => handleInputChange('hasElectricity', e.target.checked)}
-              className="mr-2"
+              id="ownsLand"
+              checked={formData.ownsLand}
+              onChange={(e) => handleInputChange('ownsLand', e.target.checked)}
+              className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
             />
-            <label htmlFor="hasElectricity" className="text-sm text-gray-700">Electricity</label>
+            <label htmlFor="ownsLand" className="text-sm font-medium text-gray-700">
+              Own Land
+            </label>
           </div>
 
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="hasWaterConnection"
-              checked={formData.hasWaterConnection}
-              onChange={(e) => handleInputChange('hasWaterConnection', e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="hasWaterConnection" className="text-sm text-gray-700">Water Connection</label>
+          {formData.ownsLand && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-4 bg-white rounded-md border border-orange-200">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Village Name *</label>
+                <input
+                  type="text"
+                  value={formData.landDetails.villageName}
+                  onChange={(e) => handleInputChange('landDetails', { ...formData.landDetails, villageName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter village name"
+                  required
+                />
+                {fieldErrors.landVillageName && <p className="mt-1 text-xs text-red-600">{fieldErrors.landVillageName}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Survey Number *</label>
+                <input
+                  type="text"
+                  value={formData.landDetails.surveyNumber}
+                  onChange={(e) => handleInputChange('landDetails', { ...formData.landDetails, surveyNumber: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter survey number"
+                  required
+                />
+                {fieldErrors.landSurveyNumber && <p className="mt-1 text-xs text-red-600">{fieldErrors.landSurveyNumber}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Area *</label>
+                <input
+                  type="text"
+                  value={formData.landDetails.area}
+                  onChange={(e) => handleInputChange('landDetails', { ...formData.landDetails, area: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="e.g., 2 acres, 50 cents"
+                  required
+                />
+                {fieldErrors.landArea && <p className="mt-1 text-xs text-red-600">{fieldErrors.landArea}</p>}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Utilities Section */}
+      <div className="bg-indigo-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <i className="fas fa-tint mr-2 text-indigo-600"></i>
+          Utilities & Amenities
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Drinking Water Source *</label>
+            <select
+              value={formData.drinkingWaterSource}
+              onChange={(e) => handleInputChange('drinkingWaterSource', e.target.value)}
+              onBlur={() => handleBlur('drinkingWaterSource')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            >
+              <option value="">Select Water Source</option>
+              <option value="own_well">Own Well</option>
+              <option value="public_well">Public Well</option>
+              <option value="tap">Tap Connection</option>
+              <option value="public_tap">Public Tap</option>
+            </select>
+            {touched.drinkingWaterSource && fieldErrors.drinkingWaterSource && <p className="mt-1 text-xs text-red-600">{fieldErrors.drinkingWaterSource}</p>}
           </div>
 
-          <div className="flex items-center">
+          <div className="flex items-center space-x-3">
             <input
               type="checkbox"
               id="hasToilet"
               checked={formData.hasToilet}
               onChange={(e) => handleInputChange('hasToilet', e.target.checked)}
-              className="mr-2"
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
             />
-            <label htmlFor="hasToilet" className="text-sm text-gray-700">Toilet</label>
+            <label htmlFor="hasToilet" className="text-sm font-medium text-gray-700">
+              Has Toilet Facility
+            </label>
           </div>
         </div>
       </div>
+
+      {/* Required Documents Section */}
+      {requiredDocuments.length > 0 && (
+        <div className="bg-red-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <i className="fas fa-file-upload mr-2 text-red-600"></i>
+            Required Documents
+          </h3>
+          {renderRequiredDocuments()}
+        </div>
+      )}
     </div>
   );
-
-  const renderStep4 = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Health & Employment</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Employment Status *</label>
-          <select
-            value={formData.employmentStatus}
-            onChange={(e) => handleInputChange('employmentStatus', e.target.value)}
-            onBlur={() => handleBlur('employmentStatus')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-          {touched.employmentStatus && fieldErrors.employmentStatus && <p className="mt-1 text-xs text-red-600">{fieldErrors.employmentStatus}</p>}
-            <option value="">Select Employment Status</option>
-            <option value="employed">Employed</option>
-            <option value="unemployed">Unemployed</option>
-            <option value="self_employed">Self Employed</option>
-            <option value="student">Student</option>
-            <option value="retired">Retired</option>
-            <option value="homemaker">Homemaker</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Job Stability *</label>
-          <select
-            value={formData.jobStability}
-            onChange={(e) => handleInputChange('jobStability', e.target.value)}
-            onBlur={() => handleBlur('jobStability')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-          {touched.jobStability && fieldErrors.jobStability && <p className="mt-1 text-xs text-red-600">{fieldErrors.jobStability}</p>}
-            <option value="">Select Job Stability</option>
-            <option value="permanent">Permanent</option>
-            <option value="temporary">Temporary</option>
-            <option value="contract">Contract</option>
-            <option value="daily_wage">Daily Wage</option>
-            <option value="not_applicable">Not Applicable</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <h4 className="font-medium text-gray-700">Health Information</h4>
-        <div className="space-y-3">
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="hasHealthInsurance"
-              checked={formData.hasHealthInsurance}
-              onChange={(e) => handleInputChange('hasHealthInsurance', e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="hasHealthInsurance" className="text-sm text-gray-700">Do you have health insurance?</label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="chronicIllness"
-              checked={formData.chronicIllness}
-              onChange={(e) => handleInputChange('chronicIllness', e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="chronicIllness" className="text-sm text-gray-700">Do you have any chronic illness?</label>
-          </div>
-
-          {formData.chronicIllness && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Illness Details</label>
-              <textarea
-                value={formData.illnessDetails}
-                onChange={(e) => handleInputChange('illnessDetails', e.target.value)}
-                onBlur={() => handleBlur('illnessDetails')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={2}
-              />
-              {touched.illnessDetails && fieldErrors.illnessDetails && <p className="mt-1 text-xs text-red-600">{fieldErrors.illnessDetails}</p>}
-            </div>
-          )}
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="hasDisability"
-              checked={formData.hasDisability}
-              onChange={(e) => handleInputChange('hasDisability', e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="hasDisability" className="text-sm text-gray-700">Do you have any disability?</label>
-          </div>
-
-          {formData.hasDisability && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Disability Type</label>
-              <input
-                type="text"
-                value={formData.disabilityType}
-                onChange={(e) => handleInputChange('disabilityType', e.target.value)}
-                onBlur={() => handleBlur('disabilityType')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {touched.disabilityType && fieldErrors.disabilityType && <p className="mt-1 text-xs text-red-600">{fieldErrors.disabilityType}</p>}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderStep5 = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Assets & Social Status</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Caste *</label>
-          <select
-            value={formData.caste}
-            onChange={(e) => handleInputChange('caste', e.target.value)}
-            onBlur={() => handleBlur('caste')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-          {touched.caste && fieldErrors.caste && <p className="mt-1 text-xs text-red-600">{fieldErrors.caste}</p>}
-            <option value="">Select Caste</option>
-            <option value="general">General</option>
-            <option value="obc">OBC</option>
-            <option value="sc">SC</option>
-            <option value="st">ST</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Religion *</label>
-          <select
-            value={formData.religion}
-            onChange={(e) => handleInputChange('religion', e.target.value)}
-            onBlur={() => handleBlur('religion')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-          {touched.religion && fieldErrors.religion && <p className="mt-1 text-xs text-red-600">{fieldErrors.religion}</p>}
-            <option value="">Select Religion</option>
-            <option value="hindu">Hindu</option>
-            <option value="muslim">Muslim</option>
-            <option value="christian">Christian</option>
-            <option value="sikh">Sikh</option>
-            <option value="buddhist">Buddhist</option>
-            <option value="jain">Jain</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <h4 className="font-medium text-gray-700">Assets</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="hasBankAccount"
-              checked={formData.hasBankAccount}
-              onChange={(e) => handleInputChange('hasBankAccount', e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="hasBankAccount" className="text-sm text-gray-700">Do you have a bank account?</label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="hasVehicle"
-              checked={formData.hasVehicle}
-              onChange={(e) => handleInputChange('hasVehicle', e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="hasVehicle" className="text-sm text-gray-700">Do you have a vehicle?</label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="hasLand"
-              checked={formData.hasLand}
-              onChange={(e) => handleInputChange('hasLand', e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="hasLand" className="text-sm text-gray-700">Do you own land?</label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="hasEmergencyFund"
-              checked={formData.hasEmergencyFund}
-              onChange={(e) => handleInputChange('hasEmergencyFund', e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="hasEmergencyFund" className="text-sm text-gray-700">Do you have emergency funds?</label>
-          </div>
-        </div>
-
-        {formData.hasVehicle && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Vehicle Type</label>
-            <input
-              type="text"
-              value={formData.vehicleType}
-              onChange={(e) => handleInputChange('vehicleType', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        )}
-
-        {formData.hasLand && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Land Area (in acres)</label>
-            <input
-              type="number"
-              value={formData.landArea}
-              onChange={(e) => handleInputChange('landArea', parseInt(e.target.value) || 0)}
-              onBlur={() => handleBlur('landArea')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {touched.landArea && fieldErrors.landArea && <p className="mt-1 text-xs text-red-600">{fieldErrors.landArea}</p>}
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        <h4 className="font-medium text-gray-700">Special Status</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="isWidow"
-              checked={formData.isWidow}
-              onChange={(e) => handleInputChange('isWidow', e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="isWidow" className="text-sm text-gray-700">Are you a widow?</label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="isOrphan"
-              checked={formData.isOrphan}
-              onChange={(e) => handleInputChange('isOrphan', e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="isOrphan" className="text-sm text-gray-700">Are you an orphan?</label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="isSeniorCitizen"
-              checked={formData.isSeniorCitizen}
-              onChange={(e) => handleInputChange('isSeniorCitizen', e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="isSeniorCitizen" className="text-sm text-gray-700">Are you a senior citizen?</label>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderStep6 = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Emergency & Additional Information</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact *</label>
-          <input
-            type="text"
-            value={formData.emergencyContact}
-            onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
-            onBlur={() => handleBlur('emergencyContact')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {touched.emergencyContact && fieldErrors.emergencyContact && <p className="mt-1 text-xs text-red-600">{fieldErrors.emergencyContact}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact Relation *</label>
-          <input
-            type="text"
-            value={formData.emergencyRelation}
-            onChange={(e) => handleInputChange('emergencyRelation', e.target.value)}
-            onBlur={() => handleBlur('emergencyRelation')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {touched.emergencyRelation && fieldErrors.emergencyRelation && <p className="mt-1 text-xs text-red-600">{fieldErrors.emergencyRelation}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Previous Applications Count</label>
-          <input
-            type="number"
-            value={formData.previousApplications}
-            onChange={(e) => handleInputChange('previousApplications', parseInt(e.target.value) || 0)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Reason for Application *</label>
-        <textarea
-          value={formData.reason}
-          onChange={(e) => handleInputChange('reason', e.target.value)}
-          onBlur={() => handleBlur('reason')}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          rows={4}
-          placeholder="Please explain why you need this welfare scheme..."
-          required
-        />
-        {touched.reason && fieldErrors.reason && <p className="mt-1 text-xs text-red-600">{fieldErrors.reason}</p>}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Additional Needs</label>
-        <textarea
-          value={formData.additionalNeeds}
-          onChange={(e) => handleInputChange('additionalNeeds', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          rows={3}
-          placeholder="Any additional needs or requirements..."
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Special Circumstances</label>
-        <textarea
-          value={formData.specialCircumstances}
-          onChange={(e) => handleInputChange('specialCircumstances', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          rows={3}
-          placeholder="Any special circumstances that should be considered..."
-        />
-      </div>
-
-      {/* Dynamic required documents section */}
-      {renderRequiredDocuments()}
-    </div>
-  );
-
-  const renderCurrentStep = () => {
-    switch (currentStep) {
-      case 1: return renderStep1();
-      case 2: return renderStep2();
-      case 3: return renderStep3();
-      case 4: return renderStep4();
-      case 5: return renderStep5();
-      case 6: return renderStep6();
-      default: return renderStep1();
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1103,20 +636,6 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
             </button>
           </div>
 
-          {/* Progress Bar */}
-          <div className="mb-6">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Step {currentStep} of {totalSteps}</span>
-              <span>{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-
           {/* Error Message */}
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -1126,52 +645,28 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
 
           {/* Form Content */}
           <div className="mb-6">
-            {renderCurrentStep()}
+            {renderApplicationForm()}
           </div>
 
-          {/* Navigation Buttons */}
-          <div className="flex justify-between">
+          {/* Submit Button */}
+          <div className="flex justify-end space-x-4">
             <button
-              onClick={handlePrevious}
-              disabled={currentStep === 1}
-              className={`px-4 py-2 rounded-md ${
-                currentStep === 1
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-gray-600 text-white hover:bg-gray-700'
+              onClick={onClose}
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className={`px-6 py-2 rounded-md ${
+                loading
+                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
               }`}
             >
-              Previous
+              {loading ? 'Submitting...' : 'Submit Application'}
             </button>
-
-            <div className="flex space-x-2">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-
-              {currentStep < totalSteps ? (
-                <button
-                  onClick={handleNext}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className={`px-6 py-2 rounded-md ${
-                    loading
-                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  {loading ? 'Submitting...' : 'Submit Application'}
-                </button>
-              )}
-            </div>
           </div>
         </div>
       </div>
