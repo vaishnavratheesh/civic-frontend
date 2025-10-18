@@ -80,6 +80,17 @@ export interface Complaint {
   duplicateGroupId?: string;
   duplicateCount?: number;
   attachments?: Array<{ url: string; type?: string }>;
+  videoProofRequests?: Array<{
+    id: string;
+    requestedBy: string;
+    requestedByName: string;
+    requestedAt: string;
+    message: string;
+    status: 'pending' | 'uploaded' | 'rejected';
+    videoUrl?: string;
+    uploadedAt?: string;
+    rejectionReason?: string;
+  }>;
 }
 
 export interface WelfareScheme {
@@ -147,8 +158,6 @@ export interface WelfareApplication {
   hasDisabledPersonInHouse?: boolean;
   hasFamilyMemberWithPension?: boolean;
   totalIncome?: number;
-  incomeCategory?: string;
-  ownsLand?: boolean;
   landDetails?: {
     villageName: string;
     surveyNumber: string;

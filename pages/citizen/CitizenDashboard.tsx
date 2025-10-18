@@ -135,6 +135,211 @@ const ESabhaTab: React.FC = () => {
     );
 };
 
+// Video Proof Request Component for individual complaints
+const VideoProofRequestSection: React.FC<{ 
+    complaint: Complaint, 
+    onVideoUploaded?: () => void 
+}> = ({ complaint, onVideoUploaded }) => {
+    const [uploading, setUploading] = useState<{[key: string]: boolean}>({});
+
+    const handleVideoUpload = async (requestId: string, grievanceId: string) => {
+        console.log('Starting video upload - Request ID:', requestId, 'Grievance ID:', grievanceId);
+        
+        if (!requestId) {
+            console.error('Request ID is missing!');
+            await Swal.fire({
+                title: 'Error',
+                text: 'Request ID is missing. Please refresh the page and try again.',
+                icon: 'error',
+                confirmButtonColor: '#7c3aed'
+            });
+            return;
+        }
+        
+        try {
+            const { value: file } = await Swal.fire({
+                title: 'Upload Video Evidence',
+                text: 'Please select a video file to upload as additional evidence.',
+                input: 'file',
+                inputAttributes: {
+                    accept: 'video/*',
+                    'aria-label': 'Upload video evidence'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Upload',
+                confirmButtonColor: '#7c3aed',
+                cancelButtonText: 'Cancel',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Please select a video file';
+                    }
+                    const maxSize = 50 * 1024 * 1024; // 50MB
+                    const file = value instanceof FileList ? value[0] : value;
+                    if (file && file.size > maxSize) {
+                        return 'Video file must be smaller than 50MB';
+                    }
+                }
+            });
+
+            if (file) {
+                setUploading(prev => ({ ...prev, [requestId]: true }));
+
+                const formData = new FormData();
+                const videoFile = file instanceof FileList ? file[0] : file;
+                formData.append('video', videoFile);
+                formData.append('requestId', requestId);
+
+                console.log('Uploading video - File:', videoFile.name, 'Size:', videoFile.size, 'Request ID:', requestId);
+
+                const token = localStorage.getItem('token');
+                const response = await fetch(`http://localhost:3002/api/grievances/${grievanceId}/upload-video-proof`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const responseData = await response.json();
+                    console.log('Upload successful:', responseData);
+                    
+                    await Swal.fire({
+                        title: 'Upload Successful!',
+                        text: 'Your video evidence has been uploaded successfully. The councillor will review it.',
+                        icon: 'success',
+                        confirmButtonColor: '#7c3aed'
+                    });
+                    
+                    // Notify parent to refresh data
+                    if (onVideoUploaded) onVideoUploaded();
+                } else {
+                    const errorData = await response.json();
+                    console.error('Upload failed:', response.status, errorData);
+                    throw new Error(errorData.message || 'Upload failed');
+                }
+            }
+        } catch (error) {
+            console.error('Error uploading video:', error);
+            await Swal.fire({
+                title: 'Upload Failed',
+                text: error instanceof Error ? error.message : 'Failed to upload video. Please try again.',
+                icon: 'error',
+                confirmButtonColor: '#7c3aed'
+            });
+        } finally {
+            setUploading(prev => ({ ...prev, [requestId]: false }));
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+            case 'uploaded': return 'bg-green-100 text-green-800 border-green-200';
+            case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+            default: return 'bg-gray-100 text-gray-800 border-gray-200';
+        }
+    };
+
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'pending': return 'fa-clock';
+            case 'uploaded': return 'fa-check-circle';
+            case 'rejected': return 'fa-times-circle';
+            default: return 'fa-question-circle';
+        }
+    };
+
+    const videoRequests = complaint.videoProofRequests || [];
+    
+    // Debug logging
+    console.log('VideoProofRequestSection - Complaint:', complaint.id, 'Video Requests:', videoRequests);
+    console.log('First request structure:', videoRequests[0]);
+    
+    if (videoRequests.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="mt-4 space-y-3">
+            <div className="flex items-center text-sm font-medium text-purple-700">
+                <i className="fas fa-video mr-2"></i>
+                Video Evidence Requests ({videoRequests.length})
+            </div>
+            {videoRequests.map((request, index) => (
+                <div key={request.id || `request-${index}`} className={`border rounded-lg p-3 ${getStatusColor(request.status)}`}>
+                    <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                            <div className="flex items-center text-xs text-gray-600 mb-1">
+                                <span>Requested by: {request.requestedByName}</span>
+                                <span className="mx-2">•</span>
+                                <span>{new Date(request.requestedAt).toLocaleDateString()}</span>
+                            </div>
+                            <p className="text-sm text-gray-700 mb-2">
+                                <strong>Request:</strong> {request.message}
+                            </p>
+                        </div>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(request.status)}`}>
+                            <i className={`fas ${getStatusIcon(request.status)} mr-1`}></i>
+                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                        </span>
+                    </div>
+
+                    {request.status === 'pending' && (
+                        <div className="flex justify-end">
+                            <button
+                                onClick={() => handleVideoUpload(request.id, complaint.id)}
+                                disabled={uploading[request.id || '']}
+                                className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white text-xs font-medium rounded transition-colors"
+                            >
+                                {uploading[request.id || ''] ? (
+                                    <>
+                                        <i className="fas fa-spinner fa-spin mr-1"></i>
+                                        Uploading...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-upload mr-1"></i>
+                                        Upload Video
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
+
+                    {request.status === 'uploaded' && request.videoUrl && (
+                        <div className="flex items-center justify-between bg-green-50 rounded p-2">
+                            <div className="flex items-center text-green-700 text-xs">
+                                <i className="fas fa-check-circle mr-1"></i>
+                                <span>Video uploaded on {new Date(request.uploadedAt!).toLocaleDateString()}</span>
+                            </div>
+                            <a
+                                href={request.videoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-green-600 hover:text-green-800 underline"
+                            >
+                                View Video
+                            </a>
+                        </div>
+                    )}
+
+                    {request.status === 'rejected' && request.rejectionReason && (
+                        <div className="bg-red-50 rounded p-2">
+                            <p className="text-xs text-red-700">
+                                <i className="fas fa-times-circle mr-1"></i>
+                                <strong>Rejected:</strong> {request.rejectionReason}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+};
+
+
+
 const CitizenDashboard: React.FC = () => {
     const { user, login } = useAuth();
     const navigate = useNavigate();
@@ -146,6 +351,7 @@ const CitizenDashboard: React.FC = () => {
     const [printingPDF, setPrintingPDF] = useState<string | null>(null);
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [events, setEvents] = useState<any[]>([]);
+    const [pendingVideoRequests, setPendingVideoRequests] = useState<number>(0);
 
     // PDF Generation function
     const generateApplicationPDF = (application: WelfareApplication) => {
@@ -471,6 +677,7 @@ const CitizenDashboard: React.FC = () => {
             });
             if (response.ok) {
                 const data = await response.json();
+                console.log('Fetched grievances data:', data);
                 const mapped = (data.grievances || []).map((g: any) => ({
                     id: g.id,
                     userId: g.userId,
@@ -492,8 +699,27 @@ const CitizenDashboard: React.FC = () => {
                     officerName: g.officerName,
                     source: g.source,
                     createdAt: g.createdAt,
-                    resolvedAt: g.resolvedAt
+                    resolvedAt: g.resolvedAt,
+                    videoProofRequests: (g.videoProofRequests || []).map((req: any) => ({
+                        id: req._id?.toString() || req.id,
+                        requestedBy: req.requestedBy,
+                        requestedByName: req.requestedByName,
+                        requestedAt: req.requestedAt,
+                        message: req.message,
+                        status: req.status,
+                        videoUrl: req.videoUrl,
+                        uploadedAt: req.uploadedAt,
+                        rejectionReason: req.rejectionReason
+                    }))
                 }));
+                
+                // Calculate pending video requests count
+                const pendingCount = mapped.reduce((count: number, complaint: any) => {
+                    const pendingRequests = (complaint.videoProofRequests || []).filter((req: any) => req.status === 'pending');
+                    return count + pendingRequests.length;
+                }, 0);
+                setPendingVideoRequests(pendingCount);
+                
                 setMyComplaints(mapped);
             } else {
                 console.error('Failed to fetch my grievances:', response.statusText);
@@ -574,6 +800,17 @@ const CitizenDashboard: React.FC = () => {
             } catch {}
         })();
     }, []);
+
+    // Poll for new video requests when on My Grievances tab
+    useEffect(() => {
+        if (activeTab !== 'my-grievances') return;
+        
+        const pollInterval = setInterval(() => {
+            fetchMyGrievances();
+        }, 30000); // Poll every 30 seconds
+        
+        return () => clearInterval(pollInterval);
+    }, [activeTab]);
 
     useEffect(() => {
         const socket = io('http://localhost:3002', { withCredentials: true });
@@ -755,7 +992,7 @@ const CitizenDashboard: React.FC = () => {
             case 'my-ward':
                 return <MyWardInfo />;
             case 'my-grievances':
-                return <MyGrievancesTab complaints={myComplaints} onGrievanceSubmitted={handleGrievanceSubmitted} loading={grievancesLoading} />;
+                return <MyGrievancesTab complaints={myComplaints} onGrievanceSubmitted={handleGrievanceSubmitted} loading={grievancesLoading} onRefreshNeeded={fetchMyGrievances} pendingVideoRequests={pendingVideoRequests} />;
             case 'community-grievances':
                 return <CommunityGrievances complaints={communityComplaints} loading={grievancesLoading} />;
             case 'welfare-schemes':
@@ -878,7 +1115,7 @@ const CitizenDashboard: React.FC = () => {
                                         key={tab.id}
                                         onClick={() => { if (!disabled) setActiveTab(tab.id); }}
                                         disabled={disabled}
-                                        className={`flex-1 py-2 px-4 rounded-md font-medium text-sm flex items-center justify-center space-x-2 transition-colors ${
+                                        className={`flex-1 py-2 px-4 rounded-md font-medium text-sm flex items-center justify-center space-x-2 transition-colors relative ${
                                             disabled
                                                 ? 'opacity-50 cursor-not-allowed bg-gray-50 text-gray-400'
                                                 : activeTab === tab.id
@@ -889,6 +1126,11 @@ const CitizenDashboard: React.FC = () => {
                                     >
                                         <i className={`fas ${tab.icon} text-base`}></i>
                                         <span>{tab.name}</span>
+                                        {tab.id === 'my-grievances' && pendingVideoRequests > 0 && (
+                                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                                                {pendingVideoRequests > 9 ? '9+' : pendingVideoRequests}
+                                            </span>
+                                        )}
                                     </button>
                                 );
                             })}
@@ -1197,7 +1439,13 @@ const MyWardInfo: React.FC = () => {
     );
 };
 
-const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted: (complaint: Complaint) => void, loading?: boolean }> = ({ complaints, onGrievanceSubmitted, loading = false }) => {
+const MyGrievancesTab: React.FC<{ 
+    complaints: Complaint[], 
+    onGrievanceSubmitted: (complaint: Complaint) => void, 
+    loading?: boolean,
+    onRefreshNeeded?: () => void,
+    pendingVideoRequests?: number 
+}> = ({ complaints, onGrievanceSubmitted, loading = false, onRefreshNeeded, pendingVideoRequests = 0 }) => {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
             <div className="lg:col-span-2">
@@ -1206,6 +1454,24 @@ const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted:
                         <h3 className="text-2xl font-bold mb-2">My Submitted Grievances</h3>
                         <p className="text-red-100">Track the status of your civic issue reports</p>
                     </div>
+                    {pendingVideoRequests > 0 && (
+                        <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-4 text-white">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                    <i className="fas fa-video text-xl mr-3"></i>
+                                    <div>
+                                        <h4 className="font-semibold">Video Evidence Requested</h4>
+                                        <p className="text-purple-100 text-sm">
+                                            You have {pendingVideoRequests} pending video evidence request{pendingVideoRequests > 1 ? 's' : ''} from councillors
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                                    <span className="font-bold">{pendingVideoRequests}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <div className="p-8">
                         {loading ? (
                             <div className="text-center py-16">
@@ -1260,6 +1526,14 @@ const MyGrievancesTab: React.FC<{ complaints: Complaint[], onGrievanceSubmitted:
                                                         {c.flags.join(', ')}
                                                     </div>
                                                 )}
+                                                <VideoProofRequestSection 
+                                                    complaint={c} 
+                                                    onVideoUploaded={() => {
+                                                        if (onRefreshNeeded) {
+                                                            onRefreshNeeded();
+                                                        }
+                                                    }} 
+                                                />
                                             </div>
                                             <div className="flex-shrink-0">
                                                 <span className={`px-4 py-2 text-sm font-semibold rounded-xl ${STATUS_COLORS[c.status]} shadow-lg`}>

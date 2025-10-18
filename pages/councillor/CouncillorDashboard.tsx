@@ -9,7 +9,7 @@ import { Complaint, ComplaintStatus, WelfareApplication, ApplicationStatus, Welf
 import { io } from 'socket.io-client';
 // Sabha Meeting Join Button
 const SabhaMeetingJoin: React.FC = () => {
-    const [meetingUrl, setMeetingUrl] = useState<string|null>(null);
+    const [meetingUrl, setMeetingUrl] = useState<string | null>(null);
     useEffect(() => {
         let interval: any;
         const fetchMeeting = async () => {
@@ -17,7 +17,7 @@ const SabhaMeetingJoin: React.FC = () => {
                 const res = await fetch(API_ENDPOINTS.MEETING_PUBLIC);
                 const data = await res.json();
                 setMeetingUrl(data.url || null);
-            } catch {}
+            } catch { }
         };
         fetchMeeting();
         interval = setInterval(fetchMeeting, 15000); // poll every 15s
@@ -61,9 +61,9 @@ const councillorSidebarItems = [
 type Tab = 'complaints' | 'welfare' | 'verification' | 'view-schemes' | 'add-schemes' | 'announcements' | 'events' | 'esabha' | 'communication';
 // E-Sabha Tab
 const ESabhaTab: React.FC = () => {
-    const [meetingUrl, setMeetingUrl] = useState<string|null>(null);
+    const [meetingUrl, setMeetingUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    
+
     useEffect(() => {
         let interval: any;
         const fetchMeeting = async () => {
@@ -88,7 +88,7 @@ const ESabhaTab: React.FC = () => {
                     <i className="fas fa-video mr-2 text-purple-600"></i>
                     E-Sabha Meeting
                 </h3>
-                
+
                 {loading ? (
                     <div className="flex items-center justify-center py-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -164,7 +164,7 @@ const CouncillorDashboard: React.FC = () => {
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
-                
+
                 const [appsRes, wardRes, schemesRes, appsListRes] = await Promise.all([
                     fetch('http://localhost:3002/api/welfare/applications/stats', {
                         headers
@@ -243,7 +243,7 @@ const CouncillorDashboard: React.FC = () => {
         <div className="min-h-screen bg-gray-50">
             <Navbar onMenuClick={() => setSidebarOpen(true)} />
             <div className="flex">
-                <Sidebar 
+                <Sidebar
                     items={councillorSidebarItems}
                     isOpen={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
@@ -280,7 +280,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                             <div className="flex items-center">
                                 <div className="p-2 bg-green-100 rounded-lg">
@@ -292,7 +292,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                             <div className="flex items-center">
                                 <div className="p-2 bg-blue-100 rounded-lg">
@@ -304,7 +304,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                             <div className="flex items-center">
                                 <div className="p-2 bg-purple-100 rounded-lg">
@@ -322,96 +322,88 @@ const CouncillorDashboard: React.FC = () => {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                         <div className="border-b border-gray-200">
                             <nav className="-mb-px flex space-x-8 px-6">
-                                <button 
-                                    onClick={() => setActiveTab('complaints')} 
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                                        activeTab === 'complaints' 
-                                            ? 'border-blue-500 text-blue-600' 
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
+                                <button
+                                    onClick={() => setActiveTab('complaints')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'complaints'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
                                 >
                                     <i className="fas fa-exclamation-triangle mr-2"></i>
-                            Ward Complaints
-                        </button>
-                                <button 
-                                    onClick={() => setActiveTab('welfare')} 
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                                        activeTab === 'welfare' 
-                                            ? 'border-blue-500 text-blue-600' 
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
+                                    Ward Complaints
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('welfare')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'welfare'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
                                 >
                                     <i className="fas fa-hands-helping mr-2"></i>
-                            Welfare Applications
-                        </button>
-                                <button 
-                                    onClick={() => setActiveTab('view-schemes')} 
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                                        activeTab === 'view-schemes' 
-                                            ? 'border-blue-500 text-blue-600' 
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
+                                    Welfare Applications
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('view-schemes')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'view-schemes'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
                                 >
                                     <i className="fas fa-list-alt mr-2"></i>
                                     View Schemes
-                        </button>
-                                <button 
-                                    onClick={() => setActiveTab('verification')} 
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                                        activeTab === 'verification' 
-                                            ? 'border-blue-500 text-blue-600' 
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('verification')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'verification'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
                                 >
                                     <i className="fas fa-user-check mr-2"></i>
                                     Verification
-                        </button>
-                                <button 
-                                    onClick={() => setActiveTab('add-schemes')} 
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                                        activeTab === 'add-schemes' 
-                                            ? 'border-blue-500 text-blue-600' 
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('add-schemes')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'add-schemes'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
                                 >
                                     <i className="fas fa-plus-circle mr-2"></i>
                                     Add Schemes
-                        </button>
-                                <button 
-                                    onClick={() => setActiveTab('announcements')} 
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                                        activeTab === 'announcements' 
-                                            ? 'border-blue-500 text-blue-600' 
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('announcements')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'announcements'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
                                 >
                                     <i className="fas fa-bullhorn mr-2"></i>
                                     Announcements
-                        </button>
-                                <button 
-                                    onClick={() => setActiveTab('events')} 
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                                        activeTab === 'events' 
-                                            ? 'border-blue-500 text-blue-600' 
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('events')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'events'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
                                 >
                                     <i className="fas fa-calendar-alt mr-2"></i>
                                     Events
-                        </button>
-                                <button 
-                                    onClick={() => setActiveTab('esabha')} 
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                                        activeTab === 'esabha' 
-                                            ? 'border-blue-500 text-blue-600' 
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('esabha')}
+                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'esabha'
+                                        ? 'border-blue-500 text-blue-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
                                 >
                                     <i className="fas fa-video mr-2"></i>
                                     E-Sabha
-                        </button>
-                    </nav>
-                </div>
+                                </button>
+                            </nav>
+                        </div>
                         <div className="p-6">
                             {activeTab === 'complaints' && <WardComplaints />}
                             {activeTab === 'welfare' && <WelfareQueue />}
@@ -423,7 +415,7 @@ const CouncillorDashboard: React.FC = () => {
                             {activeTab === 'esabha' && <ESabhaTab />}
                         </div>
                     </div>
-            </main>
+                </main>
             </div>
         </div>
     );
@@ -432,7 +424,7 @@ const CouncillorDashboard: React.FC = () => {
 const PresidentAnnouncements: React.FC = () => {
     const [items, setItems] = useState<any[]>([]);
     const [mine, setMine] = useState<any[]>([]);
-    const [editingId, setEditingId] = useState<string|null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
     const [title, setTitle] = useState('');
@@ -443,7 +435,7 @@ const PresidentAnnouncements: React.FC = () => {
                 const res = await fetch(`${API_ENDPOINTS.PRESIDENT_ANNOUNCEMENTS}?audience=councillors`);
                 const data = await res.json();
                 if (data.success) setItems(data.items || []);
-            } catch {}
+            } catch { }
         })();
         (async () => {
             try {
@@ -451,7 +443,7 @@ const PresidentAnnouncements: React.FC = () => {
                 const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_ANNOUNCEMENTS}/mine`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
                 if (data.success) setMine(data.items || []);
-            } catch {}
+            } catch { }
         })();
         const socket = io('http://localhost:3002', { withCredentials: true });
         socket.on('announcement:new', async () => {
@@ -460,7 +452,7 @@ const PresidentAnnouncements: React.FC = () => {
                 const data = await res.json();
                 if (data.success) setItems(data.items || []);
                 Swal.fire({ toast: true, icon: 'info', title: 'New announcement', position: 'top-end', timer: 3000, showConfirmButton: false });
-            } catch {}
+            } catch { }
         });
         return () => { socket.disconnect(); };
     }, []);
@@ -469,22 +461,22 @@ const PresidentAnnouncements: React.FC = () => {
             <div className="border rounded-md p-4 bg-white">
                 <div className="font-semibold mb-2">Post Announcement (Citizens only)</div>
                 <div className="grid md:grid-cols-3 gap-2">
-                    <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title" className="border rounded px-3 py-2" />
-                    <input value={description} onChange={e=>setDescription(e.target.value)} placeholder="Description" className="border rounded px-3 py-2 md:col-span-2" />
+                    <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" className="border rounded px-3 py-2" />
+                    <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" className="border rounded px-3 py-2 md:col-span-2" />
                 </div>
                 <div className="mt-2 text-right">
-                    <button onClick={async()=>{
+                    <button onClick={async () => {
                         if (!title.trim() || !description.trim()) return;
                         try {
                             const token = localStorage.getItem('token');
-                            const res = await fetch(API_ENDPOINTS.COUNCILLOR_ANNOUNCEMENTS, { method:'POST', headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ title, description }) });
+                            const res = await fetch(API_ENDPOINTS.COUNCILLOR_ANNOUNCEMENTS, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ title, description }) });
                             const data = await res.json();
                             if (res.ok && data.success) {
                                 setTitle(''); setDescription('');
                                 setMine(prev => [data.item, ...prev]);
-                                Swal.fire({ toast: true, icon:'success', title:'Announcement posted', timer:2000, position:'top-end', showConfirmButton:false });
+                                Swal.fire({ toast: true, icon: 'success', title: 'Announcement posted', timer: 2000, position: 'top-end', showConfirmButton: false });
                             }
-                        } catch {}
+                        } catch { }
                     }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Publish</button>
                 </div>
             </div>
@@ -496,33 +488,33 @@ const PresidentAnnouncements: React.FC = () => {
                         <div key={m._id} className="border rounded p-3 bg-white">
                             {editingId === m._id ? (
                                 <div className="space-y-2">
-                                    <input value={editTitle} onChange={e=>setEditTitle(e.target.value)} className="border rounded px-2 py-1 w-full" />
-                                    <input value={editDesc} onChange={e=>setEditDesc(e.target.value)} className="border rounded px-2 py-1 w-full" />
+                                    <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="border rounded px-2 py-1 w-full" />
+                                    <input value={editDesc} onChange={e => setEditDesc(e.target.value)} className="border rounded px-2 py-1 w-full" />
                                     <div className="text-right space-x-2">
-                                        <button onClick={async()=>{
+                                        <button onClick={async () => {
                                             const token = localStorage.getItem('token');
-                                            const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_ANNOUNCEMENTS}/${m._id}`, { method:'PUT', headers:{ 'Content-Type':'application/json','Authorization':`Bearer ${token}` }, body: JSON.stringify({ title: editTitle, description: editDesc }) });
+                                            const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_ANNOUNCEMENTS}/${m._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ title: editTitle, description: editDesc }) });
                                             const data = await res.json();
                                             if (res.ok && data.success) {
                                                 setMine(prev => prev.map(x => x._id === m._id ? data.item : x));
                                                 setEditingId(null);
                                             }
                                         }} className="px-3 py-1 bg-green-600 text-white rounded">Save</button>
-                                        <button onClick={()=>setEditingId(null)} className="px-3 py-1 border rounded">Cancel</button>
+                                        <button onClick={() => setEditingId(null)} className="px-3 py-1 border rounded">Cancel</button>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="flex items-start justify-between">
-                    <div>
+                                    <div>
                                         <div className="font-semibold">{m.title} <span className="text-xs text-gray-500">(by Councillor)</span></div>
                                         <div className="text-sm text-gray-700">{m.description}</div>
                                         <div className="text-xs text-gray-500 mt-1">{new Date(m.createdAt).toLocaleString()}</div>
-                    </div>
+                                    </div>
                                     <div className="space-x-2">
-                                        <button onClick={()=>{ setEditingId(m._id); setEditTitle(m.title); setEditDesc(m.description); }} className="px-3 py-1 border rounded">Edit</button>
-                                        <button onClick={async()=>{
+                                        <button onClick={() => { setEditingId(m._id); setEditTitle(m.title); setEditDesc(m.description); }} className="px-3 py-1 border rounded">Edit</button>
+                                        <button onClick={async () => {
                                             const token = localStorage.getItem('token');
-                                            const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_ANNOUNCEMENTS}/${m._id}`, { method:'DELETE', headers:{ 'Authorization':`Bearer ${token}` } });
+                                            const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_ANNOUNCEMENTS}/${m._id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
                                             if (res.ok) setMine(prev => prev.filter(x => x._id !== m._id));
                                         }} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
                                     </div>
@@ -541,8 +533,8 @@ const PresidentAnnouncements: React.FC = () => {
                 </div>
             ))}
             {items.length === 0 && <div className="text-sm text-gray-500">No announcements.</div>}
-    </div>
-);
+        </div>
+    );
 };
 
 const PresidentEvents: React.FC = () => {
@@ -558,7 +550,7 @@ const PresidentEvents: React.FC = () => {
                 const res = await fetch(`${API_ENDPOINTS.PRESIDENT_EVENTS}?audience=councillors`);
                 const data = await res.json();
                 if (data.success) setItems(data.items || []);
-            } catch {}
+            } catch { }
         })();
         (async () => {
             try {
@@ -566,7 +558,7 @@ const PresidentEvents: React.FC = () => {
                 const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_EVENTS}/mine`, { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
                 if (data.success) setMine(data.items || []);
-            } catch {}
+            } catch { }
         })();
         const socket = io('http://localhost:3002', { withCredentials: true });
         socket.on('event:new', async () => {
@@ -575,7 +567,7 @@ const PresidentEvents: React.FC = () => {
                 const data = await res.json();
                 if (data.success) setItems(data.items || []);
                 Swal.fire({ toast: true, icon: 'info', title: 'New event', position: 'top-end', timer: 3000, showConfirmButton: false });
-            } catch {}
+            } catch { }
         });
         return () => { socket.disconnect(); };
     }, []);
@@ -584,24 +576,24 @@ const PresidentEvents: React.FC = () => {
             <div className="border rounded-md p-4 bg-white">
                 <div className="font-semibold mb-2">Create Event (Citizens only)</div>
                 <div className="grid md:grid-cols-4 gap-2">
-                    <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Title" className="border rounded px-3 py-2" />
-                    <input value={description} onChange={e=>setDescription(e.target.value)} placeholder="Description" className="border rounded px-3 py-2 md:col-span-2" />
-                    <input type="datetime-local" value={time} onChange={e=>setTime(e.target.value)} className="border rounded px-3 py-2" />
-                    <input value={location} onChange={e=>setLocation(e.target.value)} placeholder="Location" className="border rounded px-3 py-2 md:col-span-3" />
+                    <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" className="border rounded px-3 py-2" />
+                    <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" className="border rounded px-3 py-2 md:col-span-2" />
+                    <input type="datetime-local" value={time} onChange={e => setTime(e.target.value)} className="border rounded px-3 py-2" />
+                    <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Location" className="border rounded px-3 py-2 md:col-span-3" />
                 </div>
                 <div className="mt-2 text-right">
-                    <button onClick={async()=>{
+                    <button onClick={async () => {
                         if (!title.trim() || !description.trim() || !time.trim()) return;
                         try {
                             const token = localStorage.getItem('token');
-                            const res = await fetch(API_ENDPOINTS.COUNCILLOR_EVENTS, { method:'POST', headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ title, description, time, location }) });
+                            const res = await fetch(API_ENDPOINTS.COUNCILLOR_EVENTS, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ title, description, time, location }) });
                             const data = await res.json();
                             if (res.ok && data.success) {
                                 setTitle(''); setDescription(''); setTime(''); setLocation('');
                                 setMine(prev => [data.item, ...prev]);
-                                Swal.fire({ toast: true, icon:'success', title:'Event created', timer:2000, position:'top-end', showConfirmButton:false });
+                                Swal.fire({ toast: true, icon: 'success', title: 'Event created', timer: 2000, position: 'top-end', showConfirmButton: false });
                             }
-                        } catch {}
+                        } catch { }
                     }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Create</button>
                 </div>
             </div>
@@ -619,19 +611,19 @@ const PresidentEvents: React.FC = () => {
                                     <div className="text-xs text-gray-500 mt-1">{start.toLocaleString()} • {e.location}</div>
                                 </div>
                                 <div className="space-x-2">
-                                    <button onClick={async()=>{
+                                    <button onClick={async () => {
                                         const nt = prompt('New title', e.title) || e.title;
                                         const nd = prompt('New description', e.description) || e.description;
-                                        const ntime = prompt('New time (YYYY-MM-DDTHH:mm)', e.time?.slice?.(0,16) || '') || e.time;
+                                        const ntime = prompt('New time (YYYY-MM-DDTHH:mm)', e.time?.slice?.(0, 16) || '') || e.time;
                                         const nloc = prompt('New location', e.location || '') || e.location;
                                         const token = localStorage.getItem('token');
-                                        const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_EVENTS}/${e._id}`, { method:'PUT', headers:{ 'Content-Type':'application/json','Authorization':`Bearer ${token}` }, body: JSON.stringify({ title: nt, description: nd, time: ntime, location: nloc }) });
+                                        const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_EVENTS}/${e._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ title: nt, description: nd, time: ntime, location: nloc }) });
                                         const data = await res.json();
                                         if (res.ok && data.success) setMine(prev => prev.map(x => x._id === e._id ? data.item : x));
                                     }} className="px-3 py-1 border rounded">Edit</button>
-                                    <button onClick={async()=>{
+                                    <button onClick={async () => {
                                         const token = localStorage.getItem('token');
-                                        const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_EVENTS}/${e._id}`, { method:'DELETE', headers:{ 'Authorization':`Bearer ${token}` } });
+                                        const res = await fetch(`${API_ENDPOINTS.COUNCILLOR_EVENTS}/${e._id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
                                         if (res.ok) setMine(prev => prev.filter(x => x._id !== e._id));
                                     }} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
                                 </div>
@@ -643,7 +635,7 @@ const PresidentEvents: React.FC = () => {
             </div>
             {items.map(e => {
                 const start = new Date(e.time);
-                const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${start.toISOString().replace(/[-:]/g,'').split('.')[0]}Z\nSUMMARY:${(e.title||'Event').replace(/\n/g,' ')}\nDESCRIPTION:${(e.description||'').replace(/\n/g,' ')}\nLOCATION:${(e.location||'').replace(/\n/g,' ')}\nEND:VEVENT\nEND:VCALENDAR`;
+                const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${start.toISOString().replace(/[-:]/g, '').split('.')[0]}Z\nSUMMARY:${(e.title || 'Event').replace(/\n/g, ' ')}\nDESCRIPTION:${(e.description || '').replace(/\n/g, ' ')}\nLOCATION:${(e.location || '').replace(/\n/g, ' ')}\nEND:VEVENT\nEND:VCALENDAR`;
                 const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 return (
@@ -653,7 +645,7 @@ const PresidentEvents: React.FC = () => {
                             <div className="text-sm text-gray-700">{e.description}</div>
                             <div className="text-xs text-gray-500 mt-1">{start.toLocaleString()} • {e.location}</div>
                         </div>
-                        <a href={url} download={`${e.title||'event'}.ics`} className="text-blue-600 text-sm underline">Add to Calendar</a>
+                        <a href={url} download={`${e.title || 'event'}.ics`} className="text-blue-600 text-sm underline">Add to Calendar</a>
                     </div>
                 );
             })}
@@ -689,7 +681,7 @@ const VerificationTab: React.FC = () => {
             if (search) params.set('search', search);
             if (filter === 'verified') params.set('verified', 'true');
             if (filter === 'unverified') params.set('verified', 'false');
-            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../councillors/ward/citizens?${params.toString()}`.replace('/users/..',''), {
+            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../councillors/ward/citizens?${params.toString()}`.replace('/users/..', ''), {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -719,7 +711,7 @@ const VerificationTab: React.FC = () => {
         setLoadingPastMembers(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../councillors/ward/past-members`.replace('/users/..',''), {
+            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../councillors/ward/past-members`.replace('/users/..', ''), {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -742,7 +734,7 @@ const VerificationTab: React.FC = () => {
     const verifyCitizen = async (id: string) => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../councillors/ward/citizens/${id}/verify`.replace('/users/..',''), {
+            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../councillors/ward/citizens/${id}/verify`.replace('/users/..', ''), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -788,7 +780,7 @@ const VerificationTab: React.FC = () => {
 
     const handleRemoveCitizen = async () => {
         if (!selectedCitizen) return;
-        
+
         // Show confirmation dialog
         const confirmResult = await Swal.fire({
             title: 'Confirm Removal',
@@ -812,31 +804,31 @@ const VerificationTab: React.FC = () => {
         if (!confirmResult.isConfirmed) {
             return;
         }
-        
+
         setRemoving(true);
         try {
             const token = localStorage.getItem('token');
             const formData = new FormData();
             formData.append('removalReason', removalReason);
             formData.append('removalComments', removalComments);
-            
+
             if (deathCertificate) {
                 formData.append('deathCertificate', deathCertificate);
             }
-            
-            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../councillors/ward/citizens/${selectedCitizen._id}`.replace('/users/..',''), {
+
+            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../councillors/ward/citizens/${selectedCitizen._id}`.replace('/users/..', ''), {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
                 body: formData
             });
-            
+
             if (res.ok) {
                 setCitizens(prev => prev.filter(c => c._id !== selectedCitizen._id));
                 setShowRemoveModal(false);
                 setSelectedCitizen(null);
-                
+
                 Swal.fire({
                     icon: 'success',
                     title: 'Citizen Removed',
@@ -880,11 +872,10 @@ const VerificationTab: React.FC = () => {
                                 setPage(1);
                                 fetchCitizens();
                             }}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                                !showPastMembers 
-                                    ? 'bg-white text-blue-600 shadow-sm' 
-                                    : 'text-gray-600 hover:text-gray-800'
-                            }`}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${!showPastMembers
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-gray-600 hover:text-gray-800'
+                                }`}
                         >
                             Current Citizens
                         </button>
@@ -893,11 +884,10 @@ const VerificationTab: React.FC = () => {
                                 setShowPastMembers(true);
                                 fetchPastMembers();
                             }}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                                showPastMembers 
-                                    ? 'bg-white text-blue-600 shadow-sm' 
-                                    : 'text-gray-600 hover:text-gray-800'
-                            }`}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${showPastMembers
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-gray-600 hover:text-gray-800'
+                                }`}
                         >
                             Past Members
                         </button>
@@ -958,11 +948,10 @@ const VerificationTab: React.FC = () => {
                                         <td className="px-4 py-3 text-gray-600">{member.email}</td>
                                         <td className="px-4 py-3 text-gray-600">{member.address || '-'}</td>
                                         <td className="px-4 py-3">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                                member.removalReason === 'death' ? 'bg-red-100 text-red-700' :
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${member.removalReason === 'death' ? 'bg-red-100 text-red-700' :
                                                 member.removalReason === 'relocation' ? 'bg-blue-100 text-blue-700' :
-                                                'bg-gray-100 text-gray-700'
-                                            }`}>
+                                                    'bg-gray-100 text-gray-700'
+                                                }`}>
                                                 {member.removalReason.charAt(0).toUpperCase() + member.removalReason.slice(1)}
                                             </span>
                                         </td>
@@ -971,7 +960,7 @@ const VerificationTab: React.FC = () => {
                                         </td>
                                         <td className="px-4 py-3 text-gray-600">
                                             {member.deathCertificateUrl ? (
-                                                <button 
+                                                <button
                                                     onClick={() => window.open(member.deathCertificateUrl, '_blank')}
                                                     className="text-blue-600 hover:underline text-xs"
                                                 >
@@ -982,7 +971,7 @@ const VerificationTab: React.FC = () => {
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right">
-                                            <button 
+                                            <button
                                                 onClick={() => {
                                                     Swal.fire({
                                                         title: 'Member Details',
@@ -1057,8 +1046,8 @@ const VerificationTab: React.FC = () => {
                 <div className="flex items-center justify-between mt-4">
                     <div className="text-sm text-gray-600">Page {page} of {totalPages}</div>
                     <div className="space-x-2">
-                        <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p-1))} className="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50">Previous</button>
-                        <button disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p+1))} className="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50">Next</button>
+                        <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50">Previous</button>
+                        <button disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} className="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50">Next</button>
                     </div>
                 </div>
             )}
@@ -1090,13 +1079,13 @@ const VerificationTab: React.FC = () => {
                                 <p className="font-semibold text-gray-800">{selectedCitizen.name}</p>
                                 <p className="text-sm text-gray-600">{selectedCitizen.email}</p>
                             </div>
-                            
+
                             <div className="mb-4">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Reason for Removal
                                 </label>
-                                <select 
-                                    value={removalReason} 
+                                <select
+                                    value={removalReason}
                                     onChange={(e) => setRemovalReason(e.target.value as any)}
                                     className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
                                 >
@@ -1156,61 +1145,73 @@ const VerificationTab: React.FC = () => {
                     </div>
                 </div>
             )}
-    </div>
-);
+        </div>
+    );
 };
 
 const WardComplaints: React.FC = () => {
     const { user } = useAuth();
     const [complaints, setComplaints] = useState<Complaint[]>([]);
     const [loading, setLoading] = useState(true);
-    const [acting, setActing] = useState<{[id: string]: string | undefined}>({});
+    const [acting, setActing] = useState<{ [id: string]: string | undefined }>({});
     const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
 
-    useEffect(() => {
-        const fetchWardComplaints = async () => {
-            setLoading(true);
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../grievances/community`.replace('/users/..',''), {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    const mapped = (data.grievances || []).filter((g: any) => g.status !== 'resolved').map((g: any) => ({
-                        id: g.id,
-                        userId: g.userId,
-                        userName: g.userName,
-                        userEmail: g.userEmail,
-                        ward: g.ward,
-                        imageURL: g.imageURL,
-                        issueType: g.issueType,
-                        description: g.description,
-                        location: g.location,
-                        priorityScore: g.priorityScore,
-                        credibilityScore: g.credibilityScore,
-                        status: g.status as ComplaintStatus,
-                        source: g.source,
-                        createdAt: g.createdAt,
-                        duplicateGroupId: g.duplicateGroupId,
-                        duplicateCount: g.duplicateCount,
-                        attachments: g.attachments || []
-                    }));
-                    mapped.sort((a: any, b: any) => (b.priorityScore - a.priorityScore) || ((b.duplicateCount||0) - (a.duplicateCount||0)) || (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-                    setComplaints(mapped);
-                } else {
-                    setComplaints([]);
+    const fetchWardComplaints = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/../grievances/community`.replace('/users/..', ''), {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
-            } catch (e) {
-                console.error('Failed to fetch ward complaints', e);
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const mapped = (data.grievances || []).filter((g: any) => g.status !== 'resolved').map((g: any) => ({
+                    id: g.id,
+                    userId: g.userId,
+                    userName: g.userName,
+                    userEmail: g.userEmail,
+                    ward: g.ward,
+                    imageURL: g.imageURL,
+                    issueType: g.issueType,
+                    description: g.description,
+                    location: g.location,
+                    priorityScore: g.priorityScore,
+                    credibilityScore: g.credibilityScore,
+                    status: g.status as ComplaintStatus,
+                    source: g.source,
+                    createdAt: g.createdAt,
+                    duplicateGroupId: g.duplicateGroupId,
+                    duplicateCount: g.duplicateCount,
+                    attachments: g.attachments || [],
+                    videoProofRequests: (g.videoProofRequests || []).map((req: any) => ({
+                        id: req._id?.toString() || req.id,
+                        requestedBy: req.requestedBy,
+                        requestedByName: req.requestedByName,
+                        requestedAt: req.requestedAt,
+                        message: req.message,
+                        status: req.status,
+                        videoUrl: req.videoUrl,
+                        uploadedAt: req.uploadedAt,
+                        rejectionReason: req.rejectionReason
+                    }))
+                }));
+                mapped.sort((a: any, b: any) => (b.priorityScore - a.priorityScore) || ((b.duplicateCount || 0) - (a.duplicateCount || 0)) || (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+                setComplaints(mapped);
+            } else {
                 setComplaints([]);
-            } finally {
-                setLoading(false);
             }
-        };
+        } catch (e) {
+            console.error('Failed to fetch ward complaints', e);
+            setComplaints([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchWardComplaints();
     }, [user?.ward]);
 
@@ -1254,6 +1255,66 @@ const WardComplaints: React.FC = () => {
         }
     };
 
+    const handleRequestVideoProof = async (complaintId: string) => {
+        try {
+            const result = await Swal.fire({
+                title: 'Request Video Evidence',
+                text: 'Enter a message for the citizen explaining why additional video evidence is needed:',
+                input: 'textarea',
+                inputPlaceholder: 'Please provide additional video evidence to help us better understand and resolve this issue...',
+                inputValue: 'Please provide additional video evidence to help us better understand and resolve this issue.',
+                showCancelButton: true,
+                confirmButtonText: 'Send Request',
+                confirmButtonColor: '#7c3aed',
+                cancelButtonText: 'Cancel',
+                inputValidator: (value) => {
+                    if (!value || value.trim().length < 10) {
+                        return 'Please enter a message with at least 10 characters';
+                    }
+                }
+            });
+
+            if (result.isConfirmed && result.value) {
+                setActing(prev => ({ ...prev, [complaintId]: 'requesting' }));
+
+                const token = localStorage.getItem('token');
+                const response = await fetch(`http://localhost:3002/api/grievances/${complaintId}/request-video-proof`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: result.value.trim() })
+                });
+
+                if (response.ok) {
+                    await Swal.fire({
+                        title: 'Request Sent!',
+                        text: 'The citizen has been notified and will receive your request for additional video evidence.',
+                        icon: 'success',
+                        confirmButtonColor: '#7c3aed'
+                    });
+
+                    // Refresh complaints to show the new request
+                    fetchWardComplaints();
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to send request');
+                }
+            }
+        } catch (error) {
+            console.error('Error requesting video proof:', error);
+            await Swal.fire({
+                title: 'Error',
+                text: error instanceof Error ? error.message : 'Failed to send video proof request. Please try again.',
+                icon: 'error',
+                confirmButtonColor: '#7c3aed'
+            });
+        } finally {
+            setActing(prev => ({ ...prev, [complaintId]: undefined }));
+        }
+    };
+
     return (
         <div>
             <div className="flex items-center justify-between mb-6">
@@ -1278,6 +1339,22 @@ const WardComplaints: React.FC = () => {
                                                 <i className="fas fa-arrow-up mr-1"></i>{c.duplicateCount} upvotes
                                             </span>
                                         ) : null}
+                                        {c.videoProofRequests && c.videoProofRequests.length > 0 && (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-3">
+                                                <i className="fas fa-video mr-1"></i>
+                                                {c.videoProofRequests.filter(req => req.status === 'uploaded').length > 0 ? (
+                                                    <>
+                                                        <i className="fas fa-check-circle mr-1"></i>
+                                                        {c.videoProofRequests.filter(req => req.status === 'uploaded').length} video{c.videoProofRequests.filter(req => req.status === 'uploaded').length > 1 ? 's' : ''}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <i className="fas fa-clock mr-1"></i>
+                                                        {c.videoProofRequests.filter(req => req.status === 'pending').length} pending
+                                                    </>
+                                                )}
+                                            </span>
+                                        )}
                                         <span className="text-sm text-gray-500">
                                             <i className="fas fa-clock mr-1"></i>
                                             {new Date(c.createdAt).toLocaleDateString()}
@@ -1348,13 +1425,106 @@ const WardComplaints: React.FC = () => {
                                         <i className="fas fa-envelope mr-2"></i>
                                         Contact Reporter
                                     </a>
-                                    <button className="px-3 py-2 rounded-md text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white text-left" onClick={() => alert('Request sent: Please upload an additional video evidencing the issue.') }>
+                                    <button className="px-3 py-2 rounded-md text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white text-left" onClick={() => handleRequestVideoProof(selectedComplaint.id)}>
                                         <i className="fas fa-video mr-2"></i>
                                         Request Extra Video Evidence
                                     </button>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Video Proof Requests Section */}
+                        {selectedComplaint.videoProofRequests && selectedComplaint.videoProofRequests.length > 0 && (
+                            <div className="mt-6 border-t pt-6">
+                                <h5 className="text-lg font-semibold mb-4 flex items-center">
+                                    <i className="fas fa-video mr-2 text-purple-600"></i>
+                                    Video Evidence Requests ({selectedComplaint.videoProofRequests.length})
+                                </h5>
+                                <div className="space-y-4">
+                                    {selectedComplaint.videoProofRequests.map((request, index) => (
+                                        <div key={request.id || index} className="bg-gray-50 rounded-lg p-4 border">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center text-sm text-gray-600 mb-2">
+                                                        <span className="font-medium">Requested by: {request.requestedByName}</span>
+                                                        <span className="mx-2">•</span>
+                                                        <span>{new Date(request.requestedAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-700 mb-2">
+                                                        <strong>Message:</strong> {request.message}
+                                                    </p>
+                                                </div>
+                                                <span className={`px-3 py-1 text-xs font-medium rounded-full ${request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                    request.status === 'uploaded' ? 'bg-green-100 text-green-800' :
+                                                        'bg-red-100 text-red-800'
+                                                    }`}>
+                                                    <i className={`fas ${request.status === 'pending' ? 'fa-clock' :
+                                                        request.status === 'uploaded' ? 'fa-check-circle' :
+                                                            'fa-times-circle'
+                                                        } mr-1`}></i>
+                                                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                                                </span>
+                                            </div>
+
+                                            {request.status === 'uploaded' && request.videoUrl && (
+                                                <div className="bg-white rounded-md p-3 border border-green-200">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center text-green-700">
+                                                            <i className="fas fa-video mr-2"></i>
+                                                            <span className="font-medium">Video Evidence Uploaded</span>
+                                                            {request.uploadedAt && (
+                                                                <span className="ml-2 text-sm text-green-600">
+                                                                    on {new Date(request.uploadedAt).toLocaleDateString()}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <a
+                                                                href={request.videoUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md transition-colors"
+                                                            >
+                                                                <i className="fas fa-play mr-1"></i>
+                                                                View Video
+                                                            </a>
+                                                            <a
+                                                                href={request.videoUrl}
+                                                                download
+                                                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors"
+                                                            >
+                                                                <i className="fas fa-download mr-1"></i>
+                                                                Download
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {request.status === 'pending' && (
+                                                <div className="bg-yellow-50 rounded-md p-3 border border-yellow-200">
+                                                    <div className="flex items-center text-yellow-700">
+                                                        <i className="fas fa-clock mr-2"></i>
+                                                        <span className="text-sm">Waiting for citizen to upload video evidence...</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {request.status === 'rejected' && request.rejectionReason && (
+                                                <div className="bg-red-50 rounded-md p-3 border border-red-200">
+                                                    <div className="flex items-center text-red-700">
+                                                        <i className="fas fa-times-circle mr-2"></i>
+                                                        <span className="text-sm">
+                                                            <strong>Rejected:</strong> {request.rejectionReason}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -1365,12 +1535,12 @@ const WardComplaints: React.FC = () => {
 const WelfareQueue: React.FC = () => {
     const { user } = useAuth();
     const [applications, setApplications] = useState<WelfareApplication[]>([]);
-    const [loadingScores, setLoadingScores] = useState<{[key: string]: boolean}>({});
+    const [loadingScores, setLoadingScores] = useState<{ [key: string]: boolean }>({});
     const [schemes, setSchemes] = useState<WelfareScheme[]>([]);
     const [selectedScheme, setSelectedScheme] = useState<WelfareScheme | null>(null);
     const [showAnalytics, setShowAnalytics] = useState(false);
-    const [verifying, setVerifying] = useState<{[key: string]: boolean}>({});
-    const [verificationInfo, setVerificationInfo] = useState<{[key: string]: { status: string; score?: number; remarks?: string }}>({});
+    const [verifying, setVerifying] = useState<{ [key: string]: boolean }>({});
+    const [verificationInfo, setVerificationInfo] = useState<{ [key: string]: { status: string; score?: number; remarks?: string } }>({});
     const [selectedApplication, setSelectedApplication] = useState<any>(null);
     const [showVerificationModal, setShowVerificationModal] = useState(false);
     const [loadingSchemes, setLoadingSchemes] = useState(true);
@@ -1450,30 +1620,30 @@ const WelfareQueue: React.FC = () => {
                     const mapped: WelfareApplication[] = (data.applications || [])
                         .filter((a: any) => a && a._id) // Filter out null/undefined applications
                         .map((a: any) => ({
-                        id: a._id,
-                        schemeId: a.schemeId && typeof a.schemeId === 'object' ? a.schemeId._id || a.schemeId.id : a.schemeId,
-                        schemeTitle: a.schemeTitle || (a.schemeId && typeof a.schemeId === 'object' ? a.schemeId.title : ''),
-                        userId: a.userId && typeof a.userId === 'object' ? a.userId._id || a.userId.id : a.userId,
-                        userName: a.userName,
-                        address: a.personalDetails?.address || '',
-                        phoneNumber: a.personalDetails?.phoneNumber || '',
-                        rationCardNumber: a.personalDetails?.rationCardNumber || '',
-                        aadharNumber: a.personalDetails?.aadharNumber || '',
-                        ward: a.userWard,
-                        reason: a.reason,
-                        isHandicapped: !!a.personalDetails?.isHandicapped,
-                        isSingleWoman: !!a.personalDetails?.isSingleWoman,
-                        familyIncome: a.personalDetails?.familyIncome ?? 0,
-                        dependents: a.personalDetails?.dependents ?? 0,
-                        caste: a.personalDetails?.caste || '',
-                        incomeCategory: a.personalDetails?.incomeCategory || '',
-                        ownsLand: !!a.personalDetails?.ownsLand,
-                        status: statusMap[(a.status || 'pending').toLowerCase()] || ApplicationStatus.PENDING,
-                        createdAt: a.appliedAt,
-                        score: a.score,
-                        justification: a.justification,
-                        documents: a.documents || [],
-                    }));
+                            id: a._id,
+                            schemeId: a.schemeId && typeof a.schemeId === 'object' ? a.schemeId._id || a.schemeId.id : a.schemeId,
+                            schemeTitle: a.schemeTitle || (a.schemeId && typeof a.schemeId === 'object' ? a.schemeId.title : ''),
+                            userId: a.userId && typeof a.userId === 'object' ? a.userId._id || a.userId.id : a.userId,
+                            userName: a.userName,
+                            address: a.personalDetails?.address || '',
+                            phoneNumber: a.personalDetails?.phoneNumber || '',
+                            rationCardNumber: a.personalDetails?.rationCardNumber || '',
+                            aadharNumber: a.personalDetails?.aadharNumber || '',
+                            ward: a.userWard,
+                            reason: a.reason,
+                            isHandicapped: !!a.personalDetails?.isHandicapped,
+                            isSingleWoman: !!a.personalDetails?.isSingleWoman,
+                            familyIncome: a.personalDetails?.familyIncome ?? 0,
+                            dependents: a.personalDetails?.dependents ?? 0,
+                            caste: a.personalDetails?.caste || '',
+                            incomeCategory: a.personalDetails?.incomeCategory || '',
+                            ownsLand: !!a.personalDetails?.ownsLand,
+                            status: statusMap[(a.status || 'pending').toLowerCase()] || ApplicationStatus.PENDING,
+                            createdAt: a.appliedAt,
+                            score: a.score,
+                            justification: a.justification,
+                            documents: a.documents || [],
+                        }));
                     console.log('Mapped applications:', mapped);
                     setApplications(mapped);
                 } else {
@@ -1507,15 +1677,15 @@ const WelfareQueue: React.FC = () => {
                 },
                 body: JSON.stringify(app) // Send the full application data
             });
-            
+
             if (resp.ok) {
                 const data = await resp.json();
                 console.log('ML Score received:', data);
-                
+
                 // Update the application with the score
-                setApplications(prev => prev.map(a => 
-                    a.id === appId ? { 
-                        ...a, 
+                setApplications(prev => prev.map(a =>
+                    a.id === appId ? {
+                        ...a,
                         score: Math.round(data.score),
                         justification: data.justification,
                         priority: data.priority
@@ -1525,9 +1695,9 @@ const WelfareQueue: React.FC = () => {
                 console.error('ML service error:', resp.status);
                 // Fallback scoring
                 const fallbackScore = Math.floor(Math.random() * 100);
-                setApplications(prev => prev.map(a => 
-                    a.id === appId ? { 
-                        ...a, 
+                setApplications(prev => prev.map(a =>
+                    a.id === appId ? {
+                        ...a,
                         score: fallbackScore,
                         justification: `⚠️ ML Service Not Running - Please start ML service: cd ml && python welfare_scoring_service.py`
                     } : a
@@ -1537,9 +1707,9 @@ const WelfareQueue: React.FC = () => {
             console.error("Failed to get score", error);
             // Fallback scoring
             const fallbackScore = Math.floor(Math.random() * 100);
-            setApplications(prev => prev.map(a => 
-                a.id === appId ? { 
-                    ...a, 
+            setApplications(prev => prev.map(a =>
+                a.id === appId ? {
+                    ...a,
                     score: fallbackScore,
                     justification: `⚠️ ML Service Not Running - Please start ML service: cd ml && python welfare_scoring_service.py`
                 } : a
@@ -1586,8 +1756,8 @@ const WelfareQueue: React.FC = () => {
         // Show confirmation dialog
         const result = await Swal.fire({
             title: approve ? 'Approve Application?' : 'Reject Application?',
-            text: approve 
-                ? 'Are you sure you want to approve this application? This action cannot be undone.' 
+            text: approve
+                ? 'Are you sure you want to approve this application? This action cannot be undone.'
                 : 'Are you sure you want to reject this application? This action cannot be undone.',
             icon: 'warning',
             showCancelButton: true,
@@ -1604,7 +1774,7 @@ const WelfareQueue: React.FC = () => {
         try {
             setVerifying(prev => ({ ...prev, [appId]: true }));
             const token = localStorage.getItem('token');
-            
+
             // Use the review endpoint to approve/reject applications
             const resp = await fetch(`http://localhost:3002/api/welfare/applications/${appId}/review`, {
                 method: 'PUT',
@@ -1612,30 +1782,30 @@ const WelfareQueue: React.FC = () => {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
-                    status: approve ? 'approved' : 'rejected', 
+                body: JSON.stringify({
+                    status: approve ? 'approved' : 'rejected',
                     reviewComments: remarks || (approve ? 'Application approved by councillor' : 'Application rejected by councillor')
                 })
             });
-            
+
             if (resp.ok) {
                 const data = await resp.json();
                 console.log('Application review response:', data);
-                
+
                 // Update the application status in the local state
-                setApplications(prev => prev.map(app => 
-                    app.id === appId 
-                        ? { 
-                            ...app, 
-                            status: approve ? ApplicationStatus.APPROVED : ApplicationStatus.REJECTED 
+                setApplications(prev => prev.map(app =>
+                    app.id === appId
+                        ? {
+                            ...app,
+                            status: approve ? ApplicationStatus.APPROVED : ApplicationStatus.REJECTED
                         }
                         : app
                 ));
-                
+
                 // Show success message
                 const message = approve ? 'Application approved successfully!' : 'Application rejected successfully!';
                 console.log(message);
-                
+
                 // Show success notification
                 Swal.fire({
                     icon: 'success',
@@ -1644,12 +1814,12 @@ const WelfareQueue: React.FC = () => {
                     timer: 2000,
                     showConfirmButton: false
                 });
-                
+
             } else {
                 console.error('Failed to review application:', resp.status, resp.statusText);
                 const errorData = await resp.text();
                 console.error('Error response:', errorData);
-                
+
                 // Show error notification
                 Swal.fire({
                     icon: 'error',
@@ -1660,7 +1830,7 @@ const WelfareQueue: React.FC = () => {
             }
         } catch (e) {
             console.error('Application review failed', e);
-            
+
             // Show error notification
             Swal.fire({
                 icon: 'error',
@@ -1701,11 +1871,11 @@ const WelfareQueue: React.FC = () => {
             setVerifying(prev => ({ ...prev, [appId]: false }));
         }
     };
-    
+
     const sortedApplications = [...applications].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
 
     const exportApplicationsCSV = () => {
-        const headers = ['Scheme','Applicant','Income','Dependents','Status','Score','Applied At'];
+        const headers = ['Scheme', 'Applicant', 'Income', 'Dependents', 'Status', 'Score', 'Applied At'];
         const rows = sortedApplications.map(a => [
             a.schemeTitle,
             a.userName,
@@ -1715,7 +1885,7 @@ const WelfareQueue: React.FC = () => {
             a.score ?? '',
             a.createdAt ? new Date(a.createdAt).toLocaleString() : ''
         ]);
-        const csv = [headers, ...rows].map(r => r.map(x => `"${String(x ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+        const csv = [headers, ...rows].map(r => r.map(x => `"${String(x ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -1730,12 +1900,12 @@ const WelfareQueue: React.FC = () => {
     const appAnalytics = (() => {
         const total = sortedApplications.length;
         const withScores = sortedApplications.filter(a => a.score !== undefined);
-        const avgScore = withScores.length ? (withScores.reduce((s,a)=> s + (a.score as number), 0) / withScores.length) : 0;
+        const avgScore = withScores.length ? (withScores.reduce((s, a) => s + (a.score as number), 0) / withScores.length) : 0;
         const approved = sortedApplications.filter(a => a.status === ApplicationStatus.APPROVED).length;
         const rejected = sortedApplications.filter(a => a.status === ApplicationStatus.REJECTED).length;
         const pending = sortedApplications.filter(a => a.status === ApplicationStatus.PENDING).length;
         // top by score
-        const top = [...withScores].sort((a,b) => (b.score as number) - (a.score as number)).slice(0,5);
+        const top = [...withScores].sort((a, b) => (b.score as number) - (a.score as number)).slice(0, 5);
         return { total, avgScore, approved, rejected, pending, top };
     })();
 
@@ -1754,15 +1924,15 @@ const WelfareQueue: React.FC = () => {
                     <div className="flex space-x-3">
                         {selectedScheme && (
                             <>
-                                <button 
-                                    onClick={exportApplicationsCSV} 
+                                <button
+                                    onClick={exportApplicationsCSV}
                                     className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 backdrop-blur-sm"
                                 >
                                     <i className="fas fa-download mr-2"></i>
                                     Export Applications
                                 </button>
-                                <button 
-                                    onClick={() => setShowAnalytics(true)} 
+                                <button
+                                    onClick={() => setShowAnalytics(true)}
                                     className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 backdrop-blur-sm"
                                 >
                                     <i className="fas fa-chart-bar mr-2"></i>
@@ -1773,7 +1943,7 @@ const WelfareQueue: React.FC = () => {
                     </div>
                 </div>
             </div>
-            
+
             {/* Scheme Selection or Application Management */}
             {!selectedScheme ? (
                 // Scheme Selection View
@@ -1785,7 +1955,7 @@ const WelfareQueue: React.FC = () => {
                         </h4>
                         <p className="text-gray-600 text-sm mt-1">Choose a scheme to view and manage its applications</p>
                     </div>
-                    
+
                     <div className="p-6">
                         {loadingSchemes ? (
                             <div className="flex items-center justify-center py-12">
@@ -1803,8 +1973,8 @@ const WelfareQueue: React.FC = () => {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {schemes.map((scheme) => (
-                                    <div 
-                                        key={scheme.id} 
+                                    <div
+                                        key={scheme.id}
                                         onClick={() => setSelectedScheme(scheme)}
                                         className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-lg transition-all duration-200 cursor-pointer group"
                                     >
@@ -1823,11 +1993,11 @@ const WelfareQueue: React.FC = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                                             {scheme.description}
                                         </p>
-                                        
+
                                         <div className="space-y-2 text-sm">
                                             <div className="flex items-center justify-between">
                                                 <span className="text-gray-500">Age Range:</span>
@@ -1844,7 +2014,7 @@ const WelfareQueue: React.FC = () => {
                                                 </span>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="mt-4 pt-4 border-t border-gray-100">
                                             <div className="flex items-center text-blue-600 text-sm font-medium group-hover:text-blue-700">
                                                 <span>View Applications</span>
@@ -1865,7 +2035,7 @@ const WelfareQueue: React.FC = () => {
                         <div className="bg-gradient-to-r from-green-50 to-blue-50 px-6 py-4 border-b border-gray-200">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center">
-                                    <button 
+                                    <button
                                         onClick={() => setSelectedScheme(null)}
                                         className="mr-4 p-2 hover:bg-white rounded-lg transition-colors duration-200"
                                     >
@@ -1889,7 +2059,7 @@ const WelfareQueue: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Applications List */}
                     <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
                         <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
@@ -1898,7 +2068,7 @@ const WelfareQueue: React.FC = () => {
                                 Applications ({applications.length})
                             </h5>
                         </div>
-                        
+
                         <div className="p-6">
                             {loadingApplications ? (
                                 <div className="flex items-center justify-center py-12">
@@ -1968,18 +2138,17 @@ const WelfareQueue: React.FC = () => {
                                                     {/* Application Status */}
                                                     <div className="text-center">
                                                         <p className="text-sm text-gray-500 mb-1">Status</p>
-                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                                            app.status === ApplicationStatus.APPROVED 
-                                                                ? 'bg-green-100 text-green-800' 
-                                                                : app.status === ApplicationStatus.REJECTED 
+                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${app.status === ApplicationStatus.APPROVED
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : app.status === ApplicationStatus.REJECTED
                                                                 ? 'bg-red-100 text-red-800'
                                                                 : 'bg-yellow-100 text-yellow-800'
-                                                        }`}>
-                                                            {app.status === ApplicationStatus.APPROVED ? 'Approved' : 
-                                                             app.status === ApplicationStatus.REJECTED ? 'Rejected' : 'Pending'}
+                                                            }`}>
+                                                            {app.status === ApplicationStatus.APPROVED ? 'Approved' :
+                                                                app.status === ApplicationStatus.REJECTED ? 'Rejected' : 'Pending'}
                                                         </span>
                                                     </div>
-                                                    
+
                                                     {app.score !== undefined ? (
                                                         <div className="text-center">
                                                             <p className="text-sm text-gray-500 mb-1">AI Score</p>
@@ -1988,9 +2157,9 @@ const WelfareQueue: React.FC = () => {
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <button 
-                                                            onClick={() => handleGetScore(app.id)} 
-                                                            disabled={loadingScores[app.id]} 
+                                                        <button
+                                                            onClick={() => handleGetScore(app.id)}
+                                                            disabled={loadingScores[app.id]}
                                                             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:bg-indigo-300"
                                                         >
                                                             {loadingScores[app.id] ? (
@@ -2015,17 +2184,17 @@ const WelfareQueue: React.FC = () => {
                                                             <i className="fas fa-robot mr-2"></i>
                                                             {verifying[app.id] ? 'AI Checking...' : 'Auto Verify'}
                                                         </button>
-                                                        <button 
-                                                            onClick={() => handleVerification(app.id, true, '')} 
-                                                            disabled={!!verifying[app.id] || app.status === ApplicationStatus.APPROVED || app.status === ApplicationStatus.REJECTED} 
+                                                        <button
+                                                            onClick={() => handleVerification(app.id, true, '')}
+                                                            disabled={!!verifying[app.id] || app.status === ApplicationStatus.APPROVED || app.status === ApplicationStatus.REJECTED}
                                                             className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-60"
                                                         >
                                                             <i className="fas fa-check mr-2"></i>
                                                             Approve
                                                         </button>
-                                                        <button 
-                                                            onClick={() => handleVerification(app.id, false, '')} 
-                                                            disabled={!!verifying[app.id] || app.status === ApplicationStatus.APPROVED || app.status === ApplicationStatus.REJECTED} 
+                                                        <button
+                                                            onClick={() => handleVerification(app.id, false, '')}
+                                                            disabled={!!verifying[app.id] || app.status === ApplicationStatus.APPROVED || app.status === ApplicationStatus.REJECTED}
                                                             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-60"
                                                         >
                                                             <i className="fas fa-times mr-2"></i>
@@ -2095,9 +2264,9 @@ const WelfareQueue: React.FC = () => {
                                 const pct = (n: number) => (n / total) * 100;
                                 return (
                                     <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden flex">
-                                        <div className="h-full bg-green-500" style={{width: `${pct(appAnalytics.approved)}%`}} title={`Approved ${appAnalytics.approved}`}></div>
-                                        <div className="h-full bg-red-500" style={{width: `${pct(appAnalytics.rejected)}%`}} title={`Rejected ${appAnalytics.rejected}`}></div>
-                                        <div className="h-full bg-yellow-500" style={{width: `${pct(appAnalytics.pending)}%`}} title={`Pending ${appAnalytics.pending}`}></div>
+                                        <div className="h-full bg-green-500" style={{ width: `${pct(appAnalytics.approved)}%` }} title={`Approved ${appAnalytics.approved}`}></div>
+                                        <div className="h-full bg-red-500" style={{ width: `${pct(appAnalytics.rejected)}%` }} title={`Rejected ${appAnalytics.rejected}`}></div>
+                                        <div className="h-full bg-yellow-500" style={{ width: `${pct(appAnalytics.pending)}%` }} title={`Pending ${appAnalytics.pending}`}></div>
                                     </div>
                                 );
                             })()}
@@ -2112,11 +2281,11 @@ const WelfareQueue: React.FC = () => {
                             <div className="space-y-2">
                                 {appAnalytics.top.map((a: any, i: number) => (
                                     <div key={a.id} className="flex items-center space-x-3">
-                                        <div className="w-6 text-sm text-gray-500">{i+1}</div>
+                                        <div className="w-6 text-sm text-gray-500">{i + 1}</div>
                                         <div className="flex-1">
                                             <div className="truncate text-sm">{a.userName} — <span className="text-gray-500">{a.schemeTitle}</span></div>
                                             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-indigo-500" style={{width: `${Math.min((a.score ?? 0) * 10, 100)}%`}}></div>
+                                                <div className="h-full bg-indigo-500" style={{ width: `${Math.min((a.score ?? 0) * 10, 100)}%` }}></div>
                                             </div>
                                         </div>
                                         <div className="w-10 text-right font-semibold">{a.score}</div>
@@ -2128,7 +2297,7 @@ const WelfareQueue: React.FC = () => {
                     </div>
                 </div>
             )}
-            
+
             {/* Verification Modal */}
             <VerificationModal
                 application={selectedApplication}
@@ -2205,19 +2374,19 @@ const AddSchemes: React.FC = () => {
         if (trim(values.title).length < 3) errs.title = 'Title must be at least 3 characters.';
         if (!values.category) errs.category = 'Select a category.';
         if (trim(values.description).length < 20) errs.description = 'Description must be at least 20 characters.';
-        
+
         // Age validation
         const minAge = asInt(String(values.minAge));
         const maxAge = asInt(String(values.maxAge));
         if (!Number.isFinite(minAge) || minAge < 0 || minAge > 120) errs.minAge = 'Minimum age must be between 0 and 120.';
         if (!Number.isFinite(maxAge) || maxAge < 0 || maxAge > 120) errs.maxAge = 'Maximum age must be between 0 and 120.';
         if (Number.isFinite(minAge) && Number.isFinite(maxAge) && minAge > maxAge) errs.maxAge = 'Maximum age must be greater than or equal to minimum age.';
-        
+
         if (trim(values.benefits).length < 10) errs.benefits = 'Describe key benefits (min 10 chars).';
 
         // Required documents validation
         const ALLOWED = [
-            'Aadhar Card','Ration Card','Voter ID','Driving License','PAN Card','Passport','Disability Certificate','Income Certificate','Caste Certificate','Residence Certificate','BPL Card','Senior Citizen ID','Widow Certificate','Death Certificate'
+            'Aadhar Card', 'Ration Card', 'Voter ID', 'Driving License', 'PAN Card', 'Passport', 'Disability Certificate', 'Income Certificate', 'Caste Certificate', 'Residence Certificate', 'BPL Card', 'Senior Citizen ID', 'Widow Certificate', 'Death Certificate'
         ];
         const docs = (values.requiredDocuments || []).map(d => trim(d)).filter(Boolean);
         if (docs.length === 0) errs.requiredDocuments = 'At least one required document is mandatory.';
@@ -2226,7 +2395,7 @@ const AddSchemes: React.FC = () => {
         const slots = asInt(String(values.totalSlots));
         if (!Number.isFinite(slots) || slots < 1) errs.totalSlots = 'Total slots must be a positive integer.';
 
-        const today = new Date(); today.setHours(0,0,0,0);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
         const start = toDate(values.startDate);
         const end = toDate(values.endDate);
         const deadline = toDate(values.applicationDeadline);
@@ -2278,7 +2447,7 @@ const AddSchemes: React.FC = () => {
             console.log('Token exists:', !!token);
             console.log('User data:', user);
             console.log('Form data:', formData);
-            
+
             if (!token) {
                 setError('Please login to create schemes.');
                 return;
@@ -2396,437 +2565,437 @@ const AddSchemes: React.FC = () => {
                     </h4>
                     <p className="text-gray-600 text-sm mt-1">Fill in the comprehensive details for your welfare scheme</p>
                 </div>
-                
+
                 <form onSubmit={handleSubmit} className="p-8 space-y-8">
-                {!tokenValid && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                                <i className="fas fa-exclamation-triangle text-red-500 mr-3"></i>
-                                <p className="text-red-700 font-medium">{error}</p>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    logout();
-                                    window.location.href = '/login';
-                                }}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                            >
-                                Login Again
-                            </button>
-                        </div>
-                    </div>
-                )}
-                {/* Basic Information Section */}
-                <div className="space-y-6">
-                    <div className="flex items-center mb-4">
-                        <div className="bg-blue-100 rounded-full p-2 mr-3">
-                            <i className="fas fa-info-circle text-blue-600"></i>
-                        </div>
-                        <h5 className="text-lg font-semibold text-gray-800">Basic Information</h5>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                                <i className="fas fa-tag text-gray-400 mr-2"></i>
-                                Scheme Title *
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    name="title"
-                                    value={formData.title}
-                                    onChange={handleInputChange}
-                                    onBlur={handleBlur}
-                                    required
-                                    disabled={!tokenValid}
-                                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all duration-200"
-                                    placeholder="e.g., Free Sewing Machines for Women"
-                                />
-                                <i className="fas fa-edit absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                            </div>
-                            {touched.title && fieldErrors.title && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.title}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                                <i className="fas fa-layer-group text-gray-400 mr-2"></i>
-                                Category *
-                            </label>
-                            <div className="relative">
-                                <select
-                                    name="category"
-                                    value={formData.category}
-                                    onChange={handleInputChange}
-                                    onBlur={handleBlur}
-                                    required
-                                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white"
+                    {!tokenValid && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                    <i className="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                                    <p className="text-red-700 font-medium">{error}</p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        logout();
+                                        window.location.href = '/login';
+                                    }}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
                                 >
-                                    <option value="">Select Category</option>
-                                    <option value="Education">Education</option>
-                                    <option value="Healthcare">Healthcare</option>
-                                    <option value="Employment">Employment</option>
-                                    <option value="Housing">Housing</option>
-                                    <option value="Women Empowerment">Women Empowerment</option>
-                                    <option value="Senior Citizens">Senior Citizens</option>
-                                    <option value="Disability Support">Disability Support</option>
-                                    <option value="Agriculture">Agriculture</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                <i className="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-                                <i className="fas fa-folder absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                    Login Again
+                                </button>
                             </div>
-                            {touched.category && fieldErrors.category && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.category}</p>}
                         </div>
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                        <i className="fas fa-align-left text-gray-400 mr-2"></i>
-                        Description *
-                    </label>
-                    <div className="relative">
-                        <textarea
-                            name="description"
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            onBlur={handleBlur}
-                            required
-                            rows={4}
-                            className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
-                            placeholder="Provide a detailed description of the welfare scheme, including its objectives and scope..."
-                        />
-                        <i className="fas fa-file-alt absolute left-3 top-4 text-gray-400"></i>
-                    </div>
-                    {touched.description && fieldErrors.description && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.description}</p>}
-                </div>
-
-                {/* Eligibility Section */}
-                <div className="space-y-6">
-                    <div className="flex items-center mb-4">
-                        <div className="bg-green-100 rounded-full p-2 mr-3">
-                            <i className="fas fa-user-check text-green-600"></i>
-                        </div>
-                        <h5 className="text-lg font-semibold text-gray-800">Eligibility Criteria</h5>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                                <i className="fas fa-arrow-up text-gray-400 mr-2"></i>
-                                Minimum Age *
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="number"
-                                    name="minAge"
-                                    value={formData.minAge}
-                                    onChange={handleInputChange}
-                                    onBlur={handleBlur}
-                                    required
-                                    min="0"
-                                    max="120"
-                                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                    placeholder="e.g., 18"
-                                />
-                                <i className="fas fa-calendar-plus absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    )}
+                    {/* Basic Information Section */}
+                    <div className="space-y-6">
+                        <div className="flex items-center mb-4">
+                            <div className="bg-blue-100 rounded-full p-2 mr-3">
+                                <i className="fas fa-info-circle text-blue-600"></i>
                             </div>
-                            {touched.minAge && fieldErrors.minAge && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.minAge}</p>}
+                            <h5 className="text-lg font-semibold text-gray-800">Basic Information</h5>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                                <i className="fas fa-arrow-down text-gray-400 mr-2"></i>
-                                Maximum Age *
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="number"
-                                    name="maxAge"
-                                    value={formData.maxAge}
-                                    onChange={handleInputChange}
-                                    onBlur={handleBlur}
-                                    required
-                                    min="0"
-                                    max="120"
-                                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                    placeholder="e.g., 65"
-                                />
-                                <i className="fas fa-calendar-minus absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <i className="fas fa-tag text-gray-400 mr-2"></i>
+                                    Scheme Title *
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        name="title"
+                                        value={formData.title}
+                                        onChange={handleInputChange}
+                                        onBlur={handleBlur}
+                                        required
+                                        disabled={!tokenValid}
+                                        className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all duration-200"
+                                        placeholder="e.g., Free Sewing Machines for Women"
+                                    />
+                                    <i className="fas fa-edit absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                {touched.title && fieldErrors.title && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.title}</p>}
                             </div>
-                            {touched.maxAge && fieldErrors.maxAge && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.maxAge}</p>}
-                        </div>
-                    </div>
-                </div>
 
-                {/* Benefits Section */}
-                <div className="space-y-6">
-                    <div className="flex items-center mb-4">
-                        <div className="bg-purple-100 rounded-full p-2 mr-3">
-                            <i className="fas fa-gift text-purple-600"></i>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <i className="fas fa-layer-group text-gray-400 mr-2"></i>
+                                    Category *
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        name="category"
+                                        value={formData.category}
+                                        onChange={handleInputChange}
+                                        onBlur={handleBlur}
+                                        required
+                                        className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white"
+                                    >
+                                        <option value="">Select Category</option>
+                                        <option value="Education">Education</option>
+                                        <option value="Healthcare">Healthcare</option>
+                                        <option value="Employment">Employment</option>
+                                        <option value="Housing">Housing</option>
+                                        <option value="Women Empowerment">Women Empowerment</option>
+                                        <option value="Senior Citizens">Senior Citizens</option>
+                                        <option value="Disability Support">Disability Support</option>
+                                        <option value="Agriculture">Agriculture</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                    <i className="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                                    <i className="fas fa-folder absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                {touched.category && fieldErrors.category && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.category}</p>}
+                            </div>
                         </div>
-                        <h5 className="text-lg font-semibold text-gray-800">Benefits & Rewards</h5>
                     </div>
-                    
+
                     <div className="space-y-2">
                         <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                            <i className="fas fa-star text-gray-400 mr-2"></i>
-                            Benefits *
+                            <i className="fas fa-align-left text-gray-400 mr-2"></i>
+                            Description *
                         </label>
                         <div className="relative">
                             <textarea
-                                name="benefits"
-                                value={formData.benefits}
+                                name="description"
+                                value={formData.description}
                                 onChange={handleInputChange}
                                 onBlur={handleBlur}
                                 required
                                 rows={4}
                                 className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
-                                placeholder="Describe the specific benefits, rewards, or assistance that recipients will receive from this scheme..."
+                                placeholder="Provide a detailed description of the welfare scheme, including its objectives and scope..."
                             />
-                            <i className="fas fa-heart absolute left-3 top-4 text-gray-400"></i>
+                            <i className="fas fa-file-alt absolute left-3 top-4 text-gray-400"></i>
                         </div>
-                        {touched.benefits && fieldErrors.benefits && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.benefits}</p>}
+                        {touched.description && fieldErrors.description && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.description}</p>}
                     </div>
-                </div>
 
-                {/* Required Documents Section */}
-                <div className="space-y-6">
-                    <div className="flex items-center mb-4">
-                        <div className="bg-orange-100 rounded-full p-2 mr-3">
-                            <i className="fas fa-file-alt text-orange-600"></i>
+                    {/* Eligibility Section */}
+                    <div className="space-y-6">
+                        <div className="flex items-center mb-4">
+                            <div className="bg-green-100 rounded-full p-2 mr-3">
+                                <i className="fas fa-user-check text-green-600"></i>
+                            </div>
+                            <h5 className="text-lg font-semibold text-gray-800">Eligibility Criteria</h5>
                         </div>
-                        <h5 className="text-lg font-semibold text-gray-800">Required Documents</h5>
-                    </div>
-                    
-                    <div className="space-y-4">
-                        <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                            <i className="fas fa-clipboard-list text-gray-400 mr-2"></i>
-                            Document Requirements
-                        </label>
-                        
-                        <div className="space-y-3">
-                            {(formData.requiredDocuments || []).map((doc: string, idx: number) => (
-                                <div key={idx} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                                    <div className="flex-1 relative">
-                                        <select
-                                            className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white"
-                                            value={doc}
-                                            onChange={(e) => {
-                                                const value = e.target.value;
-                                                setFormData(prev => {
-                                                    const next: any = { ...prev };
-                                                    const list = [...(next.requiredDocuments || [])];
-                                                    list[idx] = value;
-                                                    next.requiredDocuments = list;
-                                                    return next;
-                                                });
-                                            }}
-                                        >
-                                            <option value="">Select document type</option>
-                                            <option value="Aadhar Card">Aadhar Card</option>
-                                            <option value="Ration Card">Ration Card</option>
-                                            <option value="Voter ID">Voter ID</option>
-                                            <option value="Driving License">Driving License</option>
-                                            <option value="PAN Card">PAN Card</option>
-                                            <option value="Passport">Passport</option>
-                                            <option value="Disability Certificate">Disability Certificate</option>
-                                            <option value="Income Certificate">Income Certificate</option>
-                                            <option value="Caste Certificate">Caste Certificate</option>
-                                            <option value="Residence Certificate">Residence Certificate</option>
-                                            <option value="BPL Card">BPL Card</option>
-                                            <option value="Senior Citizen ID">Senior Citizen ID</option>
-                                            <option value="Widow Certificate">Widow Certificate</option>
-                                            <option value="Death Certificate">Death Certificate</option>
-                                        </select>
-                                        <i className="fas fa-file absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                                        <i className="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-                                    </div>
-                                    {(formData.requiredDocuments || []).length > 1 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData(prev => {
-                                                const next: any = { ...prev };
-                                                next.requiredDocuments = (next.requiredDocuments || []).filter((_: any, i: number) => i !== idx);
-                                                return next;
-                                            })}
-                                            className="px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors duration-200 flex items-center"
-                                        >
-                                            <i className="fas fa-trash mr-2"></i>
-                                            Remove
-                                        </button>
-                                    )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <i className="fas fa-arrow-up text-gray-400 mr-2"></i>
+                                    Minimum Age *
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        name="minAge"
+                                        value={formData.minAge}
+                                        onChange={handleInputChange}
+                                        onBlur={handleBlur}
+                                        required
+                                        min="0"
+                                        max="120"
+                                        className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        placeholder="e.g., 18"
+                                    />
+                                    <i className="fas fa-calendar-plus absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                                 </div>
-                            ))}
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                            {touched.requiredDocuments && fieldErrors.requiredDocuments && (
-                                <p className="text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.requiredDocuments}</p>
-                            )}
-                            <button
-                                type="button"
-                                onClick={() => setFormData(prev => ({
-                                    ...(prev as any),
-                                    requiredDocuments: [
-                                        ...((prev as any).requiredDocuments || []),
-                                        ''
-                                    ]
-                                }))}
-                                className="px-4 py-3 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition-colors duration-200 flex items-center font-medium"
-                            >
-                                <i className="fas fa-plus mr-2"></i>
-                                Add Document
-                            </button>
+                                {touched.minAge && fieldErrors.minAge && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.minAge}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <i className="fas fa-arrow-down text-gray-400 mr-2"></i>
+                                    Maximum Age *
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        name="maxAge"
+                                        value={formData.maxAge}
+                                        onChange={handleInputChange}
+                                        onBlur={handleBlur}
+                                        required
+                                        min="0"
+                                        max="120"
+                                        className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        placeholder="e.g., 65"
+                                    />
+                                    <i className="fas fa-calendar-minus absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                {touched.maxAge && fieldErrors.maxAge && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.maxAge}</p>}
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Scheme Configuration Section */}
-                <div className="space-y-6">
-                    <div className="flex items-center mb-4">
-                        <div className="bg-indigo-100 rounded-full p-2 mr-3">
-                            <i className="fas fa-cogs text-indigo-600"></i>
-                        </div>
-                        <h5 className="text-lg font-semibold text-gray-800">Scheme Configuration</h5>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                                <i className="fas fa-users text-gray-400 mr-2"></i>
-                                Total Slots *
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="number"
-                                    name="totalSlots"
-                                    value={formData.totalSlots}
-                                    onChange={handleInputChange}
-                                    onBlur={handleBlur}
-                                    required
-                                    min="1"
-                                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                    placeholder="e.g., 50"
-                                />
-                                <i className="fas fa-hashtag absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    {/* Benefits Section */}
+                    <div className="space-y-6">
+                        <div className="flex items-center mb-4">
+                            <div className="bg-purple-100 rounded-full p-2 mr-3">
+                                <i className="fas fa-gift text-purple-600"></i>
                             </div>
-                            {touched.totalSlots && fieldErrors.totalSlots && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.totalSlots}</p>}
+                            <h5 className="text-lg font-semibold text-gray-800">Benefits & Rewards</h5>
                         </div>
 
                         <div className="space-y-2">
                             <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                                <i className="fas fa-calendar-times text-gray-400 mr-2"></i>
-                                Application Deadline *
+                                <i className="fas fa-star text-gray-400 mr-2"></i>
+                                Benefits *
                             </label>
                             <div className="relative">
-                                <input
-                                    type="date"
-                                    name="applicationDeadline"
-                                    value={formData.applicationDeadline}
+                                <textarea
+                                    name="benefits"
+                                    value={formData.benefits}
                                     onChange={handleInputChange}
                                     onBlur={handleBlur}
                                     required
-                                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    rows={4}
+                                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
+                                    placeholder="Describe the specific benefits, rewards, or assistance that recipients will receive from this scheme..."
                                 />
-                                <i className="fas fa-calendar-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <i className="fas fa-heart absolute left-3 top-4 text-gray-400"></i>
                             </div>
-                            {touched.applicationDeadline && fieldErrors.applicationDeadline && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.applicationDeadline}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                                <i className="fas fa-play-circle text-gray-400 mr-2"></i>
-                                Start Date *
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="date"
-                                    name="startDate"
-                                    value={formData.startDate}
-                                    onChange={handleInputChange}
-                                    onBlur={handleBlur}
-                                    required
-                                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                />
-                                <i className="fas fa-calendar-plus absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                            </div>
-                            {touched.startDate && fieldErrors.startDate && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.startDate}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700 flex items-center">
-                                <i className="fas fa-stop-circle text-gray-400 mr-2"></i>
-                                End Date *
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="date"
-                                    name="endDate"
-                                    value={formData.endDate}
-                                    onChange={handleInputChange}
-                                    onBlur={handleBlur}
-                                    required
-                                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                />
-                                <i className="fas fa-calendar-minus absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                            </div>
-                            {touched.endDate && fieldErrors.endDate && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.endDate}</p>}
+                            {touched.benefits && fieldErrors.benefits && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.benefits}</p>}
                         </div>
                     </div>
-                </div>
 
-                {/* Form Actions */}
-                <div className="bg-gray-50 px-8 py-6 border-t border-gray-200">
-                    <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                        <div className="text-sm text-gray-600 flex items-center">
-                            <i className="fas fa-info-circle mr-2"></i>
-                            <span>All fields marked with * are required</span>
+                    {/* Required Documents Section */}
+                    <div className="space-y-6">
+                        <div className="flex items-center mb-4">
+                            <div className="bg-orange-100 rounded-full p-2 mr-3">
+                                <i className="fas fa-file-alt text-orange-600"></i>
+                            </div>
+                            <h5 className="text-lg font-semibold text-gray-800">Required Documents</h5>
                         </div>
-                        
-                        <div className="flex space-x-4">
-                            <button
-                                type="button"
-                                onClick={() => setFormData({
-                                    title: '',
-                                    description: '',
-                                    category: '',
-                                    minAge: '',
-                                    maxAge: '',
-                                    benefits: '',
-                                    requiredDocuments: [''],
-                                    totalSlots: '',
-                                    applicationDeadline: '',
-                                    startDate: '',
-                                    endDate: ''
-                                })}
-                                className="px-6 py-3 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-all duration-200 font-medium flex items-center shadow-lg hover:shadow-xl"
-                            >
-                                <i className="fas fa-eraser mr-2"></i>
-                                Clear Form
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={loading || !tokenValid}
-                                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed flex items-center shadow-lg hover:shadow-xl transform hover:scale-105"
-                            >
-                                {loading ? (
-                                    <div className="flex items-center">
-                                        <Spinner size="sm" />
-                                        <span className="ml-2">Creating Scheme...</span>
+
+                        <div className="space-y-4">
+                            <label className="block text-sm font-semibold text-gray-700 flex items-center">
+                                <i className="fas fa-clipboard-list text-gray-400 mr-2"></i>
+                                Document Requirements
+                            </label>
+
+                            <div className="space-y-3">
+                                {(formData.requiredDocuments || []).map((doc: string, idx: number) => (
+                                    <div key={idx} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                        <div className="flex-1 relative">
+                                            <select
+                                                className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white"
+                                                value={doc}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setFormData(prev => {
+                                                        const next: any = { ...prev };
+                                                        const list = [...(next.requiredDocuments || [])];
+                                                        list[idx] = value;
+                                                        next.requiredDocuments = list;
+                                                        return next;
+                                                    });
+                                                }}
+                                            >
+                                                <option value="">Select document type</option>
+                                                <option value="Aadhar Card">Aadhar Card</option>
+                                                <option value="Ration Card">Ration Card</option>
+                                                <option value="Voter ID">Voter ID</option>
+                                                <option value="Driving License">Driving License</option>
+                                                <option value="PAN Card">PAN Card</option>
+                                                <option value="Passport">Passport</option>
+                                                <option value="Disability Certificate">Disability Certificate</option>
+                                                <option value="Income Certificate">Income Certificate</option>
+                                                <option value="Caste Certificate">Caste Certificate</option>
+                                                <option value="Residence Certificate">Residence Certificate</option>
+                                                <option value="BPL Card">BPL Card</option>
+                                                <option value="Senior Citizen ID">Senior Citizen ID</option>
+                                                <option value="Widow Certificate">Widow Certificate</option>
+                                                <option value="Death Certificate">Death Certificate</option>
+                                            </select>
+                                            <i className="fas fa-file absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                            <i className="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                                        </div>
+                                        {(formData.requiredDocuments || []).length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => {
+                                                    const next: any = { ...prev };
+                                                    next.requiredDocuments = (next.requiredDocuments || []).filter((_: any, i: number) => i !== idx);
+                                                    return next;
+                                                })}
+                                                className="px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors duration-200 flex items-center"
+                                            >
+                                                <i className="fas fa-trash mr-2"></i>
+                                                Remove
+                                            </button>
+                                        )}
                                     </div>
-                                ) : (
-                                    <div className="flex items-center">
-                                        <i className="fas fa-rocket mr-2"></i>
-                                        Create Scheme
-                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                                {touched.requiredDocuments && fieldErrors.requiredDocuments && (
+                                    <p className="text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.requiredDocuments}</p>
                                 )}
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({
+                                        ...(prev as any),
+                                        requiredDocuments: [
+                                            ...((prev as any).requiredDocuments || []),
+                                            ''
+                                        ]
+                                    }))}
+                                    className="px-4 py-3 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition-colors duration-200 flex items-center font-medium"
+                                >
+                                    <i className="fas fa-plus mr-2"></i>
+                                    Add Document
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+
+                    {/* Scheme Configuration Section */}
+                    <div className="space-y-6">
+                        <div className="flex items-center mb-4">
+                            <div className="bg-indigo-100 rounded-full p-2 mr-3">
+                                <i className="fas fa-cogs text-indigo-600"></i>
+                            </div>
+                            <h5 className="text-lg font-semibold text-gray-800">Scheme Configuration</h5>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <i className="fas fa-users text-gray-400 mr-2"></i>
+                                    Total Slots *
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        name="totalSlots"
+                                        value={formData.totalSlots}
+                                        onChange={handleInputChange}
+                                        onBlur={handleBlur}
+                                        required
+                                        min="1"
+                                        className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        placeholder="e.g., 50"
+                                    />
+                                    <i className="fas fa-hashtag absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                {touched.totalSlots && fieldErrors.totalSlots && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.totalSlots}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <i className="fas fa-calendar-times text-gray-400 mr-2"></i>
+                                    Application Deadline *
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        name="applicationDeadline"
+                                        value={formData.applicationDeadline}
+                                        onChange={handleInputChange}
+                                        onBlur={handleBlur}
+                                        required
+                                        className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    />
+                                    <i className="fas fa-calendar-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                {touched.applicationDeadline && fieldErrors.applicationDeadline && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.applicationDeadline}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <i className="fas fa-play-circle text-gray-400 mr-2"></i>
+                                    Start Date *
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        name="startDate"
+                                        value={formData.startDate}
+                                        onChange={handleInputChange}
+                                        onBlur={handleBlur}
+                                        required
+                                        className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    />
+                                    <i className="fas fa-calendar-plus absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                {touched.startDate && fieldErrors.startDate && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.startDate}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700 flex items-center">
+                                    <i className="fas fa-stop-circle text-gray-400 mr-2"></i>
+                                    End Date *
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        name="endDate"
+                                        value={formData.endDate}
+                                        onChange={handleInputChange}
+                                        onBlur={handleBlur}
+                                        required
+                                        className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    />
+                                    <i className="fas fa-calendar-minus absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                {touched.endDate && fieldErrors.endDate && <p className="mt-1 text-sm text-red-600 flex items-center"><i className="fas fa-exclamation-circle mr-1"></i>{fieldErrors.endDate}</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Form Actions */}
+                    <div className="bg-gray-50 px-8 py-6 border-t border-gray-200">
+                        <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                            <div className="text-sm text-gray-600 flex items-center">
+                                <i className="fas fa-info-circle mr-2"></i>
+                                <span>All fields marked with * are required</span>
+                            </div>
+
+                            <div className="flex space-x-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({
+                                        title: '',
+                                        description: '',
+                                        category: '',
+                                        minAge: '',
+                                        maxAge: '',
+                                        benefits: '',
+                                        requiredDocuments: [''],
+                                        totalSlots: '',
+                                        applicationDeadline: '',
+                                        startDate: '',
+                                        endDate: ''
+                                    })}
+                                    className="px-6 py-3 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-all duration-200 font-medium flex items-center shadow-lg hover:shadow-xl"
+                                >
+                                    <i className="fas fa-eraser mr-2"></i>
+                                    Clear Form
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading || !tokenValid}
+                                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed flex items-center shadow-lg hover:shadow-xl transform hover:scale-105"
+                                >
+                                    {loading ? (
+                                        <div className="flex items-center">
+                                            <Spinner size="sm" />
+                                            <span className="ml-2">Creating Scheme...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center">
+                                            <i className="fas fa-rocket mr-2"></i>
+                                            Create Scheme
+                                        </div>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>
@@ -2836,7 +3005,7 @@ const AddSchemes: React.FC = () => {
 const ViewSchemes: React.FC = () => {
     const { user } = useAuth();
     const [schemes, setSchemes] = useState<WelfareScheme[]>([]);
-    const [applicationCounts, setApplicationCounts] = useState<{[key: string]: number}>({});
+    const [applicationCounts, setApplicationCounts] = useState<{ [key: string]: number }>({});
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
@@ -2851,13 +3020,13 @@ const ViewSchemes: React.FC = () => {
                 console.log('No ward found for user:', user);
                 return;
             }
-            
+
             setFetching(true);
             try {
                 const token = localStorage.getItem('token');
                 console.log('Fetching schemes for user:', user);
                 console.log('Using token:', token ? 'Present' : 'Missing');
-                
+
                 const response = await fetch(`http://localhost:3002/api/welfare/schemes`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -2896,11 +3065,11 @@ const ViewSchemes: React.FC = () => {
     useEffect(() => {
         const fetchApplicationCounts = async () => {
             if (schemes.length === 0) return;
-            
+
             try {
                 const token = localStorage.getItem('token');
-                const counts: {[key: string]: number} = {};
-                
+                const counts: { [key: string]: number } = {};
+
                 // Fetch application counts for each scheme
                 for (const scheme of schemes) {
                     const schemeKey = (scheme as any).id || (scheme as any)._id;
@@ -2910,7 +3079,7 @@ const ViewSchemes: React.FC = () => {
                             'Content-Type': 'application/json'
                         }
                     });
-                    
+
                     if (response.ok) {
                         const data = await response.json();
                         console.log('Scheme', schemeKey, 'applications length:', data.applications?.length);
@@ -2919,7 +3088,7 @@ const ViewSchemes: React.FC = () => {
                         counts[String(schemeKey)] = 0;
                     }
                 }
-                
+
                 setApplicationCounts(counts);
             } catch (error) {
                 console.error('Error fetching application counts:', error);
@@ -2931,11 +3100,11 @@ const ViewSchemes: React.FC = () => {
 
     // Filter schemes based on status
     const now = new Date();
-    const activeSchemes = schemes.filter(scheme => 
+    const activeSchemes = schemes.filter(scheme =>
         (scheme.status === 'active' || scheme.status === 'draft') && scheme.endDate && new Date(scheme.endDate) >= now
     );
-    
-    const completedSchemes = schemes.filter(scheme => 
+
+    const completedSchemes = schemes.filter(scheme =>
         scheme.status === 'completed' || scheme.status === 'expired' || (scheme.endDate && new Date(scheme.endDate) < now)
     );
 
@@ -2956,8 +3125,8 @@ const ViewSchemes: React.FC = () => {
 
             if (response.ok) {
                 // Update local state
-                setSchemes(prev => prev.map(scheme => 
-                    scheme.id === schemeId 
+                setSchemes(prev => prev.map(scheme =>
+                    scheme.id === schemeId
                         ? { ...scheme, status: 'active' }
                         : scheme
                 ));
@@ -3002,9 +3171,9 @@ const ViewSchemes: React.FC = () => {
             title: scheme.title || '',
             description: scheme.description || '',
             totalSlots: scheme.totalSlots || 0,
-            applicationDeadline: scheme.applicationDeadline ? new Date(scheme.applicationDeadline).toISOString().slice(0,10) : '',
-            startDate: scheme.startDate ? new Date(scheme.startDate).toISOString().slice(0,10) : '',
-            endDate: scheme.endDate ? new Date(scheme.endDate).toISOString().slice(0,10) : '',
+            applicationDeadline: scheme.applicationDeadline ? new Date(scheme.applicationDeadline).toISOString().slice(0, 10) : '',
+            startDate: scheme.startDate ? new Date(scheme.startDate).toISOString().slice(0, 10) : '',
+            endDate: scheme.endDate ? new Date(scheme.endDate).toISOString().slice(0, 10) : '',
             status: scheme.status || 'active',
             requiredDocuments: (scheme.requiredDocuments || []).map((d: any) => d?.name || '').filter(Boolean)
         });
@@ -3029,7 +3198,7 @@ const ViewSchemes: React.FC = () => {
                     .filter((n: string) => !!n)
                     .map((name: string) => ({ name, type: 'file', formats: [] }))
             };
-            const res = await fetch(`http://localhost:3002/api/welfare/schemes/${editingScheme.id}` ,{
+            const res = await fetch(`http://localhost:3002/api/welfare/schemes/${editingScheme.id}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -3079,7 +3248,7 @@ const ViewSchemes: React.FC = () => {
     }, [schemes.length]);
 
     const exportCSV = () => {
-        const headers = ['Title','Description','Ward','Scope','Status','Total Slots','Applications','Start Date','End Date'];
+        const headers = ['Title', 'Description', 'Ward', 'Scope', 'Status', 'Total Slots', 'Applications', 'Start Date', 'End Date'];
         const rows = currentSchemes.map(s => [
             s.title,
             (s as any).description || '',
@@ -3091,7 +3260,7 @@ const ViewSchemes: React.FC = () => {
             (s as any).startDate ? new Date((s as any).startDate).toLocaleDateString() : 'N/A',
             (s as any).endDate ? new Date((s as any).endDate).toLocaleDateString() : 'N/A'
         ]);
-        const csv = [headers, ...rows].map(r => r.map(x => `"${String(x ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+        const csv = [headers, ...rows].map(r => r.map(x => `"${String(x ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -3107,11 +3276,11 @@ const ViewSchemes: React.FC = () => {
         const total = schemes.length;
         const active = schemes.filter(s => (s.status === 'active' || s.status === 'draft') && s.endDate && new Date(s.endDate) >= now).length;
         const completed = schemes.filter(s => s.status === 'completed' || s.status === 'expired' || (s.endDate && new Date(s.endDate) < now)).length;
-        const totalApplications = Object.values(applicationCounts).reduce((a,b) => a + (b || 0), 0);
+        const totalApplications = Object.values(applicationCounts).reduce((a, b) => a + (b || 0), 0);
         // applications per scheme (sorted desc, top 7)
         const perScheme = schemes
             .map(s => ({ title: s.title, count: applicationCounts[(s as any).id] || 0 }))
-            .sort((a,b) => b.count - a.count)
+            .sort((a, b) => b.count - a.count)
             .slice(0, 7);
         return { total, active, completed, totalApplications, perScheme };
     })();
@@ -3148,29 +3317,27 @@ const ViewSchemes: React.FC = () => {
                 <nav className="-mb-px flex space-x-8">
                     <button
                         onClick={() => setActiveTab('active')}
-                        className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                            activeTab === 'active'
-                                ? 'border-green-500 text-green-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
+                        className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'active'
+                            ? 'border-green-500 text-green-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
                     >
                         <i className="fas fa-play-circle mr-2"></i>
                         Active Schemes ({activeSchemes.length})
                     </button>
                     <button
                         onClick={() => setActiveTab('completed')}
-                        className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                            activeTab === 'completed'
-                                ? 'border-gray-500 text-gray-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        }`}
+                        className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'completed'
+                            ? 'border-gray-500 text-gray-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
                     >
                         <i className="fas fa-check-circle mr-2"></i>
                         Completed Schemes ({completedSchemes.length})
                     </button>
                 </nav>
             </div>
-            
+
             <div className="space-y-4">
                 {currentSchemes.length > 0 ? (
                     currentSchemes.map((scheme) => (
@@ -3179,11 +3346,10 @@ const ViewSchemes: React.FC = () => {
                                 <div className="flex-1">
                                     <div className="flex items-center mb-3">
                                         <h4 className="font-bold text-lg text-gray-800 mr-4">{scheme.title}</h4>
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                            scheme.status === 'active' 
-                                                ? 'bg-green-100 text-green-800' 
-                                                : 'bg-yellow-100 text-yellow-800'
-                                        }`}>
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${scheme.status === 'active'
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-yellow-100 text-yellow-800'
+                                            }`}>
                                             {scheme.status === 'active' ? 'Published' : 'Draft'}
                                         </span>
                                     </div>
@@ -3209,7 +3375,7 @@ const ViewSchemes: React.FC = () => {
                                 </div>
                                 <div className="ml-6 flex flex-col space-y-2">
                                     {scheme.status === 'draft' && (
-                                        <button 
+                                        <button
                                             onClick={() => handlePublishScheme(scheme.id)}
                                             disabled={loading}
                                             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:bg-green-300"
@@ -3225,7 +3391,7 @@ const ViewSchemes: React.FC = () => {
                                         </button>
                                     )}
                                     {scheme.status !== 'completed' && scheme.status !== 'expired' && (
-                                        <button 
+                                        <button
                                             onClick={() => handleDeleteScheme(scheme.id)}
                                             disabled={loading}
                                             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:bg-red-300"
@@ -3253,7 +3419,7 @@ const ViewSchemes: React.FC = () => {
                             {activeTab === 'active' ? 'No Active Schemes' : 'No Completed Schemes'}
                         </h4>
                         <p className="text-gray-500 mb-6">
-                            {activeTab === 'active' 
+                            {activeTab === 'active'
                                 ? 'You don\'t have any active welfare schemes at the moment.'
                                 : 'You don\'t have any completed welfare schemes yet.'
                             }
@@ -3435,7 +3601,7 @@ const ViewSchemes: React.FC = () => {
                                                 {completedVisible && (
                                                     <circle cx="110" cy="110" r={r} stroke="#3b82f6" strokeWidth="22" fill="none" strokeDasharray={`${c * completedPct} ${c}`} strokeDashoffset={c * (0.25 + activePct)} strokeLinecap="round" />
                                                 )}
-                                                <text x="110" y="115" textAnchor="middle" className="fill-gray-800" style={{fontSize: '28px', fontWeight: 700}}>{Math.round(activePct * 100)}%</text>
+                                                <text x="110" y="115" textAnchor="middle" className="fill-gray-800" style={{ fontSize: '28px', fontWeight: 700 }}>{Math.round(activePct * 100)}%</text>
                                             </svg>
                                             <div>
                                                 <div className="flex items-center mb-2"><span className="w-3 h-3 rounded-sm bg-green-500 mr-2"></span>Active: <span className="ml-2 font-medium">{active}</span></div>
