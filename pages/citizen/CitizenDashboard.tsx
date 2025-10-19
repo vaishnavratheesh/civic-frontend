@@ -3,6 +3,7 @@ import Swal from 'sweetalert2';
 import { io } from 'socket.io-client';
 import Sidebar from '../../components/Sidebar';
 import Navbar from '../../components/Navbar';
+import TokenExpirationWarning from '../../components/TokenExpirationWarning';
 import { Complaint, ComplaintStatus, WelfareScheme, ApplicationStatus, WelfareApplication } from '../../types';
 import { STATUS_COLORS } from '../../constants';
 import SubmitGrievance from './SubmitGrievance';
@@ -1052,6 +1053,7 @@ const CitizenDashboard: React.FC = () => {
 
     return (
         <div className="flex h-screen bg-gray-50">
+            <TokenExpirationWarning />
             {/* Sidebar */}
             <Sidebar 
                 items={sidebarItems} 

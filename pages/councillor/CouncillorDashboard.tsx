@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import Sidebar from '../../components/Sidebar';
 import Navbar from '../../components/Navbar';
 import VerificationModal from '../../components/VerificationModal';
+import TokenExpirationWarning from '../../components/TokenExpirationWarning';
 import { Complaint, ComplaintStatus, WelfareApplication, ApplicationStatus, WelfareScheme } from '../../types';
 import { io } from 'socket.io-client';
 // Sabha Meeting Join Button
@@ -241,6 +242,7 @@ const CouncillorDashboard: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            <TokenExpirationWarning />
             <Navbar onMenuClick={() => setSidebarOpen(true)} />
             <div className="flex">
                 <Sidebar

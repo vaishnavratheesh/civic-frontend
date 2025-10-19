@@ -146,12 +146,7 @@ const Login: React.FC = () => {
                 profilePicture: response.profilePicture || ''
             };
 
-            login(userObj);
-            try {
-                if (response.token) {
-                    localStorage.setItem('token', response.token);
-                }
-            } catch {}
+            login(userObj, response.token);
             
             // Redirect based on role using replace to prevent back to login
             switch (userObj.role) {
@@ -215,12 +210,7 @@ const Login: React.FC = () => {
                 profilePicture: response.profilePicture || ''
             };
 
-            login(userObj);
-            try {
-                if (response.token) {
-                    localStorage.setItem('token', response.token);
-                }
-            } catch {}
+            login(userObj, response.token);
             
             // Redirect based on role
             switch (userObj.role) {
