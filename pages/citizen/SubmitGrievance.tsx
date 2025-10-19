@@ -130,7 +130,7 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
 
             // Quick duplicate preflight (no upload) so we can short-circuit
             try {
-                const dupResp = await fetch('http://localhost:3002/api/grievances/check-duplicate', {
+                const dupResp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/check-duplicate`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -153,7 +153,7 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
                         }
                         // Different user -> trigger group upvote endpoint and show success toast
                         if (dup.groupId) {
-                            const up = await fetch(`http://localhost:3002/api/grievances/${dup.groupId}/upvote`, {
+                            const up = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/${dup.groupId}/upvote`, {
                                 method: 'POST',
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
@@ -182,7 +182,7 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
             form.append('issueType', title); // Use title as issueType to maintain consistency
             form.append('attachments', imageFile);
 
-            const response = await fetch('http://localhost:3002/api/grievances', {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: form
@@ -277,7 +277,7 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
         try {
             const params = new URLSearchParams({ lat: String(loc.latitude), lng: String(loc.longitude) });
             const token = localStorage.getItem('token');
-            const resp = await fetch(`http://localhost:3002/api/grievances/ward-lookup?${params.toString()}` , {
+            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/ward-lookup?${params.toString()}` , {
                 headers: token ? { 'Authorization': `Bearer ${token}` } : undefined
             });
             if (resp.ok) {

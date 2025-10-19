@@ -74,7 +74,7 @@ const WelfareApplicationManager: React.FC<WelfareApplicationManagerProps> = ({ o
 
   const fetchApplications = async () => {
     try {
-      const response = await fetch('http://localhost:3002/api/welfare/applications', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -95,7 +95,7 @@ const WelfareApplicationManager: React.FC<WelfareApplicationManagerProps> = ({ o
     if (!selectedApplication) return;
 
     try {
-      const response = await fetch(`http://localhost:3002/api/welfare/applications/${selectedApplication._id}/review`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications/${selectedApplication._id}/review`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ const WelfareApplicationManager: React.FC<WelfareApplicationManagerProps> = ({ o
     const remarks = window.prompt('Enter remarks (optional):') || '';
     setVerifying(prev => ({ ...prev, [appId]: true }));
     try {
-      const resp = await fetch(`http://localhost:3002/api/welfare/applications/${appId}/manual-verify`, {
+      const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications/${appId}/manual-verify`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +156,7 @@ const WelfareApplicationManager: React.FC<WelfareApplicationManagerProps> = ({ o
   const autoVerify = async (appId: string) => {
     setVerifying(prev => ({ ...prev, [appId]: true }));
     try {
-      const resp = await fetch(`http://localhost:3002/api/welfare/applications/${appId}/auto-verify`, {
+      const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications/${appId}/auto-verify`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });

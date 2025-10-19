@@ -191,7 +191,7 @@ const EditProfile: React.FC = () => {
       const formData = new FormData();
       formData.append('profilePicture', file);
 
-      const response = await fetch(`http://localhost:3002/api/users/${user?.id}/profile-picture`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/users/${user?.id}/profile-picture`, {
         method: 'PUT',
         body: formData,
       });
@@ -263,7 +263,7 @@ const EditProfile: React.FC = () => {
         updateData.password = formData.newPassword;
       }
 
-      const response = await fetch(`http://localhost:3002/api/users/${user?.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/users/${user?.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -336,7 +336,7 @@ const EditProfile: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3002/api/users/${user?.id}/password`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/users/${user?.id}/password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

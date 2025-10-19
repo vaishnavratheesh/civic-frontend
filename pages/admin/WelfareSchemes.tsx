@@ -71,7 +71,7 @@ const AdminWelfareSchemes: React.FC = () => {
 
   const fetchSchemes = async () => {
     try {
-      const response = await fetch('http://localhost:3002/api/welfare/schemes', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -90,7 +90,7 @@ const AdminWelfareSchemes: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:3002/api/welfare/schemes/stats', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes/stats`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -120,7 +120,7 @@ const AdminWelfareSchemes: React.FC = () => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     
     try {
-      const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes/${schemeId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ const AdminWelfareSchemes: React.FC = () => {
 
   const deleteScheme = async (schemeId: string) => {
     try {
-      const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes/${schemeId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

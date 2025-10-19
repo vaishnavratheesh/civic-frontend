@@ -25,7 +25,7 @@ const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints, l
         setUpvoting(grievanceId);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3002/api/grievances/${grievanceId}/upvote`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/${grievanceId}/upvote`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

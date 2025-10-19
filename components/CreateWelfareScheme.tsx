@@ -213,7 +213,7 @@ const CreateWelfareScheme: React.FC<CreateWelfareSchemeProps> = ({ onSchemeCreat
     }
 
     try {
-      const response = await fetch('http://localhost:3002/api/welfare/schemes', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -345,7 +345,7 @@ export const validateWard = (ward: number): ValidationResult => {
 // Check if email already exists in the database
 export const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
-        const response = await axios.post('http://localhost:3002/api/check-email', { email });
+        const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/check-email`, { email });
         return response.data.exists;
     } catch (error) {
         console.error('Error checking email existence:', error);

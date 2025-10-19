@@ -61,7 +61,7 @@ const Navbar: React.FC<NavbarProps> = ({ title = 'Dashboard', className = '', on
   // Real-time announcement/event notifications
   useEffect(() => {
     if (!user?.id) return;
-    const socket = io('http://localhost:3002', { withCredentials: true });
+    const socket = io(import.meta.env.VITE_BACKEND_URL, { withCredentials: true });
     const onAnnouncement = (payload: any) => {
       const a = payload?.item;
       if (!a) return;

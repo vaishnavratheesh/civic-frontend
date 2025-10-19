@@ -46,7 +46,7 @@ const CompleteProfile: React.FC = () => {
 
     try {
       // Complete Google registration with additional details
-      const response = await axios.post('http://localhost:3002/api/google-register-complete', {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/google-register-complete`, {
         credential: googleUserData.credential,
         ward,
         panchayath: 'Erumeli Panchayath', // Automatically set to Erumeli Panchayath

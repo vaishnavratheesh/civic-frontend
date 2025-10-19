@@ -94,7 +94,7 @@ const AdminWelfareApplications: React.FC = () => {
 
   const fetchApplications = async () => {
     try {
-      const response = await fetch('http://localhost:3002/api/welfare/applications', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -113,7 +113,7 @@ const AdminWelfareApplications: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:3002/api/welfare/applications/stats', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications/stats`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -138,7 +138,7 @@ const AdminWelfareApplications: React.FC = () => {
     if (!selectedApplication) return;
 
     try {
-      const response = await fetch(`http://localhost:3002/api/welfare/applications/${selectedApplication._id}/review`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications/${selectedApplication._id}/review`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import Spinner from './Spinner';
+import { config } from '../src/config/config';
 
 interface WelfareApplication {
   _id: string;
@@ -80,10 +80,10 @@ const CouncillorWelfareApplications: React.FC = () => {
       
       // Fetch schemes and applications together
       const [schemesRes, applicationsRes] = await Promise.all([
-        fetch('http://localhost:3002/api/welfare/schemes', {
+        fetch(`${config.API_BASE_URL}/api/welfare/schemes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`http://localhost:3002/api/welfare/applications?ward=${user.ward}`, {
+        fetch(`${config.API_BASE_URL}/api/welfare/applications?ward=${user.ward}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -157,7 +157,7 @@ const CouncillorWelfareApplications: React.FC = () => {
       setApplications(mappedApplications);
       
       // Auto-expand schemes that have applications
-      const schemesWithApps = new Set(mappedApplications.map(app => app.schemeId));
+      const schemesWithApps = new Set(mappedApplications.map((app: WelfareApplication) => app.schemeId));
       const initialExpanded: {[key: string]: boolean} = {};
       activeSchemes.forEach((scheme: any) => {
         if (schemesWithApps.has(scheme._id)) {
@@ -257,7 +257,7 @@ const CouncillorWelfareApplications: React.FC = () => {
     try {
       setVerifying(prev => ({ ...prev, [appId]: true }));
       const token = localStorage.getItem('token');
-      const resp = await fetch(`http://localhost:3002/api/welfare/applications/${appId}/auto-verify`, {
+      const resp = await fetch(`${config.API_BASE_URL}/api/welfare/applications/${appId}/auto-verify`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`

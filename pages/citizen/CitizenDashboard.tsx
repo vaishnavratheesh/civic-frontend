@@ -193,7 +193,7 @@ const VideoProofRequestSection: React.FC<{
                 console.log('Uploading video - File:', videoFile.name, 'Size:', videoFile.size, 'Request ID:', requestId);
 
                 const token = localStorage.getItem('token');
-                const response = await fetch(`http://localhost:3002/api/grievances/${grievanceId}/upload-video-proof`, {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/${grievanceId}/upload-video-proof`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -604,7 +604,7 @@ const CitizenDashboard: React.FC = () => {
         try {
             const token = localStorage.getItem('token');
             console.log(`${TAG} requesting /api/welfare/applications/user`, { hasToken: !!token });
-            const response = await fetch('http://localhost:3002/api/welfare/applications/user', {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications/user`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -670,7 +670,7 @@ const CitizenDashboard: React.FC = () => {
         setGrievancesLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3002/api/grievances/my', {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/my`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -739,7 +739,7 @@ const CitizenDashboard: React.FC = () => {
         setGrievancesLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3002/api/grievances/community', {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/community`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -814,7 +814,7 @@ const CitizenDashboard: React.FC = () => {
     }, [activeTab]);
 
     useEffect(() => {
-        const socket = io('http://localhost:3002', { withCredentials: true });
+        const socket = io(import.meta.env.VITE_BACKEND_URL, { withCredentials: true });
         const refreshAnnouncements = async () => {
             try {
                 const res = await fetch(`${API_ENDPOINTS.PRESIDENT_ANNOUNCEMENTS}?audience=citizens`);
@@ -847,7 +847,7 @@ const CitizenDashboard: React.FC = () => {
             try {
                 if (!user?.id) return;
                 const token = localStorage.getItem('token');
-                const res = await fetch(`http://localhost:3002/api/users/${user.id}`, {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/users/${user.id}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -876,7 +876,7 @@ const CitizenDashboard: React.FC = () => {
             setSchemesLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`http://localhost:3002/api/welfare/schemes/citizens/${user.ward}`, {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes/citizens/${user.ward}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'

@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../../components/Spinner';
-import { API_ENDPOINTS } from '../../src/config/config';
+import { config } from '../../src/config/config';
 import { getDashboardStats, getCouncillors } from '../../services/adminService';
 import Swal from 'sweetalert2';
 import axios from 'axios';
@@ -79,7 +79,7 @@ const AdminDashboard: React.FC = () => {
   });
   const [userData, setUserData] = useState<UserData[]>([]);
   const [wardData, setWardData] = useState<WardData[]>([]);
-  const [councillors, setCouncillors] = useState([]);
+  const [, setCouncillors] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
 
   // Citizens management state
@@ -100,7 +100,7 @@ const AdminDashboard: React.FC = () => {
   const [assignForm, setAssignForm] = useState({ name: '', email: '' });
   const [assignLoading, setAssignLoading] = useState(false);
 
-  const API_BASE = 'http://localhost:3002/api';
+  const API_BASE = `${config.API_BASE_URL}/api`;
 
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -1037,12 +1037,12 @@ const AdminDashboard: React.FC = () => {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ role, percent }) => `${role} ${(percent * 100).toFixed(0)}%`}
+                          label={({ role, percent }) => `${role} ${((percent || 0) * 100).toFixed(0)}%`}
                           outerRadius={100}
                           fill="#8884d8"
                           dataKey="count"
                         >
-                          {userData.filter(u => u.count > 0).map((entry, index) => (
+                          {userData.filter(u => u.count > 0).map((_, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>

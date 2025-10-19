@@ -167,14 +167,14 @@ const CouncillorDashboard: React.FC = () => {
                 }
 
                 const [appsRes, wardRes, schemesRes, appsListRes] = await Promise.all([
-                    fetch('http://localhost:3002/api/welfare/applications/stats', {
+                    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications/stats`, {
                         headers
                     }),
-                    fetch(`http://localhost:3002/api/wards/${user.ward}/stats`),
-                    fetch('http://localhost:3002/api/welfare/schemes', {
+                    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/wards/${user.ward}/stats`),
+                    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes`, {
                         headers
                     }),
-                    fetch(`http://localhost:3002/api/welfare/applications?ward=${user.ward}`, {
+                    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications?ward=${user.ward}`, {
                         headers
                     })
                 ]);
@@ -447,7 +447,7 @@ const PresidentAnnouncements: React.FC = () => {
                 if (data.success) setMine(data.items || []);
             } catch { }
         })();
-        const socket = io('http://localhost:3002', { withCredentials: true });
+        const socket = io(import.meta.env.VITE_BACKEND_URL, { withCredentials: true });
         socket.on('announcement:new', async () => {
             try {
                 const res = await fetch(`${API_ENDPOINTS.PRESIDENT_ANNOUNCEMENTS}?audience=councillors`);
@@ -562,7 +562,7 @@ const PresidentEvents: React.FC = () => {
                 if (data.success) setMine(data.items || []);
             } catch { }
         })();
-        const socket = io('http://localhost:3002', { withCredentials: true });
+        const socket = io(import.meta.env.VITE_BACKEND_URL, { withCredentials: true });
         socket.on('event:new', async () => {
             try {
                 const res = await fetch(`${API_ENDPOINTS.PRESIDENT_EVENTS}?audience=councillors`);
@@ -1221,7 +1221,7 @@ const WardComplaints: React.FC = () => {
         try {
             setActing(prev => ({ ...prev, [id]: status }));
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:3002/api/grievances/${id}/status`, {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/${id}/status`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1243,7 +1243,7 @@ const WardComplaints: React.FC = () => {
         try {
             setActing(prev => ({ ...prev, [id]: 'auto' }));
             const token = localStorage.getItem('token');
-            const res = await fetch(`http://localhost:3002/api/grievances/${id}/verify/auto`, {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/${id}/verify/auto`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -1280,7 +1280,7 @@ const WardComplaints: React.FC = () => {
                 setActing(prev => ({ ...prev, [complaintId]: 'requesting' }));
 
                 const token = localStorage.getItem('token');
-                const response = await fetch(`http://localhost:3002/api/grievances/${complaintId}/request-video-proof`, {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/${complaintId}/request-video-proof`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1554,7 +1554,7 @@ const WelfareQueue: React.FC = () => {
             try {
                 setLoadingSchemes(true);
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:3002/api/welfare/schemes?status=active', {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes?status=active`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
@@ -1599,7 +1599,7 @@ const WelfareQueue: React.FC = () => {
                 if (user?.ward) params.append('ward', String(user.ward));
                 const schemeId = selectedScheme.id || (selectedScheme as any)._id;
                 params.append('schemeId', schemeId);
-                const url = `http://localhost:3002/api/welfare/applications?${params.toString()}`;
+                const url = `${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications?${params.toString()}`;
                 console.log('Fetching applications from:', url);
                 console.log('Selected scheme:', selectedScheme);
                 const response = await fetch(url, {
@@ -1778,7 +1778,7 @@ const WelfareQueue: React.FC = () => {
             const token = localStorage.getItem('token');
 
             // Use the review endpoint to approve/reject applications
-            const resp = await fetch(`http://localhost:3002/api/welfare/applications/${appId}/review`, {
+            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications/${appId}/review`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1849,7 +1849,7 @@ const WelfareQueue: React.FC = () => {
         try {
             setVerifying(prev => ({ ...prev, [appId]: true }));
             const token = localStorage.getItem('token');
-            const resp = await fetch(`http://localhost:3002/api/welfare/applications/${appId}/auto-verify`, {
+            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications/${appId}/auto-verify`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -2472,10 +2472,10 @@ const AddSchemes: React.FC = () => {
                 status: 'inactive'
             };
 
-            console.log('Sending request to:', 'http://localhost:3002/api/welfare/schemes');
+            console.log('Sending request to:', `${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes`);
             console.log('Request data:', requestData);
 
-            const response = await fetch('http://localhost:3002/api/welfare/schemes', {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -3029,7 +3029,7 @@ const ViewSchemes: React.FC = () => {
                 console.log('Fetching schemes for user:', user);
                 console.log('Using token:', token ? 'Present' : 'Missing');
 
-                const response = await fetch(`http://localhost:3002/api/welfare/schemes`, {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -3075,7 +3075,7 @@ const ViewSchemes: React.FC = () => {
                 // Fetch application counts for each scheme
                 for (const scheme of schemes) {
                     const schemeKey = (scheme as any).id || (scheme as any)._id;
-                    const response = await fetch(`http://localhost:3002/api/welfare/applications?schemeId=${schemeKey}&ward=${user?.ward}`, {
+                    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications?schemeId=${schemeKey}&ward=${user?.ward}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
@@ -3116,7 +3116,7 @@ const ViewSchemes: React.FC = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes/${schemeId}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -3146,7 +3146,7 @@ const ViewSchemes: React.FC = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3002/api/welfare/schemes/${schemeId}`, {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes/${schemeId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -3200,7 +3200,7 @@ const ViewSchemes: React.FC = () => {
                     .filter((n: string) => !!n)
                     .map((name: string) => ({ name, type: 'file', formats: [] }))
             };
-            const res = await fetch(`http://localhost:3002/api/welfare/schemes/${editingScheme.id}`, {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes/${editingScheme.id}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -3230,7 +3230,7 @@ const ViewSchemes: React.FC = () => {
             for (const sch of schemes) {
                 if (sch.status !== 'completed' && sch.status !== 'expired' && sch.endDate && new Date(sch.endDate) < nowLocal) {
                     try {
-                        await fetch(`http://localhost:3002/api/welfare/schemes/${(sch as any).id}`, {
+                        await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes/${(sch as any).id}`, {
                             method: 'PUT',
                             headers: {
                                 'Authorization': `Bearer ${token}`,

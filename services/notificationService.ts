@@ -107,7 +107,7 @@ class NotificationService {
   async checkForNewSchemes(userId: string, userWard: number): Promise<void> {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3002/api/welfare/schemes/citizens/${userWard}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes/citizens/${userWard}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

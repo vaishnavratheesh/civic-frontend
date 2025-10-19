@@ -106,7 +106,7 @@ export const scoreWelfareApplication = async (reason: string, familyIncome: numb
 export const askAboutWard = async (question: string, wardNumber: number): Promise<string> => {
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3002/api/ai/chatbot', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/ai/chatbot`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
