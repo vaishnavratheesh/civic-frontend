@@ -12,6 +12,7 @@ import { askAboutWard } from '../../services/geminiService';
 import Spinner from '../../components/Spinner';
 import CommunityGrievances from './CommunityGrievances';
 import WelfareApplicationForm from '../../components/WelfareApplicationForm';
+import GovernmentChatbot from '../../components/GovernmentChatbot';
 import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../../src/config/config';
 import { notificationService } from '../../services/notificationService';
@@ -353,6 +354,7 @@ const CitizenDashboard: React.FC = () => {
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [events, setEvents] = useState<any[]>([]);
     const [pendingVideoRequests, setPendingVideoRequests] = useState<number>(0);
+    const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
     // PDF Generation function
     const generateApplicationPDF = (application: WelfareApplication) => {
@@ -991,7 +993,7 @@ const CitizenDashboard: React.FC = () => {
     const renderContent = () => {
         switch (activeTab) {
             case 'my-ward':
-                return <MyWardInfo />;
+                return <MyWardInfo onOpenChatbot={() => setIsChatbotOpen(true)} />;
             case 'my-grievances':
                 return <MyGrievancesTab complaints={myComplaints} onGrievanceSubmitted={handleGrievanceSubmitted} loading={grievancesLoading} onRefreshNeeded={fetchMyGrievances} pendingVideoRequests={pendingVideoRequests} />;
             case 'community-grievances':
@@ -1152,16 +1154,29 @@ const CitizenDashboard: React.FC = () => {
                     onSuccess={handleApplicationSubmitted}
                 />
             )}
+
+            {/* Floating Chatbot Button */}
+            {!isChatbotOpen && (
+                <button
+                    onClick={() => setIsChatbotOpen(true)}
+                    className="fixed bottom-6 right-6 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-40"
+                    title="Open AI Assistant"
+                >
+                    <i className="fas fa-robot text-xl"></i>
+                </button>
+            )}
+
+            {/* Government Chatbot */}
+            <GovernmentChatbot
+                isOpen={isChatbotOpen}
+                onClose={() => setIsChatbotOpen(false)}
+            />
         </div>
     );
 };
 
-const MyWardInfo: React.FC = () => {
+const MyWardInfo: React.FC<{ onOpenChatbot: () => void }> = ({ onOpenChatbot }) => {
     const { user, login } = useAuth();
-    const [question, setQuestion] = useState('');
-    const [answer, setAnswer] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
     const [wardPopulation, setWardPopulation] = useState<number | null>(null);
     const [activeIssues, setActiveIssues] = useState<number>(0);
     const [councillor, setCouncillor] = useState<{ name: string; email?: string; contactNumber?: string; address?: string; profilePicture?: string } | null>(null);
@@ -1169,21 +1184,7 @@ const MyWardInfo: React.FC = () => {
     const [idProofType, setIdProofType] = useState<'aadhar' | 'voter_id' | 'driving_license' | 'ration_card' | 'passport'>('aadhar');
     const [idProofFile, setIdProofFile] = useState<File | null>(null);
 
-    const handleAsk = async () => {
-        if (!question.trim() || !user) return;
-        setIsLoading(true);
-        setError('');
-        setAnswer('');
-        try {
-            const result = await askAboutWard(question, user.ward);
-            setAnswer(result);
-        } catch (e: any) {
-            setError('Sorry, something went wrong. Please try again.');
-            console.error(e);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+
 
     useEffect(() => {
         const fetchWardStats = async () => {
@@ -1383,58 +1384,44 @@ const MyWardInfo: React.FC = () => {
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-200">
                     <h3 className="text-base font-semibold text-gray-900">Government AI Assistant</h3>
-                    <p className="text-gray-600 text-sm">Get answers about your ward and services</p>
+                    <p className="text-gray-600 text-sm">Get instant answers about your ward and panchayath services</p>
                 </div>
                 <div className="p-5">
-                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                        <input
-                            type="text"
-                            value={question}
-                            onChange={(e) => setQuestion(e.target.value)}
-                            placeholder="e.g., When is the next garbage collection? What are the current welfare schemes?"
-                            className="flex-grow p-2.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-gray-500 focus:border-gray-500"
-                            aria-labelledby="ask-ai-label"
-                        />
-                        <button 
-                            onClick={handleAsk} 
-                            disabled={isLoading || !question.trim()} 
-                            className="px-4 py-2 bg-gray-800 text-white font-medium rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    <div className="text-center">
+                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i className="fas fa-robot text-white text-2xl"></i>
+                        </div>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-2">Chat with AI Assistant</h4>
+                        <p className="text-gray-600 text-sm mb-6">
+                            Get instant help with ward information, welfare schemes, grievance tracking, 
+                            councillor details, and system navigation.
+                        </p>
+                        <button
+                            onClick={onOpenChatbot}
+                            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center mx-auto"
                         >
-                            {isLoading ? <Spinner size="sm" /> : (
-                                <>
-                                    <i className="fas fa-robot mr-2"></i>
-                                    Ask AI
-                                </>
-                            )}
+                            <i className="fas fa-comments mr-2"></i>
+                            Start Conversation
                         </button>
-                    </div>
-                    
-                    {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded mb-3" role="alert">
+                        <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-gray-600">
                             <div className="flex items-center">
-                                <i className="fas fa-exclamation-triangle mr-2"></i>
-                                <span className="font-medium">{error}</span>
+                                <i className="fas fa-check-circle text-green-500 mr-1"></i>
+                                <span>Ward Statistics</span>
+                            </div>
+                            <div className="flex items-center">
+                                <i className="fas fa-check-circle text-green-500 mr-1"></i>
+                                <span>Welfare Schemes</span>
+                            </div>
+                            <div className="flex items-center">
+                                <i className="fas fa-check-circle text-green-500 mr-1"></i>
+                                <span>Grievance Help</span>
+                            </div>
+                            <div className="flex items-center">
+                                <i className="fas fa-check-circle text-green-500 mr-1"></i>
+                                <span>System Guide</span>
                             </div>
                         </div>
-                    )}
-                    
-                    {isLoading && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-md p-4 text-center">
-                            <Spinner message="Processing your request..." />
-                        </div>
-                    )}
-                    
-                    {answer && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-md p-4" aria-live="polite">
-                            <div className="flex items-center mb-2">
-                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
-                                    <i className="fas fa-robot text-gray-700"></i>
-                                </div>
-                                <h4 className="font-semibold text-gray-900">Government AI Response</h4>
-                            </div>
-                            <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-sm">{answer}</p>
-                        </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>

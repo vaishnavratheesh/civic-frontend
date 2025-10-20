@@ -114,7 +114,6 @@ export const askAboutWard = async (question: string, wardNumber: number): Promis
             },
             body: JSON.stringify({
                 message: question,
-                userId: localStorage.getItem('userId'),
                 ward: wardNumber
             })
         });
