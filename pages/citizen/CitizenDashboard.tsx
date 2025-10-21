@@ -1204,19 +1204,23 @@ const MyWardInfo: React.FC<{ onOpenChatbot: () => void }> = ({ onOpenChatbot }) 
             }
         };
         const fetchActiveIssues = async () => {
-            if (!user?.ward) return;
+            if (!user?.id) return;
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch(`${API_ENDPOINTS.USER_PROFILE}/grievances/../stats?ward=${user.ward}`.replace('/users/grievances/..','/grievances'), {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/my`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
                 const data = await res.json();
-                if (res.ok && data) {
-                    const active = (data.pending || 0) + (data.in_progress || 0);
-                    setActiveIssues(active);
+                if (res.ok && data.grievances) {
+                    // Count active issues (not resolved or rejected)
+                    const activeStatuses = ['pending', 'in_progress', 'assigned', 'Pending', 'In Progress', 'Assigned'];
+                    const activeCount = data.grievances.filter((g: any) => 
+                        activeStatuses.includes(g.status)
+                    ).length;
+                    setActiveIssues(activeCount);
                 } else {
                     setActiveIssues(0);
                 }
@@ -1478,7 +1482,7 @@ const MyGrievancesTab: React.FC<{
                                                         <i className="fas fa-exclamation-triangle text-white"></i>
                                                     </div>
                                                     <div>
-                                                        <p className="text-lg font-bold text-gray-800">{c.issueType}</p>
+                                                        <p className="text-lg font-bold text-gray-800">{c.title || c.issueType}</p>
                                                         <p className="text-sm text-gray-600">Priority Score: {c.priorityScore}/5</p>
                                                     </div>
                                                 </div>
@@ -1567,8 +1571,9 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
 
     const filteredApplications = React.useMemo(() => {
         const now = Date.now();
-        const isAccepted = (s: string) => ['approved', 'accepted'].includes(String(s || '').toLowerCase());
+        const isAccepted = (s: string) => ['approved', 'accepted', 'completed'].includes(String(s || '').toLowerCase());
         const isRejected = (s: string) => String(s || '').toLowerCase() === 'rejected';
+        const isCompleted = (s: string) => isAccepted(s) || isRejected(s);
         const schemeById = new Map(schemes.map(s => [String(s.id), s]));
         const isSchemeExpired = (schemeId: string) => {
             const s = schemeById.get(String(schemeId));
@@ -1581,16 +1586,20 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
         return applications.filter(a => {
             if (appFilter === 'accepted') return isAccepted(a.status as any);
             if (appFilter === 'rejected') return isRejected(a.status as any);
-            if (appFilter === 'old') return isSchemeExpired(String(a.schemeId));
-            // active: not accepted and not rejected
-            return !isAccepted(a.status as any) && !isRejected(a.status as any);
+            if (appFilter === 'old') {
+                // Old: completed applications OR expired schemes
+                return isCompleted(a.status as any) || isSchemeExpired(String(a.schemeId));
+            }
+            // active: not completed (ongoing applications)
+            return !isCompleted(a.status as any) && !isSchemeExpired(String(a.schemeId));
         });
     }, [applications, appFilter, schemes]);
     
     const counts = React.useMemo(() => {
         const now = Date.now();
-        const isAccepted = (s: string) => ['approved', 'accepted'].includes(String(s || '').toLowerCase());
+        const isAccepted = (s: string) => ['approved', 'accepted', 'completed'].includes(String(s || '').toLowerCase());
         const isRejected = (s: string) => String(s || '').toLowerCase() === 'rejected';
+        const isCompleted = (s: string) => isAccepted(s) || isRejected(s);
         const schemeById = new Map(schemes.map(s => [String(s.id), s]));
         const isSchemeExpired = (schemeId: string) => {
             const s = schemeById.get(String(schemeId));
@@ -1604,8 +1613,14 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
         for (const a of applications) {
             if (isAccepted(a.status as any)) accepted++;
             else if (isRejected(a.status as any)) rejected++;
-            else active++;
-            if (isSchemeExpired(String(a.schemeId))) old++;
+            
+            // Old: completed applications OR expired schemes
+            if (isCompleted(a.status as any) || isSchemeExpired(String(a.schemeId))) {
+                old++;
+            } else {
+                // Active: ongoing applications (not completed and not expired)
+                active++;
+            }
         }
         return { accepted, rejected, active, old };
     }, [applications, schemes]);
@@ -1698,8 +1713,9 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                         onClick={() => setAppFilter('old')}
                         className={`px-3 py-1.5 rounded-md border ${appFilter === 'old' ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100'}`}
                         aria-current={appFilter === 'old' ? 'page' : undefined}
+                        title="Completed applications and expired schemes"
                     >
-                        Old ({counts.old})
+                        Completed ({counts.old})
                     </button>
                 </div>
             </div>

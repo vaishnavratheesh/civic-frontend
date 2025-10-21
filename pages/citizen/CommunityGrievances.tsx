@@ -150,10 +150,11 @@ const CommunityGrievances: React.FC<CommunityGrievancesProps> = ({ complaints, l
                         <li key={group.head.duplicateGroupId || group.head.id} className="p-4 sm:p-6">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                  <div className="flex items-start space-x-4 flex-grow">
-                                    <img src={group.head.imageURL} alt={group.head.issueType} className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover shadow-md"/>
+                                    <img src={group.head.imageURL} alt={group.head.title || group.head.issueType} className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover shadow-md"/>
                                     <div className="flex-grow">
                                         <p className="text-sm font-semibold text-blue-600">{group.head.issueType} - Ward {group.head.ward}</p>
-                                        <p className="text-lg font-bold text-gray-800">{group.head.description}</p>
+                                        <p className="text-lg font-bold text-gray-800">{group.head.title || group.head.issueType}</p>
+                                        <p className="text-sm text-gray-600 mt-1">{group.head.description}</p>
                                         <p className="text-sm text-gray-500 mt-1">
                                             Priority: {group.head.priorityScore}/5 | Credibility: {typeof group.head.credibilityScore === 'number' ? `${(group.head.credibilityScore*100).toFixed(0)}%` : '—'} | Reports: {group.count} | Submitted: {new Date(group.head.createdAt).toLocaleDateString()}
                                         </p>

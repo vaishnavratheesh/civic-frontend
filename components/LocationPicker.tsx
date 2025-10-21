@@ -24,9 +24,22 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualLat, setManualLat] = useState('');
   const [manualLng, setManualLng] = useState('');
+  const [permissionStatus, setPermissionStatus] = useState<string>('');
 
   // Default center for Erumeli Panchayat
   const defaultCenter: [number, number] = [9.45, 76.90];
+
+  // Check location permission status on component mount
+  useEffect(() => {
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        setPermissionStatus(result.state);
+        console.log('Geolocation permission:', result.state);
+      }).catch(() => {
+        console.log('Permission API not supported');
+      });
+    }
+  }, []);
 
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
     try {
@@ -70,18 +83,51 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
       return;
     }
 
+    // Check if we're on HTTPS or localhost (required for geolocation)
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      setError('Location access requires a secure connection (HTTPS). Please use the map or enter coordinates manually.');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
+
+    // Enhanced geolocation options
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000, // 10 seconds timeout
+      maximumAge: 300000 // 5 minutes cache
+    };
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
+        console.log('Location obtained:', { latitude, longitude });
         handleLocationSelect(latitude, longitude);
       },
       (error) => {
-        setError('Unable to get your current location');
+        console.error('Geolocation error:', error);
+        let errorMessage = 'Unable to get your current location. ';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += 'Location access was denied. Please enable location permissions in your browser settings.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += 'Location information is unavailable. Please try again or enter coordinates manually.';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out. Please try again or enter coordinates manually.';
+            break;
+          default:
+            errorMessage += 'An unknown error occurred. Please try again or enter coordinates manually.';
+            break;
+        }
+        
+        setError(errorMessage);
         setIsLoading(false);
-      }
+      },
+      options
     );
   };
 
@@ -229,12 +275,48 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         </div>
       )}
 
-      {/* Instructions */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p className="text-blue-700 text-sm">
-          <i className="fas fa-info-circle mr-2"></i>
-          Click on the map to select your location. You can also use your current location or enter coordinates manually.
-        </p>
+      {/* Permission Status and Instructions */}
+      <div className="space-y-3">
+        {permissionStatus === 'denied' && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <p className="text-red-700 text-sm font-medium mb-2">
+              <i className="fas fa-exclamation-triangle mr-2"></i>
+              Location Access Blocked
+            </p>
+            <p className="text-red-600 text-sm mb-2">
+              Location access has been blocked for this site. To enable it:
+            </p>
+            <ul className="text-red-600 text-sm list-disc list-inside space-y-1">
+              <li><strong>Chrome/Edge:</strong> Click the location icon in the address bar and select "Allow"</li>
+              <li><strong>Firefox:</strong> Click the shield icon and enable location sharing</li>
+              <li><strong>Safari:</strong> Go to Safari → Settings → Websites → Location and allow this site</li>
+            </ul>
+            <p className="text-red-600 text-sm mt-2">
+              Alternatively, you can click on the map or enter coordinates manually.
+            </p>
+          </div>
+        )}
+
+        {permissionStatus === 'prompt' && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-yellow-700 text-sm">
+              <i className="fas fa-info-circle mr-2"></i>
+              Click "Use Current Location" and allow location access when prompted by your browser.
+            </p>
+          </div>
+        )}
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-blue-700 text-sm font-medium mb-2">
+            <i className="fas fa-map-marker-alt mr-2"></i>
+            How to select your location:
+          </p>
+          <ul className="text-blue-600 text-sm list-disc list-inside space-y-1">
+            <li><strong>Automatic:</strong> Click "Use Current Location" (requires location permission)</li>
+            <li><strong>Manual:</strong> Click anywhere on the map to select that location</li>
+            <li><strong>Coordinates:</strong> Use "Enter Coordinates" if you know the exact lat/lng</li>
+          </ul>
+        </div>
       </div>
     </div>
   );

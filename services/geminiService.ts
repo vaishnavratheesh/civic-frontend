@@ -31,13 +31,54 @@ const grievanceSchema = {
 
 export const analyzeGrievance = async (description: string, imageBase64: string): Promise<GrievanceAnalysis> => {
   if (!ai) {
-    // Mock response for environments without an API key
-    return new Promise(resolve => setTimeout(() => resolve({
-      title: "Mock: Leaking Pipe Reported",
-      issueType: "Water Leakage",
-      priorityScore: 4,
-      summary: "This is a mock analysis. A water pipe seems to be leaking near the main road, causing waterlogging."
-    }), 1500));
+    // Mock response for environments without an API key - classify based on keywords
+    return new Promise(resolve => setTimeout(() => {
+      const desc = description.toLowerCase();
+      let issueType = "Other";
+      let title = "Issue Reported";
+      let summary = "An issue has been reported.";
+      let priorityScore = 3;
+
+      // Classify based on keywords in description
+      if (desc.includes('garbage') || desc.includes('waste') || desc.includes('trash') || desc.includes('rubbish') || desc.includes('dump')) {
+        issueType = "Waste Management";
+        title = "Garbage Collection Issue";
+        summary = "A waste management issue has been reported.";
+        priorityScore = 3;
+      } else if (desc.includes('water') || desc.includes('leak') || desc.includes('pipe') || desc.includes('tap')) {
+        issueType = "Water Leakage";
+        title = "Water Leakage Issue";
+        summary = "A water leakage issue has been reported.";
+        priorityScore = 4;
+      } else if (desc.includes('road') || desc.includes('pothole') || desc.includes('street') || desc.includes('path')) {
+        issueType = "Road Repair";
+        title = "Road Repair Needed";
+        summary = "A road repair issue has been reported.";
+        priorityScore = 3;
+      } else if (desc.includes('light') || desc.includes('lamp') || desc.includes('bulb') || desc.includes('dark')) {
+        issueType = "Streetlight Outage";
+        title = "Streetlight Issue";
+        summary = "A streetlight outage has been reported.";
+        priorityScore = 2;
+      } else if (desc.includes('drain') || desc.includes('flood') || desc.includes('water logging') || desc.includes('overflow')) {
+        issueType = "Drainage";
+        title = "Drainage Issue";
+        summary = "A drainage problem has been reported.";
+        priorityScore = 4;
+      } else if (desc.includes('noise') || desc.includes('nuisance') || desc.includes('disturbance')) {
+        issueType = "Public Nuisance";
+        title = "Public Nuisance";
+        summary = "A public nuisance issue has been reported.";
+        priorityScore = 2;
+      }
+
+      resolve({
+        title,
+        issueType,
+        priorityScore,
+        summary
+      });
+    }, 1500));
   }
 
   const prompt = "Analyze the following user-submitted grievance. Based on the description and the image, provide a suitable title, classify the issue type from the provided list, and assign a priority score from 1 (low) to 5 (critical). Also provide a brief summary.";
@@ -60,7 +101,7 @@ export const analyzeGrievance = async (description: string, imageBase64: string)
     }
   });
 
-  const jsonText = response.text.trim();
+  const jsonText = response.text?.trim() || '{}';
   const result = JSON.parse(jsonText);
   return result as GrievanceAnalysis;
 };
@@ -98,7 +139,7 @@ export const scoreWelfareApplication = async (reason: string, familyIncome: numb
         }
     });
     
-    const jsonText = response.text.trim();
+    const jsonText = response.text?.trim() || '{}';
     const result = JSON.parse(jsonText);
     return result as WelfareScore;
 };

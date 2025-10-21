@@ -1,9 +1,32 @@
 // Frontend configuration for Civic+ application
 // In production, these should be set via environment variables
 
+// Environment-aware configuration
+const getBackendUrl = () => {
+  // Check if we're in development mode
+  const isDevelopment = import.meta.env.VITE_NODE_ENV === 'development' || 
+                       import.meta.env.DEV || 
+                       window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1';
+  
+  if (isDevelopment) {
+    return import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002';
+  } else {
+    return import.meta.env.VITE_BACKEND_URL_PRODUCTION || 
+           import.meta.env.VITE_BACKEND_URL || 
+           'https://civic-backend-f8a1.onrender.com';
+  }
+};
+
 export const config = {
   // API Configuration
-  API_BASE_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002',
+  API_BASE_URL: getBackendUrl(),
+  
+  // Environment info
+  IS_DEVELOPMENT: import.meta.env.VITE_NODE_ENV === 'development' || 
+                  import.meta.env.DEV || 
+                  window.location.hostname === 'localhost' || 
+                  window.location.hostname === '127.0.0.1',
   
   // Google OAuth Configuration
   GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID || '289773391020-da1s5ueqalq5v2ppe01ujm9m0ordiomg.apps.googleusercontent.com',

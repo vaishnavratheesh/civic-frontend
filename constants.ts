@@ -21,12 +21,12 @@ export const STATUS_COLORS: { [key in ComplaintStatus | ApplicationStatus]: stri
 
 
 export const ISSUE_TYPES = [
-  'Waste Management',
   'Road Repair',
-  'Streetlight Outage',
+  'Streetlight Outage', 
+  'Waste Management',
   'Water Leakage',
   'Public Nuisance',
-  'Illegal Construction',
+  'Drainage',
   'Other',
 ];
 

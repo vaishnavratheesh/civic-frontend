@@ -128,6 +128,11 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
         try {
             const token = localStorage.getItem('token');
 
+            // Get AI analysis first for proper classification
+            const imageBase64 = await fileToBase64(imageFile);
+            const analysis = await analyzeGrievance(description, imageBase64);
+            setAnalysisResult(analysis);
+
             // Quick duplicate preflight (no upload) so we can short-circuit
             try {
                 const dupResp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/check-duplicate`, {
@@ -137,8 +142,8 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        title,
-                        issueType: title,
+                        title: analysis.title || title,
+                        issueType: analysis.issueType,
                         description,
                         location: { lat: pickedLocation.latitude, lng: pickedLocation.longitude }
                     })
@@ -168,18 +173,15 @@ const SubmitGrievance: React.FC<{onGrievanceSubmitted: (complaint: Complaint) =>
                 }
             } catch (_) { /* best-effort preflight */ }
 
-            const imageBase64 = await fileToBase64(imageFile);
-            const analysis = await analyzeGrievance(description, imageBase64);
-            setAnalysisResult(analysis);
-
             // Send multipart to backend
             const form = new FormData();
-            form.append('title', title);
+            form.append('title', analysis.title || title); // Use AI-generated title if available
             form.append('description', description);
             if (category) form.append('category', category);
             const effectiveWard = ward ?? user.ward;
             form.append('location', JSON.stringify({ ward: effectiveWard, lat: pickedLocation.latitude, lng: pickedLocation.longitude, address: pickedLocation.formattedAddress }));
-            form.append('issueType', title); // Use title as issueType to maintain consistency
+            form.append('issueType', analysis.issueType); // Use AI-classified issueType
+            form.append('priorityScore', analysis.priorityScore.toString()); // Include priority score
             form.append('attachments', imageFile);
 
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances`, {

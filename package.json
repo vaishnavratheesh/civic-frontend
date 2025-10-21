@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "env:local": "cd .. && npm run env:local",
+    "env:production": "cd .. && npm run env:production",
+    "check:env": "cd .. && npm run check:env"
   },
   "dependencies": {
     "@google/genai": "^1.9.0",

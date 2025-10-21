@@ -1157,6 +1157,101 @@ const WardComplaints: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [acting, setActing] = useState<{ [id: string]: string | undefined }>({});
     const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+    // Define complaint categories with icons and colors
+    const complaintCategories = [
+        { key: 'all', label: 'All Complaints', icon: 'fa-list', color: 'bg-gray-100 text-gray-800' },
+        { key: 'Road Repair', label: 'Road Repair', icon: 'fa-road', color: 'bg-orange-100 text-orange-800' },
+        { key: 'Streetlight Outage', label: 'Streetlight', icon: 'fa-lightbulb', color: 'bg-yellow-100 text-yellow-800' },
+        { key: 'Waste Management', label: 'Garbage', icon: 'fa-trash', color: 'bg-green-100 text-green-800' },
+        { key: 'Water Leakage', label: 'Water Leakage', icon: 'fa-tint', color: 'bg-blue-100 text-blue-800' },
+        { key: 'Drainage', label: 'Drainage', icon: 'fa-water', color: 'bg-cyan-100 text-cyan-800' },
+        { key: 'Public Nuisance', label: 'Public Nuisance', icon: 'fa-exclamation-circle', color: 'bg-red-100 text-red-800' },
+        { key: 'Other', label: 'Others', icon: 'fa-ellipsis-h', color: 'bg-purple-100 text-purple-800' }
+    ];
+
+    // Define comprehensive keywords for each category
+    const categoryKeywords = {
+        'Waste Management': [
+            'garbage', 'waste', 'trash', 'rubbish', 'dump', 'litter', 'bin', 'collection', 
+            'cleaning', 'dustbin', 'disposal', 'refuse', 'scrap', 'junk', 'debris',
+            'sweeping', 'sanitation', 'hygiene', 'dirty', 'smell', 'stink'
+        ],
+        'Water Leakage': [
+            'water', 'leak', 'pipe', 'tap', 'burst', 'overflow', 'supply', 'connection',
+            'plumbing', 'valve', 'faucet', 'drip', 'flow', 'pressure', 'shortage',
+            'contamination', 'quality', 'drinking water', 'bore well'
+        ],
+        'Road Repair': [
+            'road', 'pothole', 'street', 'path', 'pavement', 'crack', 'repair', 'broken',
+            'damage', 'construction', 'surface', 'asphalt', 'concrete', 'sidewalk',
+            'footpath', 'bridge', 'culvert', 'speed breaker'
+        ],
+        'Streetlight Outage': [
+            'light', 'lamp', 'bulb', 'dark', 'electricity', 'power', 'street light',
+            'illumination', 'lighting', 'pole', 'wire', 'cable', 'outage', 'blackout',
+            'safety', 'night', 'visibility'
+        ],
+        'Drainage': [
+            'drain', 'flood', 'waterlog', 'clog', 'block', 'overflow', 'stagnant',
+            'puddle', 'rain water', 'monsoon', 'sewage', 'gutter', 'canal',
+            'storm water', 'flooding', 'water stagnation'
+        ],
+        'Public Nuisance': [
+            'noise', 'nuisance', 'disturbance', 'loud', 'music', 'party', 'drunk',
+            'fight', 'harassment', 'pollution', 'smoke', 'dust', 'construction noise',
+            'traffic', 'honking', 'loudspeaker', 'antisocial'
+        ]
+    };
+
+    // Helper function to determine which category a complaint belongs to based on content
+    const getComplaintCategory = (complaint: Complaint) => {
+        const title = complaint.title?.toLowerCase() || '';
+        const description = complaint.description?.toLowerCase() || '';
+        const combined = `${title} ${description}`;
+
+        // Debug logging (remove this after testing)
+        console.log('Categorizing complaint based on content:', {
+            id: complaint.id,
+            title: complaint.title,
+            description: complaint.description?.substring(0, 50) + '...',
+            combined: combined.substring(0, 100) + '...'
+        });
+
+        // Check each category for keyword matches
+        for (const [categoryKey, keywords] of Object.entries(categoryKeywords)) {
+            const matchedKeywords = keywords.filter(keyword => combined.includes(keyword));
+            if (matchedKeywords.length > 0) {
+                console.log(`Matched category: ${categoryKey} (keywords: ${matchedKeywords.join(', ')})`);
+                return categoryKey;
+            }
+        }
+
+        console.log('No category match found, using Other');
+        return 'Other'; // Default fallback
+    };
+
+    // Filter complaints based on selected category
+    const filteredComplaints = (selectedCategory === 'all' 
+        ? complaints 
+        : complaints.filter(c => getComplaintCategory(c) === selectedCategory))
+        .sort((a, b) => {
+            // Sort by priority score (higher first), then by duplicate count (higher first), then by date (newer first)
+            if (a.priorityScore !== b.priorityScore) {
+                return b.priorityScore - a.priorityScore;
+            }
+            if ((a.duplicateCount || 0) !== (b.duplicateCount || 0)) {
+                return (b.duplicateCount || 0) - (a.duplicateCount || 0);
+            }
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+
+    // Get complaint counts by category
+    const getCategoryCount = (categoryKey: string) => {
+        if (categoryKey === 'all') return complaints.length;
+        return complaints.filter(c => getComplaintCategory(c) === categoryKey).length;
+    };
 
     const fetchWardComplaints = async () => {
         setLoading(true);
@@ -1178,6 +1273,7 @@ const WardComplaints: React.FC = () => {
                     ward: g.ward,
                     imageURL: g.imageURL,
                     issueType: g.issueType,
+                    title: g.title,
                     description: g.description,
                     location: g.location,
                     priorityScore: g.priorityScore,
@@ -1321,18 +1417,98 @@ const WardComplaints: React.FC = () => {
         <div>
             <div className="flex items-center justify-between mb-6">
                 <h3 className="font-bold text-xl text-gray-800">Pending Complaints in Your Ward</h3>
+                <div className="text-sm text-gray-600">
+                    {selectedCategory === 'all' ? 'All Categories' : complaintCategories.find(cat => cat.key === selectedCategory)?.label} 
+                    ({filteredComplaints.length} complaint{filteredComplaints.length !== 1 ? 's' : ''})
+                </div>
             </div>
+
+            {/* Quick Summary - Only show when not loading and have complaints */}
+            {!loading && complaints.length > 0 && (
+                <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Complaint Summary</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {complaintCategories.slice(1).map(category => {
+                            const count = getCategoryCount(category.key);
+                            if (count === 0) return null;
+                            return (
+                                <div key={category.key} className="text-center">
+                                    <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${category.color} mb-1`}>
+                                        <i className={`fas ${category.icon} text-sm`}></i>
+                                    </div>
+                                    <div className="text-lg font-bold text-gray-800">{count}</div>
+                                    <div className="text-xs text-gray-600">{category.label}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Category Filter Buttons */}
+            <div className="mb-6">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                    {complaintCategories.map(category => {
+                        const count = getCategoryCount(category.key);
+                        return (
+                            <button
+                                key={category.key}
+                                onClick={() => setSelectedCategory(category.key)}
+                                className={`inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 ${
+                                    selectedCategory === category.key
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : `${category.color} hover:shadow-md border border-transparent hover:border-gray-300`
+                                } ${count === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                disabled={count === 0}
+                            >
+                                <i className={`fas ${category.icon} mr-1 sm:mr-2`}></i>
+                                <span className="hidden sm:inline">{category.label}</span>
+                                <span className="sm:hidden">{category.label.split(' ')[0]}</span>
+                                <span className={`ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                    selectedCategory === category.key
+                                        ? 'bg-white bg-opacity-20 text-white'
+                                        : 'bg-white bg-opacity-60'
+                                }`}>
+                                    {count}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
             <div className="space-y-4">
                 {loading ? (
                     <div className="text-gray-600 text-sm">Loading complaints...</div>
                 ) : complaints.length === 0 ? (
                     <div className="text-gray-600 text-sm">No active complaints in your ward.</div>
+                ) : filteredComplaints.length === 0 ? (
+                    <div className="text-center py-8">
+                        <div className="text-gray-400 mb-2">
+                            <i className="fas fa-search text-3xl"></i>
+                        </div>
+                        <div className="text-gray-600 text-sm">
+                            No complaints found in the "{complaintCategories.find(cat => cat.key === selectedCategory)?.label}" category.
+                        </div>
+                        <button 
+                            onClick={() => setSelectedCategory('all')}
+                            className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                            View all complaints
+                        </button>
+                    </div>
                 ) : (
-                    complaints.map(c => (
+                    filteredComplaints.map(c => (
                         <div key={c.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200 cursor-pointer" onClick={() => setSelectedComplaint(c)}>
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                     <div className="flex items-center mb-2">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mr-3 ${
+                                            complaintCategories.find(cat => cat.key === getComplaintCategory(c))?.color || 'bg-gray-100 text-gray-800'
+                                        }`}>
+                                            <i className={`fas ${complaintCategories.find(cat => cat.key === getComplaintCategory(c))?.icon || 'fa-exclamation-circle'} mr-1`}></i>
+                                            {complaintCategories.find(cat => cat.key === getComplaintCategory(c))?.label || c.issueType}
+                                        </span>
                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-3">
                                             Priority {c.priorityScore}
                                         </span>
@@ -1362,7 +1538,7 @@ const WardComplaints: React.FC = () => {
                                             {new Date(c.createdAt).toLocaleDateString()}
                                         </span>
                                     </div>
-                                    <h4 className="font-semibold text-gray-800 mb-2">{c.issueType}</h4>
+                                    <h4 className="font-semibold text-gray-800 mb-2">{c.title || c.issueType}</h4>
                                     <p className="text-gray-600 mb-3">{c.description}</p>
                                     <div className="flex items-center text-sm text-gray-500 flex-wrap gap-2">
                                         <i className="fas fa-user mr-2"></i>
@@ -1402,9 +1578,10 @@ const WardComplaints: React.FC = () => {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <img src={selectedComplaint.imageURL} alt={selectedComplaint.issueType} className="w-full h-48 object-cover rounded-lg border" />
+                                <img src={selectedComplaint.imageURL} alt={selectedComplaint.title || selectedComplaint.issueType} className="w-full h-48 object-cover rounded-lg border" />
                                 <div className="mt-3 text-sm text-gray-600 space-y-1">
-                                    <div><span className="font-semibold text-gray-700">Issue:</span> {selectedComplaint.issueType}</div>
+                                    <div><span className="font-semibold text-gray-700">Title:</span> {selectedComplaint.title || selectedComplaint.issueType}</div>
+                                    <div><span className="font-semibold text-gray-700">Category:</span> {selectedComplaint.issueType}</div>
                                     <div><span className="font-semibold text-gray-700">Description:</span> {selectedComplaint.description}</div>
                                     <div><span className="font-semibold text-gray-700">Reporter:</span> {selectedComplaint.userName}</div>
                                     <div><span className="font-semibold text-gray-700">Upvotes:</span> {selectedComplaint.duplicateCount || 1}</div>
@@ -1419,7 +1596,7 @@ const WardComplaints: React.FC = () => {
                             <div>
                                 {selectedComplaint.location && (
                                     <div className="h-56 rounded-lg overflow-hidden border">
-                                        <MapView center={[selectedComplaint.location.lat, selectedComplaint.location.lng]} marker={{ position: [selectedComplaint.location.lat, selectedComplaint.location.lng], popupText: selectedComplaint.location.address || selectedComplaint.issueType }} />
+                                        <MapView center={[selectedComplaint.location.lat, selectedComplaint.location.lng]} marker={{ position: [selectedComplaint.location.lat, selectedComplaint.location.lng], popupText: selectedComplaint.location.address || selectedComplaint.title || selectedComplaint.issueType }} />
                                     </div>
                                 )}
                                 <div className="mt-4 flex flex-col gap-2">

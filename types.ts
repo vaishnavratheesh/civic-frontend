@@ -63,6 +63,7 @@ export interface Complaint {
   ward: number;
   imageURL?: string;
   issueType: string;
+  title?: string;
   description: string;
   location: { lat: number; lng: number; address?: string };
   priorityScore: number;
