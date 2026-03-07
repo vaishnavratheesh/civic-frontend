@@ -65,17 +65,37 @@ export interface Complaint {
   issueType: string;
   title?: string;
   description: string;
-  location: { lat: number; lng: number; address?: string };
+  location: { lat: number; lng: number; address?: string; ward?: string };
   priorityScore: number;
   credibilityScore?: number;
   flags?: string[];
   status: ComplaintStatus;
-  assignedTo?: string;
+  assignedTo?: {
+    workerId?: string;
+    workerName?: string;
+    workerType?: string;
+    workerContact?: string;
+    assignedBy?: string;
+    assignedByName?: string;
+    assignedAt?: string;
+    acceptedAt?: string;
+    completedAt?: string;
+    assignmentNotes?: string;
+    progressPhotos?: Array<{ url: string; type: string; uploadedAt: string }>;
+    completionPhotos?: Array<{ url: string; type: string; uploadedAt: string }>;
+  };
   officerName?: string;
   source: 'user' | 'iot';
   audit?: { submittedAt?: string; ip?: string; device?: string };
+  actionHistory?: Array<{
+    action: string;
+    by: string;
+    at: string;
+    remarks?: string;
+  }>;
   createdAt: string;
   resolvedAt?: string;
+  resolutionNotes?: string;
   beforeImageUrl?: string;
   afterImageUrl?: string;
   duplicateGroupId?: string;
@@ -92,6 +112,25 @@ export interface Complaint {
     uploadedAt?: string;
     rejectionReason?: string;
   }>;
+}
+
+export interface Worker {
+  _id: string;
+  name: string;
+  type: string;
+  contact: string;
+  email?: string;
+  ward: string;
+  availability: 'available' | 'busy' | 'offline';
+  assignedTasks: number;
+  specialization?: string;
+  joiningDate?: string;
+  experience?: number;
+  rating?: number;
+  completedTasks?: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface WelfareScheme {
@@ -200,23 +239,23 @@ declare namespace google {
       setCenter(latLng: LatLng): void;
       addListener(event: string, handler: Function): void;
     }
-    
+
     class Marker {
       constructor(options: any);
       setPosition(latLng: LatLng): void;
       addListener(event: string, handler: Function): void;
     }
-    
+
     class Geocoder {
       geocode(request: any): Promise<GeocoderResult>;
     }
-    
+
     class LatLng {
       constructor(lat: number, lng: number);
       lat(): number;
       lng(): number;
     }
-    
+
     interface GeocoderResult {
       results: Array<{
         formatted_address: string;
@@ -225,7 +264,7 @@ declare namespace google {
         };
       }>;
     }
-    
+
     namespace places {
       class SearchBox {
         constructor(input: HTMLInputElement);

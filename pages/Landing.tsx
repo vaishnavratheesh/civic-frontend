@@ -21,6 +21,10 @@ const Landing: React.FC = () => {
                         <Link to="/login" className="text-gray-700 hover:text-blue-800 font-semibold transition-colors duration-200">
                              Login
                         </Link>
+                        <Link to="/worker/login" className="text-gray-700 hover:text-purple-800 font-semibold transition-colors duration-200 flex items-center space-x-1">
+                            <i className="fas fa-hard-hat"></i>
+                            <span>Worker Portal</span>
+                        </Link>
                         {/* Councillor login removed: unified login handles councillors via email/password */}
                         <Link to="/register" className="bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
                             Register Now
