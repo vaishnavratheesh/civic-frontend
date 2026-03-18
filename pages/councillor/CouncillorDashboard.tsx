@@ -253,7 +253,7 @@ const CouncillorDashboard: React.FC = () => {
                     activeTab={activeTab}
                     onItemClick={handleSidebarNavigation}
                 />
-                <main className="flex-1 p-6">
+                <main className="flex-1 p-3 sm:p-6 min-w-0">
                     <SabhaMeetingJoin />
                     {/* Header (no big page title) */}
                     <div className="mb-6">
@@ -271,8 +271,8 @@ const CouncillorDashboard: React.FC = () => {
                     </div>
 
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6">
+                        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
                             <div className="flex items-center">
                                 <div className="p-2 bg-red-100 rounded-lg">
                                     <i className="fas fa-exclamation-triangle text-red-600"></i>
@@ -284,7 +284,7 @@ const CouncillorDashboard: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
                             <div className="flex items-center">
                                 <div className="p-2 bg-green-100 rounded-lg">
                                     <i className="fas fa-hands-helping text-green-600"></i>
@@ -296,7 +296,7 @@ const CouncillorDashboard: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
                             <div className="flex items-center">
                                 <div className="p-2 bg-blue-100 rounded-lg">
                                     <i className="fas fa-hands-helping text-blue-600"></i>
@@ -308,7 +308,7 @@ const CouncillorDashboard: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
                             <div className="flex items-center">
                                 <div className="p-2 bg-purple-100 rounded-lg">
                                     <i className="fas fa-users text-purple-600"></i>
@@ -324,10 +324,10 @@ const CouncillorDashboard: React.FC = () => {
                     {/* Tabs */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                         <div className="border-b border-gray-200">
-                            <nav className="-mb-px flex space-x-8 px-6">
+                            <nav className="-mb-px flex overflow-x-auto scrollbar-none px-4" style={{scrollbarWidth:'none'}}>
                                 <button
                                     onClick={() => setActiveTab('complaints')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'complaints'
+                                    className={`flex-shrink-0 whitespace-nowrap py-3 px-3 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 ${activeTab === 'complaints'
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         }`}
@@ -337,7 +337,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('welfare')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'welfare'
+                                    className={`flex-shrink-0 whitespace-nowrap py-3 px-3 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 ${activeTab === 'welfare'
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         }`}
@@ -347,7 +347,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('view-schemes')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'view-schemes'
+                                    className={`flex-shrink-0 whitespace-nowrap py-3 px-3 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 ${activeTab === 'view-schemes'
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         }`}
@@ -357,7 +357,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('verification')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'verification'
+                                    className={`flex-shrink-0 whitespace-nowrap py-3 px-3 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 ${activeTab === 'verification'
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         }`}
@@ -367,7 +367,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('add-schemes')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'add-schemes'
+                                    className={`flex-shrink-0 whitespace-nowrap py-3 px-3 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 ${activeTab === 'add-schemes'
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         }`}
@@ -377,7 +377,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('announcements')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'announcements'
+                                    className={`flex-shrink-0 whitespace-nowrap py-3 px-3 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 ${activeTab === 'announcements'
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         }`}
@@ -387,7 +387,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('events')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'events'
+                                    className={`flex-shrink-0 whitespace-nowrap py-3 px-3 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 ${activeTab === 'events'
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         }`}
@@ -397,7 +397,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('esabha')}
-                                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'esabha'
+                                    className={`flex-shrink-0 whitespace-nowrap py-3 px-3 border-b-2 font-medium text-xs sm:text-sm transition-colors duration-200 ${activeTab === 'esabha'
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         }`}
@@ -407,7 +407,7 @@ const CouncillorDashboard: React.FC = () => {
                                 </button>
                             </nav>
                         </div>
-                        <div className="p-6">
+                        <div className="p-3 sm:p-6">
                             {activeTab === 'complaints' && <WardComplaints />}
                             {activeTab === 'welfare' && <WelfareQueue />}
                             {activeTab === 'view-schemes' && <ViewSchemes />}
@@ -1159,6 +1159,7 @@ const WardComplaints: React.FC = () => {
     const [acting, setActing] = useState<{ [id: string]: string | undefined }>({});
     const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [statusTab, setStatusTab] = useState<'New' | 'In Progress' | 'Resolved'>('New');
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [assigningComplaint, setAssigningComplaint] = useState<Complaint | null>(null);
 
@@ -1255,11 +1256,25 @@ const WardComplaints: React.FC = () => {
         return shortDesc ? `${category}: ${shortDesc}` : category;
     };
 
-    // Filter complaints based on selected category
-    const filteredComplaints = (selectedCategory === 'all'
-        ? complaints
-        : complaints.filter(c => getComplaintCategory(c) === selectedCategory))
-        .sort((a, b) => {
+    // Filter complaints based on selected category and status
+    const filteredComplaints = complaints.filter(c => {
+        // Status filter
+        if (statusTab === 'New') {
+            if (c.assignedTo?.workerId) return false;
+            if (c.status === 'Resolved') return false;
+        } else if (statusTab === 'In Progress') {
+            if (!c.assignedTo?.workerId) return false;
+            if (c.status === 'Resolved') return false;
+        } else if (statusTab === 'Resolved') {
+            if (c.status !== 'Resolved') return false;
+        }
+        
+        // Category filter
+        if (selectedCategory !== 'all' && getComplaintCategory(c) !== selectedCategory) {
+            return false;
+        }
+        return true;
+    }).sort((a, b) => {
             // Sort by priority score (higher first), then by duplicate count (higher first), then by date (newer first)
             if (a.priorityScore !== b.priorityScore) {
                 return b.priorityScore - a.priorityScore;
@@ -1288,7 +1303,7 @@ const WardComplaints: React.FC = () => {
             });
             if (res.ok) {
                 const data = await res.json();
-                const mapped = (data.grievances || []).filter((g: any) => g.status !== 'resolved').map((g: any) => ({
+                const mapped = (data.grievances || []).map((g: any) => ({
                     id: g.id,
                     userId: g.userId,
                     userName: g.userName,
@@ -1317,7 +1332,8 @@ const WardComplaints: React.FC = () => {
                         videoUrl: req.videoUrl,
                         uploadedAt: req.uploadedAt,
                         rejectionReason: req.rejectionReason
-                    }))
+                    })),
+                    assignedTo: g.assignedTo
                 }));
                 mapped.sort((a: any, b: any) => (b.priorityScore - a.priorityScore) || ((b.duplicateCount || 0) - (a.duplicateCount || 0)) || (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
                 setComplaints(mapped);
@@ -1436,6 +1452,35 @@ const WardComplaints: React.FC = () => {
         }
     };
 
+    const handleApprovePayment = async (complaintId: string) => {
+        try {
+            setActing(prev => ({ ...prev, [complaintId]: 'approving_payment' }));
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/grievances/${complaintId}/approve-payment`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    toast: true,
+                    position: 'top-end',
+                    title: 'Payment processed successfully',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                fetchWardComplaints();
+            } else {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to process payment');
+            }
+        } catch (error: any) {
+            Swal.fire('Error', error.message, 'error');
+        } finally {
+            setActing(prev => ({ ...prev, [complaintId]: undefined }));
+        }
+    };
+
     useEffect(() => {
         const socket = io(import.meta.env.VITE_BACKEND_URL, { withCredentials: true });
         
@@ -1496,25 +1541,40 @@ const WardComplaints: React.FC = () => {
 
             {/* Quick Summary - Only show when not loading and have complaints */}
             {!loading && complaints.length > 0 && (
-                <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Complaint Summary</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="mb-4 bg-white rounded-lg border border-gray-200 p-3">
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Complaint Breakdown</h4>
+                    <div className="flex flex-wrap gap-2">
                         {complaintCategories.slice(1).map(category => {
                             const count = getCategoryCount(category.key);
                             if (count === 0) return null;
                             return (
-                                <div key={category.key} className="text-center">
-                                    <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${category.color} mb-1`}>
-                                        <i className={`fas ${category.icon} text-sm`}></i>
-                                    </div>
-                                    <div className="text-lg font-bold text-gray-800">{count}</div>
-                                    <div className="text-xs text-gray-600">{category.label}</div>
+                                <div key={category.key} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${category.color}`}>
+                                    <i className={`fas ${category.icon} text-xs`}></i>
+                                    {count} {category.label}
                                 </div>
                             );
                         })}
                     </div>
                 </div>
             )}
+
+            {/* Status Tabs */}
+            <div className="mb-4 border-b border-gray-200">
+                <nav className="-mb-px flex overflow-x-auto" style={{scrollbarWidth:'none'}}>
+                    {['New', 'In Progress', 'Resolved'].map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => { setStatusTab(tab as any); setSelectedCategory('all'); }}
+                            className={`flex-shrink-0 whitespace-nowrap py-3 px-4 border-b-2 font-bold text-sm ${statusTab === tab ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                        >
+                            {tab === 'New' ? 'Unassigned/New' : tab === 'In Progress' ? 'Ongoing Works' : 'Resolved Complaints'}
+                            <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] ${statusTab === tab ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-400 font-black'}`}>
+                                {complaints.filter(c => tab === 'New' ? (!c.assignedTo?.workerId && c.status !== 'Resolved') : tab === 'In Progress' ? (!!c.assignedTo?.workerId && c.status !== 'Resolved') : (c.status === 'Resolved')).length}
+                            </span>
+                        </button>
+                    ))}
+                </nav>
+            </div>
 
             {/* Category Filter Buttons */}
             <div className="mb-6">
@@ -1568,8 +1628,8 @@ const WardComplaints: React.FC = () => {
                     </div>
                 ) : (
                     filteredComplaints.map(c => (
-                        <div key={c.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200 cursor-pointer" onClick={() => setSelectedComplaint(c)}>
-                            <div className="flex items-start justify-between">
+                        <div key={c.id} className="bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200 cursor-pointer" onClick={() => setSelectedComplaint(c)}>
+                            <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-3">
                                 <div className="flex-1">
                                     <div className="flex items-center mb-2">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mr-3 ${complaintCategories.find(cat => cat.key === getComplaintCategory(c))?.color || 'bg-gray-100 text-gray-800'
@@ -1607,20 +1667,46 @@ const WardComplaints: React.FC = () => {
                                         </span>
                                     </div>
                                     <h4 className="font-semibold text-gray-800 mb-2">{getComplaintTitle(c)}</h4>
-                                    <p className="text-gray-600 mb-3 text-sm">{c.description}</p>
-                                    <div className="flex items-center text-sm text-gray-500 flex-wrap gap-2">
-                                        <i className="fas fa-user mr-2"></i>
-                                        <span>Reported by: {c.userName}</span>
-                                        <span className="mx-2">•</span>
-                                        <i className="fas fa-map-marker-alt mr-2"></i>
-                                        <span>
-                                            {c.location?.address || `${c.location?.lat?.toFixed?.(6)}, ${c.location?.lng?.toFixed?.(6)}`} {c.location?.lat !== undefined && c.location?.lng !== undefined ? `(${c.location.lat.toFixed(6)}, ${c.location.lng.toFixed(6)})` : ''}
-                                        </span>
-                                        <span className="mx-2">•</span>
-                                        <span>Ward {c.ward}</span>
+                                    
+                                    {statusTab === 'Resolved' ? (
+                                        <div className="bg-white p-4 rounded border mt-2 mb-3 flex flex-col sm:flex-row gap-4">
+                                            {(c.assignedTo as any)?.completionPhotos && (c.assignedTo as any).completionPhotos.length > 0 ? (
+                                                <img src={(c.assignedTo as any).completionPhotos[0].url} alt="Completion Proof" className="w-full sm:w-28 h-28 object-cover rounded-md border" />
+                                            ) : (
+                                                <div className="w-full sm:w-28 h-28 bg-gray-50 border flex items-center justify-center rounded-md text-gray-400">
+                                                    <i className="fas fa-image fa-2x"></i>
+                                                </div>
+                                            )}
+                                            <div className="flex-1">
+                                                <div className="font-bold text-gray-800 flex items-center mb-1 text-base">
+                                                    <i className="fas fa-check-circle text-emerald-500 mr-2"></i>
+                                                    Resolved by {c.assignedTo?.workerName || 'Worker'}
+                                                </div>
+                                                <div className="text-sm text-gray-600 mb-3 italic">
+                                                    {c.resolutionNotes ? `"${c.resolutionNotes}"` : 'No resolution notes provided.'}
+                                                </div>
+                                                {(c.assignedTo?.paymentRequested ?? 0) > 0 && (
+                                                    <div className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold border ${c.assignedTo?.paymentStatus === 'completed' || c.assignedTo?.paymentStatus === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>
+                                                        <i className="fas fa-rupee-sign mr-1.5"></i>
+                                                        Service Fee: ₹{c.assignedTo?.paymentRequested}
+                                                        <span className="ml-2 text-xs font-normal opacity-80 uppercase tracking-wider">
+                                                            ({c.assignedTo?.paymentStatus === 'completed' || c.assignedTo?.paymentStatus === 'paid' ? 'Paid' : 'Pending'})
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-600 mb-3 text-sm">{c.description}</p>
+                                    )}
+                                    <div className="text-xs text-gray-500 truncate max-w-xs" title={"Ward " + c.ward}>
+                                        <i className="fas fa-map-marker-alt mr-1"></i>
+                                        {c.location?.address
+                                            ? (c.location.address.length > 60 ? c.location.address.slice(0, 60) + '…' : c.location.address)
+                                            : `${c.location?.lat?.toFixed?.(4)}, ${c.location?.lng?.toFixed?.(4)}`} • Ward {c.ward}
                                     </div>
                                 </div>
-                                <div className="ml-4 flex flex-col items-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex flex-col items-start sm:items-end gap-2 w-full sm:w-auto flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                                     <span className={`px-3 py-1 text-xs font-semibold rounded-full ${STATUS_COLORS[c.status]}`}>{c.status}</span>
                                     {c.assignedTo?.workerName && (
                                         <div className="text-xs text-gray-600 bg-purple-50 px-2 py-1 rounded">
@@ -1629,22 +1715,37 @@ const WardComplaints: React.FC = () => {
                                         </div>
                                     )}
                                     <div className="flex flex-wrap gap-2 justify-end">
-                                        <button
-                                            onClick={() => {
-                                                setAssigningComplaint(c);
-                                                setShowAssignModal(true);
-                                            }}
-                                            className="px-3 py-1.5 text-xs rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors"
-                                        >
-                                            <i className="fas fa-user-plus mr-1"></i>
-                                            {c.assignedTo?.workerName ? 'Reassign' : 'Assign'}
-                                        </button>
-                                        <button onClick={() => autoVerify(c.id)} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-indigo-600 text-white disabled:opacity-50">
-                                            {acting[c.id] ? 'Processing…' : 'Auto Verify'}
-                                        </button>
-                                        <button onClick={() => updateStatus(c.id, 'In Progress')} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white disabled:opacity-50">In Progress</button>
-                                        <button onClick={() => updateStatus(c.id, 'Resolved')} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-green-600 text-white disabled:opacity-50">Resolve</button>
-                                        <button onClick={() => updateStatus(c.id, 'Rejected')} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-red-600 text-white disabled:opacity-50">Reject</button>
+                                        {statusTab !== 'Resolved' && (
+                                            <>
+                                                <button
+                                                    onClick={() => {
+                                                        setAssigningComplaint(c);
+                                                        setShowAssignModal(true);
+                                                    }}
+                                                    className="px-3 py-1.5 text-xs rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                                                >
+                                                    <i className="fas fa-user-plus mr-1"></i>
+                                                    {c.assignedTo?.workerName ? 'Reassign' : 'Assign'}
+                                                </button>
+                                                <button onClick={() => autoVerify(c.id)} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-indigo-600 text-white disabled:opacity-50">
+                                                    {acting[c.id] ? 'Processing…' : 'Auto Verify'}
+                                                </button>
+                                                <button onClick={() => updateStatus(c.id, 'In Progress')} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white disabled:opacity-50">In Progress</button>
+                                                <button onClick={() => updateStatus(c.id, 'Resolved')} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-green-600 text-white disabled:opacity-50">Resolve</button>
+                                                <button onClick={() => updateStatus(c.id, 'Rejected')} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-red-600 text-white disabled:opacity-50">Reject</button>
+                                            </>
+                                        )}
+                                        {statusTab === 'Resolved' && (c.assignedTo?.paymentRequested ?? 0) > 0 && c.assignedTo?.paymentStatus === 'pending' && (
+                                            <button onClick={() => handleApprovePayment(c.id)} disabled={!!acting[c.id]} className="px-3 py-1.5 text-xs rounded-md bg-emerald-600 text-white disabled:opacity-50 shadow-sm font-semibold">
+                                                <i className="fas fa-rupee-sign mr-1"></i>
+                                                {acting[c.id] === 'approving_payment' ? 'Processing...' : `Pay ₹${c.assignedTo.paymentRequested}`}
+                                            </button>
+                                        )}
+                                        {statusTab === 'Resolved' && c.assignedTo?.paymentStatus === 'completed' && (
+                                            <span className="px-3 py-1.5 text-xs rounded-md bg-gray-100 text-emerald-700 font-semibold border border-emerald-200">
+                                                <i className="fas fa-check-circle mr-1"></i> Payment Settled (₹{c.assignedTo.paymentRequested})
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -1726,7 +1827,7 @@ const WardComplaints: React.FC = () => {
                                 {/* Progress Photos */}
                                 {(selectedComplaint.assignedTo as any)?.progressPhotos?.map((photo: any, idx: number) => (
                                     <TimelineStep 
-                                        key={idx}
+                                        key={`prog-${idx}`}
                                         icon="fa-camera" 
                                         title={`Progress Update #${idx + 1}`} 
                                         at={photo.uploadedAt}
@@ -1745,6 +1846,31 @@ const WardComplaints: React.FC = () => {
                                     remarks={selectedComplaint.resolutionNotes}
                                     status={selectedComplaint.status === 'Resolved' ? 'success' : 'pending'}
                                 />
+
+                                {/* Completion Photos */}
+                                {(selectedComplaint.assignedTo as any)?.completionPhotos?.map((photo: any, idx: number) => (
+                                    <TimelineStep 
+                                        key={`comp-${idx}`}
+                                        icon="fa-images" 
+                                        title={`Completion Proof #${idx + 1}`} 
+                                        at={photo.uploadedAt || selectedComplaint.resolvedAt}
+                                        by={selectedComplaint.assignedTo?.workerName}
+                                        image={photo.url}
+                                        status="success"
+                                    />
+                                ))}
+
+                                {/* Payment Step */}
+                                {selectedComplaint.status === 'Resolved' && (selectedComplaint.assignedTo?.paymentRequested ?? 0) > 0 && (
+                                    <TimelineStep 
+                                        icon="fa-rupee-sign" 
+                                        title={selectedComplaint.assignedTo?.paymentStatus === 'completed' || selectedComplaint.assignedTo?.paymentStatus === 'paid' ? "Payment Settled" : "Payment Pending"} 
+                                        at={selectedComplaint.resolvedAt}
+                                        by="Councillor"
+                                        remarks={`Amount: ₹${selectedComplaint.assignedTo?.paymentRequested}`}
+                                        status={selectedComplaint.assignedTo?.paymentStatus === 'completed' || selectedComplaint.assignedTo?.paymentStatus === 'paid' ? 'success' : 'pending'}
+                                    />
+                                )}
                             </div>
                         </div>
 
@@ -1868,12 +1994,12 @@ const WardComplaints: React.FC = () => {
 const WelfareQueue: React.FC = () => {
     const { user } = useAuth();
     const [applications, setApplications] = useState<WelfareApplication[]>([]);
-    const [loadingScores, setLoadingScores] = useState<{ [key: string]: boolean }>({});
+
+    const [scoringBatch, setScoringBatch] = useState<{ [key: string]: boolean }>({});
     const [schemes, setSchemes] = useState<WelfareScheme[]>([]);
     const [selectedScheme, setSelectedScheme] = useState<WelfareScheme | null>(null);
     const [showAnalytics, setShowAnalytics] = useState(false);
     const [verifying, setVerifying] = useState<{ [key: string]: boolean }>({});
-    const [verificationInfo, setVerificationInfo] = useState<{ [key: string]: { status: string; score?: number; remarks?: string } }>({});
     const [selectedApplication, setSelectedApplication] = useState<any>(null);
     const [showVerificationModal, setShowVerificationModal] = useState(false);
     const [loadingSchemes, setLoadingSchemes] = useState(true);
@@ -1895,9 +2021,8 @@ const WelfareQueue: React.FC = () => {
                     // Filter for ongoing schemes (active status and not expired)
                     const ongoingSchemes = (data.schemes || []).filter((s: any) => {
                         if (!s.applicationDeadline || !s.endDate) return false;
-                        const deadline = new Date(s.applicationDeadline);
                         const endDate = new Date(s.endDate);
-                        return s.status === 'active' && deadline > now && endDate > now;
+                        return s.status === 'active' && endDate > now;
                     }).map((s: any) => ({
                         ...s,
                         id: s._id || s.id // Ensure id field exists
@@ -1960,21 +2085,33 @@ const WelfareQueue: React.FC = () => {
                             userName: a.userName,
                             address: a.personalDetails?.address || '',
                             phoneNumber: a.personalDetails?.phoneNumber || '',
+                            houseNumber: a.personalDetails?.houseNumber || '',
                             rationCardNumber: a.personalDetails?.rationCardNumber || '',
                             aadharNumber: a.personalDetails?.aadharNumber || '',
                             ward: a.userWard,
                             reason: a.reason,
                             isHandicapped: !!a.personalDetails?.isHandicapped,
                             isSingleWoman: !!a.personalDetails?.isSingleWoman,
-                            familyIncome: a.personalDetails?.familyIncome ?? 0,
+                            familyIncome: a.personalDetails?.familyIncome ?? a.personalDetails?.totalIncome ?? 0,
                             dependents: a.personalDetails?.dependents ?? 0,
                             caste: a.personalDetails?.caste || '',
                             incomeCategory: a.personalDetails?.incomeCategory || '',
                             ownsLand: !!a.personalDetails?.ownsLand,
+                            // New detailed personal detail fields
+                            isKudumbasreeMember: !!a.personalDetails?.isKudumbasreeMember,
+                            paysHarithakarmasenaFee: !!a.personalDetails?.paysHarithakarmasenaFee,
+                            hasFamilyMemberWithGovtJob: !!a.personalDetails?.hasFamilyMemberWithGovtJob,
+                            hasDisabledPersonInHouse: !!a.personalDetails?.hasDisabledPersonInHouse,
+                            hasFamilyMemberWithPension: !!a.personalDetails?.hasFamilyMemberWithPension,
+                            totalIncome: a.personalDetails?.totalIncome ?? a.personalDetails?.familyIncome ?? 0,
+                            landDetails: a.personalDetails?.landDetails || { villageName: '', surveyNumber: '', area: '' },
+                            drinkingWaterSource: a.personalDetails?.drinkingWaterSource || '',
+                            hasToilet: !!a.personalDetails?.hasToilet,
                             status: statusMap[(a.status || 'pending').toLowerCase()] || ApplicationStatus.PENDING,
                             createdAt: a.appliedAt,
                             score: a.score,
                             justification: a.justification,
+                            detailedAnalysis: a.detailedAnalysis,
                             documents: a.documents || [],
                         }));
                     console.log('Mapped applications:', mapped);
@@ -1996,60 +2133,77 @@ const WelfareQueue: React.FC = () => {
         fetchApplications();
     }, [user?.id, user?.ward, selectedScheme]);
 
-    const handleGetScore = async (appId: string) => {
-        const app = applications.find(a => a.id === appId);
-        if (!app || app.score !== undefined) return;
 
-        setLoadingScores(prev => ({ ...prev, [appId]: true }));
+
+    const handleScoreBatch = async (schemeId: string) => {
+        setScoringBatch(prev => ({ ...prev, [schemeId]: true }));
         try {
-            // Call ML service directly
-            const resp = await fetch(`http://localhost:8001/score`, {
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/schemes/${schemeId}/score-applications`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(app) // Send the full application data
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-
+            const data = await resp.json();
             if (resp.ok) {
-                const data = await resp.json();
-                console.log('ML Score received:', data);
-
-                // Update the application with the score
-                setApplications(prev => prev.map(a =>
-                    a.id === appId ? {
-                        ...a,
-                        score: Math.round(data.score),
-                        justification: data.justification,
-                        priority: data.priority
-                    } : a
-                ));
-            } else {
-                console.error('ML service error:', resp.status);
-                // Fallback scoring
-                const fallbackScore = Math.floor(Math.random() * 100);
-                setApplications(prev => prev.map(a =>
-                    a.id === appId ? {
-                        ...a,
-                        score: fallbackScore,
-                        justification: `⚠️ ML Service Not Running - Please start ML service: cd ml && python welfare_scoring_service.py`
-                    } : a
-                ));
-            }
-        } catch (error) {
-            console.error("Failed to get score", error);
-            // Fallback scoring
-            const fallbackScore = Math.floor(Math.random() * 100);
-            setApplications(prev => prev.map(a =>
-                a.id === appId ? {
-                    ...a,
-                    score: fallbackScore,
-                    justification: `⚠️ ML Service Not Running - Please start ML service: cd ml && python welfare_scoring_service.py`
-                } : a
-            ));
-        } finally {
-            setLoadingScores(prev => ({ ...prev, [appId]: false }));
-        }
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Scoring Complete',
+                    text: `Successfully scored applications.`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                // Fetch applications again
+                const params = new URLSearchParams();
+                if (user?.ward) params.append('ward', String(user.ward));
+                params.append('schemeId', schemeId);
+                const url = `${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications?${params.toString()}`;
+                
+                const fetchResp = await fetch(url, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } });
+                if (fetchResp.ok) {
+                    const fetchData = await fetchResp.json();
+                    const statusMap: Record<string, ApplicationStatus> = { pending: ApplicationStatus.PENDING, under_review: ApplicationStatus.UNDER_REVIEW, approved: ApplicationStatus.APPROVED, rejected: ApplicationStatus.REJECTED, completed: ApplicationStatus.COMPLETED };
+                    const mapped: WelfareApplication[] = (fetchData.applications || []).filter((a: any) => a && a._id).map((a: any) => ({
+                            id: a._id,
+                            schemeId: a.schemeId && typeof a.schemeId === 'object' ? a.schemeId._id || a.schemeId.id : a.schemeId,
+                            schemeTitle: a.schemeTitle || (a.schemeId && typeof a.schemeId === 'object' ? a.schemeId.title : ''),
+                            userId: a.userId && typeof a.userId === 'object' ? a.userId._id || a.userId.id : a.userId,
+                            userName: a.userName,
+                            address: a.personalDetails?.address || '',
+                            phoneNumber: a.personalDetails?.phoneNumber || '',
+                            houseNumber: a.personalDetails?.houseNumber || '',
+                            rationCardNumber: a.personalDetails?.rationCardNumber || '',
+                            aadharNumber: a.personalDetails?.aadharNumber || '',
+                            ward: a.userWard,
+                            reason: a.reason,
+                            isHandicapped: !!a.personalDetails?.isHandicapped,
+                            isSingleWoman: !!a.personalDetails?.isSingleWoman,
+                            familyIncome: a.personalDetails?.familyIncome ?? a.personalDetails?.totalIncome ?? 0,
+                            dependents: a.personalDetails?.dependents ?? 0,
+                            caste: a.personalDetails?.caste || '',
+                            incomeCategory: a.personalDetails?.incomeCategory || '',
+                            ownsLand: !!a.personalDetails?.ownsLand,
+                            isKudumbasreeMember: !!a.personalDetails?.isKudumbasreeMember,
+                            paysHarithakarmasenaFee: !!a.personalDetails?.paysHarithakarmasenaFee,
+                            hasFamilyMemberWithGovtJob: !!a.personalDetails?.hasFamilyMemberWithGovtJob,
+                            hasDisabledPersonInHouse: !!a.personalDetails?.hasDisabledPersonInHouse,
+                            hasFamilyMemberWithPension: !!a.personalDetails?.hasFamilyMemberWithPension,
+                            totalIncome: a.personalDetails?.totalIncome ?? a.personalDetails?.familyIncome ?? 0,
+                            landDetails: a.personalDetails?.landDetails || { villageName: '', surveyNumber: '', area: '' },
+                            drinkingWaterSource: a.personalDetails?.drinkingWaterSource || '',
+                            hasToilet: !!a.personalDetails?.hasToilet,
+                            status: statusMap[(a.status || 'pending').toLowerCase()] || ApplicationStatus.PENDING,
+                            createdAt: a.appliedAt,
+                            score: a.score,
+                            justification: a.justification,
+                            detailedAnalysis: a.detailedAnalysis,
+                            documents: a.documents || [],
+                        }));
+                    setApplications(mapped);
+                }
+            } else { Swal.fire({ icon: 'error', title: 'Evaluation Failed', text: data.error || data.message || 'Failed to score applications.' }); }
+        } catch (error) { Swal.fire({ icon: 'error', title: 'Error', text: 'Network or server error during batch scoring.' }); }
+        finally { setScoringBatch(prev => ({ ...prev, [schemeId]: false })); }
     };
 
     const openVerificationModal = (appId: string) => {
@@ -2065,8 +2219,36 @@ const WelfareQueue: React.FC = () => {
                 userEmail: '',
                 userWard: application.ward,
                 personalDetails: {
+                    // Basic Information
                     address: application.address,
                     phoneNumber: application.phoneNumber,
+                    houseNumber: application.houseNumber,
+                    
+                    // Social Information
+                    caste: application.caste,
+                    
+                    // Membership & Participation
+                    isKudumbasreeMember: application.isKudumbasreeMember,
+                    paysHarithakarmasenaFee: application.paysHarithakarmasenaFee,
+                    
+                    // Family Employment & Benefits
+                    hasFamilyMemberWithGovtJob: application.hasFamilyMemberWithGovtJob,
+                    hasDisabledPersonInHouse: application.hasDisabledPersonInHouse,
+                    hasFamilyMemberWithPension: application.hasFamilyMemberWithPension,
+                    
+                    // Financial Information
+                    totalIncome: application.totalIncome,
+                    incomeCategory: application.incomeCategory,
+                    
+                    // Land Ownership
+                    ownsLand: application.ownsLand,
+                    landDetails: application.landDetails,
+                    
+                    // Utilities
+                    drinkingWaterSource: application.drinkingWaterSource,
+                    hasToilet: application.hasToilet,
+                    
+                    // Legacy fields for backward compatibility
                     rationCardNumber: application.rationCardNumber,
                     aadharNumber: application.aadharNumber,
                     familyIncome: application.familyIncome,
@@ -2078,6 +2260,7 @@ const WelfareQueue: React.FC = () => {
                 status: application.status.toLowerCase() as any,
                 appliedAt: application.createdAt,
                 verification: application.score ? { autoScore: application.score / 100 } : undefined,
+                detailedAnalysis: (application as any).detailedAnalysis,
                 documents: application.documents || []
             } as any;
             setSelectedApplication(modalApplication);
@@ -2176,34 +2359,7 @@ const WelfareQueue: React.FC = () => {
         }
     };
 
-    const autoVerify = async (appId: string) => {
-        try {
-            setVerifying(prev => ({ ...prev, [appId]: true }));
-            const token = localStorage.getItem('token');
-            const resp = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/welfare/applications/${appId}/auto-verify`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (resp.ok) {
-                const data = await resp.json();
-                const a = data?.application;
-                setVerificationInfo(prev => ({
-                    ...prev,
-                    [appId]: {
-                        status: a?.verificationStatus || data?.status || 'Pending',
-                        score: a?.verification?.autoScore ?? data?.matchScore,
-                        remarks: a?.verification?.remarks || data?.remarks
-                    }
-                }));
-            }
-        } catch (e) {
-            console.error('Auto verify failed', e);
-        } finally {
-            setVerifying(prev => ({ ...prev, [appId]: false }));
-        }
-    };
+
 
     const sortedApplications = [...applications].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
 
@@ -2380,6 +2536,38 @@ const WelfareQueue: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center space-x-4 text-sm">
+                                    {applications.length > 0 && (() => {
+                                        const schemeId = selectedScheme.id || (selectedScheme as any)._id;
+                                        const deadline = selectedScheme.applicationDeadline ? new Date(selectedScheme.applicationDeadline) : null;
+                                        const isExpired = deadline ? new Date() > deadline : false;
+                                        const allScored = applications.every(app => app.score !== undefined);
+                                        if (allScored) return null; // Already done
+                                        if (!isExpired) {
+                                            return (
+                                                <div className="mr-6 flex flex-col items-center">
+                                                    <div className="bg-gray-200 text-gray-500 px-5 py-2.5 rounded-lg text-sm font-medium flex items-center cursor-not-allowed select-none shadow-sm border border-gray-300">
+                                                        <i className="fas fa-lock mr-2"></i> AI Score All
+                                                    </div>
+                                                    <p className="text-xs text-orange-600 mt-1 font-medium">
+                                                        Available after deadline {deadline ? `(${deadline.toLocaleDateString()})` : ''}
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return (
+                                            <button
+                                                onClick={() => handleScoreBatch(schemeId)}
+                                                disabled={scoringBatch[schemeId]}
+                                                className="mr-6 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center shadow-md border-0"
+                                            >
+                                                {scoringBatch[schemeId] ? (
+                                                    <><i className="fas fa-spinner fa-spin mr-2"></i> Analyzing...</>
+                                                ) : (
+                                                    <><i className="fas fa-bolt mr-2 text-yellow-300"></i> AI Score All</>
+                                                )}
+                                            </button>
+                                        );
+                                    })()}
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-blue-600">{selectedScheme.totalSlots}</div>
                                         <div className="text-gray-500">Total Slots</div>
@@ -2490,33 +2678,19 @@ const WelfareQueue: React.FC = () => {
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <button
-                                                            onClick={() => handleGetScore(app.id)}
-                                                            disabled={loadingScores[app.id]}
-                                                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:bg-indigo-300"
-                                                        >
-                                                            {loadingScores[app.id] ? (
-                                                                <div className="flex items-center">
-                                                                    <Spinner size="sm" />
-                                                                    <span className="ml-2">Analyzing...</span>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex items-center">
-                                                                    <i className="fas fa-brain mr-2"></i>
-                                                                    Get AI Score
-                                                                </div>
-                                                            )}
-                                                        </button>
+                                                        <div className="text-center">
+                                                            <p className="text-sm text-gray-400 mb-1">AI Score</p>
+                                                            <div className="text-sm font-medium text-gray-500 bg-gray-100 rounded-lg px-4 py-2 border border-gray-200 border-dashed inline-block mt-2">
+                                                                Pending
+                                                            </div>
+                                                        </div>
                                                     )}
                                                     <div className="flex space-x-2">
                                                         <button onClick={() => openVerificationModal(app.id)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200">
                                                             <i className="fas fa-file-signature mr-2"></i>
                                                             Verify Documents
                                                         </button>
-                                                        <button onClick={() => autoVerify(app.id)} disabled={!!verifying[app.id]} className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-60">
-                                                            <i className="fas fa-robot mr-2"></i>
-                                                            {verifying[app.id] ? 'AI Checking...' : 'Auto Verify'}
-                                                        </button>
+
                                                         <button
                                                             onClick={() => handleVerification(app.id, true, '')}
                                                             disabled={!!verifying[app.id] || app.status === ApplicationStatus.APPROVED || app.status === ApplicationStatus.REJECTED}
@@ -2534,17 +2708,7 @@ const WelfareQueue: React.FC = () => {
                                                             Reject
                                                         </button>
                                                     </div>
-                                                    {verificationInfo[app.id] && (
-                                                        <div className="text-xs text-gray-600 text-right">
-                                                            <div><span className="font-semibold">Verification:</span> {verificationInfo[app.id].status}</div>
-                                                            {verificationInfo[app.id].score !== undefined && (
-                                                                <div><span className="font-semibold">AI Score:</span> {Math.round((verificationInfo[app.id].score || 0) * 100)}%</div>
-                                                            )}
-                                                            {verificationInfo[app.id].remarks && (
-                                                                <div className="text-gray-500">{verificationInfo[app.id].remarks}</div>
-                                                            )}
-                                                        </div>
-                                                    )}
+
                                                 </div>
                                             </div>
                                         </div>

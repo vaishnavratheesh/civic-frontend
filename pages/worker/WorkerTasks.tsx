@@ -7,7 +7,7 @@ import { io } from 'socket.io-client';
 const WorkerTasks: React.FC = () => {
     const [tasks, setTasks] = useState<Complaint[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'pending' | 'inProgress' | 'completed'>('pending');
+    const [activeTab, setActiveTab] = useState<'available' | 'pending' | 'inProgress' | 'completed'>('pending');
     const [selectedTask, setSelectedTask] = useState<Complaint | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
@@ -44,17 +44,58 @@ const WorkerTasks: React.FC = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('workerToken');
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/worker/tasks`, {
+            
+            // Fetch assigned tasks
+            const resTasks = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/worker/tasks`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            const data = await res.json();
-            if (res.ok) {
-                setTasks(data.tasks || []);
+            const dataTasks = await resTasks.json();
+            
+            // Fetch assigned tasks
+            const resWard = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/worker/ward-complaints`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const dataWard = await resWard.json();
+
+            if (resTasks.ok && resWard.ok) {
+                // Combine and filter out assigned tasks from ward tasks to avoid duplicates
+                const assigned = dataTasks.tasks || [];
+                const assignedIds = new Set(assigned.map((t: any) => t.id || t._id));
+                const available = (dataWard.complaints || []).filter((t: any) => 
+                    !assignedIds.has(t.id || t._id) && 
+                    (!t.assignedTo || !t.assignedTo.workerId) && 
+                    (t.status === 'Pending' || t.status === 'pending' || t.status === 'Under Review')
+                );
+                
+                setTasks([...assigned, ...available]);
             }
         } catch (error) {
             console.error('Fetch tasks error:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSelfAssign = async (taskId: string) => {
+        setActionLoading(true);
+        try {
+            const token = localStorage.getItem('workerToken');
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/worker/tasks/${taskId}/self-assign`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                Swal.fire('Success', 'You have taken over this task.', 'success');
+                fetchTasks();
+                setShowModal(false);
+            } else {
+                Swal.fire('Error', data.message || 'Failed to take over task', 'error');
+            }
+        } catch (error: any) {
+            Swal.fire('Error', error.message, 'error');
+        } finally {
+            setActionLoading(false);
         }
     };
 
@@ -175,6 +216,7 @@ const WorkerTasks: React.FC = () => {
     };
 
     const handleCompleteTask = async (taskId: string) => {
+        const isPrivateWorker = workerData.employmentType === 'private';
         const result = await Swal.fire({
             title: 'Complete Assignment',
             html: `
@@ -182,7 +224,12 @@ const WorkerTasks: React.FC = () => {
                     <p class="mb-2 font-bold text-gray-700">Completion Photo (Required)</p>
                     <input type="file" id="completionPhotos" accept="image/*" class="mb-4 w-full cursor-pointer" />
                     <p class="mb-2 font-bold text-gray-700">Resolution Summary</p>
-                    <textarea id="completionRemarks" class="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none" rows="3" placeholder="Describe the resolution..."></textarea>
+                    <textarea id="completionRemarks" class="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none mb-4" rows="3" placeholder="Describe the resolution..."></textarea>
+                    ${isPrivateWorker ? `
+                    <p class="mb-2 font-bold text-gray-700">Service/Material Fee (₹)</p>
+                    <input type="number" id="paymentRequested" class="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Enter requested payment..." />
+                    <p class="text-xs text-gray-500 mt-1">Leave empty if no fee.</p>
+                    ` : ''}
                 </div>
             `,
             showCancelButton: true,
@@ -191,11 +238,14 @@ const WorkerTasks: React.FC = () => {
             preConfirm: () => {
                 const photos = (document.getElementById('completionPhotos') as HTMLInputElement).files;
                 const remarks = (document.getElementById('completionRemarks') as HTMLTextAreaElement).value;
+                const paymentEl = document.getElementById('paymentRequested') as HTMLInputElement;
+                const paymentRequested = paymentEl ? paymentEl.value : null;
+
                 if (!photos || photos.length === 0) {
                     Swal.showValidationMessage('Please upload a completion photo as proof');
                     return false;
                 }
-                return { photos, remarks };
+                return { photos, remarks, paymentRequested };
             }
         });
 
@@ -205,6 +255,9 @@ const WorkerTasks: React.FC = () => {
         try {
             const formData = new FormData();
             formData.append('remarks', result.value.remarks);
+            if (result.value.paymentRequested) {
+                formData.append('paymentRequested', result.value.paymentRequested);
+            }
             Array.from(result.value.photos as FileList).forEach(file => {
                 formData.append('photos', file);
             });
@@ -235,6 +288,11 @@ const WorkerTasks: React.FC = () => {
     };
 
     const filteredTasks = tasks.filter(t => {
+        if (activeTab === 'available') return !t.assignedTo || !t.assignedTo.workerId;
+        
+        // Exclude unassigned ones from other tabs
+        if (!t.assignedTo?.workerId && activeTab !== 'available') return false;
+
         if (activeTab === 'pending') return t.status === ComplaintStatus.ASSIGNED || t.status === ComplaintStatus.PENDING;
         if (activeTab === 'inProgress') return t.status === ComplaintStatus.IN_PROGRESS || (t.status as string) === 'InProgress';
         return t.status === ComplaintStatus.RESOLVED;
@@ -253,19 +311,21 @@ const WorkerTasks: React.FC = () => {
                     <p className="text-gray-500 mt-2 font-medium">Manage and resolve your assigned complaints efficiently.</p>
                 </div>
 
-                <div className="bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100 flex ring-1 ring-gray-100">
-                    {(['pending', 'inProgress', 'completed'] as const).map((tab) => (
+                <div className="bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100 flex overflow-x-auto ring-1 ring-gray-100">
+                    {(['available', 'pending', 'inProgress', 'completed'] as any).map((tab: any) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === tab
+                            className={`px-6 py-3 rounded-xl whitespace-nowrap text-sm font-bold transition-all ${activeTab === tab
                                     ? 'bg-purple-600 text-white shadow-lg shadow-purple-200'
                                     : 'text-gray-500 hover:text-purple-600 hover:bg-purple-50'
                                 }`}
                         >
-                            {tab === 'pending' ? 'Incoming' : tab === 'inProgress' ? 'Ongoing' : 'Resolved'}
+                            {tab === 'available' ? 'Available to Take' : tab === 'pending' ? 'Incoming' : tab === 'inProgress' ? 'Ongoing' : 'Resolved'}
                             <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] ${activeTab === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400 font-black'}`}>
                                 {tasks.filter(t => {
+                                    if (tab === 'available') return !t.assignedTo || !t.assignedTo.workerId;
+                                    if (!t.assignedTo?.workerId) return false;
                                     if (tab === 'pending') return t.status === ComplaintStatus.ASSIGNED || t.status === ComplaintStatus.PENDING;
                                     if (tab === 'inProgress') return t.status === ComplaintStatus.IN_PROGRESS || (t.status as string) === 'InProgress';
                                     return t.status === ComplaintStatus.RESOLVED;
@@ -395,7 +455,17 @@ const WorkerTasks: React.FC = () => {
 
                         <div className="p-8 border-t border-gray-100 bg-gray-50/50">
                             {/* Dynamic Action Buttons */}
-                            {selectedTask.status === 'Assigned' || selectedTask.status === 'Pending' ? (
+                            {(!selectedTask.assignedTo || !selectedTask.assignedTo.workerId) ? (
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => handleSelfAssign(selectedTask.id)}
+                                        disabled={actionLoading}
+                                        className="flex-[2] bg-emerald-600 text-white py-4 rounded-2xl font-black hover:bg-emerald-700 active:scale-[0.98] transition-all shadow-xl shadow-emerald-200 flex items-center justify-center gap-2"
+                                    >
+                                        <i className="fas fa-hand-paper"></i> {actionLoading ? 'Taking Over...' : 'Take Over Task'}
+                                    </button>
+                                </div>
+                            ) : (selectedTask.status === 'Assigned' || selectedTask.status === 'Pending') ? (
                                 <div className="flex gap-4">
                                     <button
                                         onClick={() => handleAcceptTask(selectedTask.id)}
@@ -412,7 +482,7 @@ const WorkerTasks: React.FC = () => {
                                         <i className="fas fa-times"></i> Reject
                                     </button>
                                 </div>
-                            ) : (selectedTask.status === 'In Progress' || (selectedTask.status as string) === 'InProgress') ? (
+                            ) : (selectedTask.status === 'In Progress' || String(selectedTask.status) === 'InProgress') ? (
                                 <div className="flex gap-4">
                                     <button
                                         onClick={() => handleUploadPhoto(selectedTask.id, 'progress')}

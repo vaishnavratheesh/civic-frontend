@@ -34,6 +34,12 @@ interface WelfareApplication {
   documents: Array<{ name: string; url: string }>;
   score?: number;
   justification?: string;
+  detailedAnalysis?: Array<{
+    factor: string;
+    impact: number;
+    type: 'positive' | 'negative' | 'neutral';
+    description: string;
+  }>;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
   appliedAt: string;
   reviewedAt?: string;
@@ -64,6 +70,7 @@ const CouncillorWelfareApplications: React.FC = () => {
   const [selectedSchemeId, setSelectedSchemeId] = useState<string>('all');
   const [expandedSchemes, setExpandedSchemes] = useState<{[key: string]: boolean}>({});
   const [verifying, setVerifying] = useState<{[key: string]: boolean}>({});
+  const [scoringBatch, setScoringBatch] = useState<{[key: string]: boolean}>({});
   const [selectedApplication, setSelectedApplication] = useState<WelfareApplication | null>(null);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
 
@@ -133,6 +140,7 @@ const CouncillorWelfareApplications: React.FC = () => {
         appliedAt: a.appliedAt,
         score: a.score,
         justification: a.justification,
+        detailedAnalysis: a.detailedAnalysis,
         personalDetails: {
           address: a.personalDetails?.address || '',
           phoneNumber: a.personalDetails?.phoneNumber || '',
@@ -242,6 +250,35 @@ const CouncillorWelfareApplications: React.FC = () => {
           justification: `⚠️ ML Service Error - Fallback score generated`
         } : a
       ));
+    }
+  };
+
+  const handleScoreBatch = async (schemeId: string) => {
+    try {
+      setScoringBatch(prev => ({ ...prev, [schemeId]: true }));
+      const token = localStorage.getItem('token');
+      
+      const resp = await fetch(`${config.API_BASE_URL}/api/welfare/schemes/${schemeId}/score-applications`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (resp.ok) {
+        const data = await resp.json();
+        // Refresh data to get the newly scored applications
+        await fetchData();
+        alert(data.message || `Successfully scored applications.`);
+      } else {
+        const errorData = await resp.json();
+        alert(`Scoring failed: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error("Failed to score batch", error);
+      alert('An error occurred while scoring applications.');
+    } finally {
+      setScoringBatch(prev => ({ ...prev, [schemeId]: false }));
     }
   };
 
@@ -438,8 +475,28 @@ const CouncillorWelfareApplications: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
-                      {/* Application Stats */}
                       <div className="flex space-x-3 text-sm">
+                        
+                        {/* Batch Score Button - Show it if there are any unscored applications */}
+                        {schemeApps.some(app => app.score === undefined) && (
+                          <div className="mr-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleScoreBatch(scheme._id);
+                              }}
+                              disabled={scoringBatch[scheme._id] || schemeApps.length === 0}
+                              className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50 flex items-center shadow-lg"
+                            >
+                              {scoringBatch[scheme._id] ? (
+                                <><i className="fas fa-spinner fa-spin mr-1"></i> Scoring...</>
+                              ) : (
+                                <><i className="fas fa-bolt mr-1"></i> AI Score All</>
+                              )}
+                            </button>
+                          </div>
+                        )}
+
                         <div className="text-center">
                           <div className="font-semibold text-gray-900">{stats.total}</div>
                           <div className="text-gray-500">Total</div>
@@ -468,7 +525,7 @@ const CouncillorWelfareApplications: React.FC = () => {
                       </div>
                     ) : (
                       <div className="space-y-4"> 
-                       {schemeApps.map(app => (
+                       {[...schemeApps].sort((a, b) => (b.score || 0) - (a.score || 0)).map(app => (
                           <div key={app._id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
@@ -558,12 +615,12 @@ const CouncillorWelfareApplications: React.FC = () => {
                                     </div>
                                   </div>
                                 ) : (
-                                  <button
-                                    onClick={() => handleGetScore(app._id)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
-                                  >
-                                    <i className="fas fa-calculator mr-2"></i>Get AI Score
-                                  </button>
+                                  <div className="text-center">
+                                    <p className="text-sm text-gray-400 mb-1">AI Score</p>
+                                    <div className="text-sm font-medium text-gray-500 bg-gray-100 rounded-lg px-4 py-2 border border-gray-200 border-dashed">
+                                      Pending
+                                    </div>
+                                  </div>
                                 )}
                                 
                                 <div className="flex flex-col space-y-2">
@@ -601,6 +658,7 @@ const CouncillorWelfareApplications: React.FC = () => {
           (() => {
             const selectedScheme = schemes.find(s => s._id === selectedSchemeId);
             const schemeApps = getApplicationsForScheme(selectedSchemeId);
+            const stats = getSchemeStats(selectedSchemeId);
             
             if (!selectedScheme) {
               return <div className="text-gray-600">Scheme not found.</div>;
@@ -609,12 +667,30 @@ const CouncillorWelfareApplications: React.FC = () => {
             return (
               <div className="bg-white rounded-lg border border-gray-200">
                 <div className="p-6 border-b border-gray-200">
-                  <h4 className="text-xl font-semibold text-gray-900 mb-2">{selectedScheme.title}</h4>
-                  <p className="text-gray-600 mb-4">{selectedScheme.description}</p>
-                  <div className="flex items-center space-x-6 text-sm text-gray-600">
-                    <span><i className="fas fa-users mr-1"></i>Age: {selectedScheme.minAge}-{selectedScheme.maxAge}</span>
-                    <span><i className="fas fa-calendar mr-1"></i>Created: {new Date(selectedScheme.createdAt).toLocaleDateString()}</span>
-                    {selectedScheme.totalSlots && <span><i className="fas fa-clipboard-list mr-1"></i>Slots: {selectedScheme.totalSlots}</span>}
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-xl font-semibold text-gray-900 mb-2">{selectedScheme.title}</h4>
+                      <p className="text-gray-600 mb-4">{selectedScheme.description}</p>
+                      <div className="flex items-center space-x-6 text-sm text-gray-600">
+                        <span><i className="fas fa-users mr-1"></i>Age: {selectedScheme.minAge}-{selectedScheme.maxAge}</span>
+                        <span><i className="fas fa-calendar mr-1"></i>Created: {new Date(selectedScheme.createdAt).toLocaleDateString()}</span>
+                        {selectedScheme.totalSlots && <span><i className="fas fa-clipboard-list mr-1"></i>Slots: {selectedScheme.totalSlots}</span>}
+                      </div>
+                    </div>
+                    {/* Batch Score Button for Single View */}
+                    {schemeApps.some(app => app.score === undefined) && schemeApps.length > 0 && (
+                      <button
+                        onClick={() => handleScoreBatch(selectedScheme._id)}
+                        disabled={scoringBatch[selectedScheme._id]}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                      >
+                        {scoringBatch[selectedScheme._id] ? (
+                          <><i className="fas fa-spinner fa-spin mr-2"></i> Analyzing Applications...</>
+                        ) : (
+                          <><i className="fas fa-bolt mr-2 text-yellow-300"></i> AI Score All Applications</>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="p-6">
@@ -625,7 +701,7 @@ const CouncillorWelfareApplications: React.FC = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {schemeApps.map(app => (
+                      {[...schemeApps].sort((a, b) => (b.score || 0) - (a.score || 0)).map(app => (
                         <div key={app._id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -654,13 +730,23 @@ const CouncillorWelfareApplications: React.FC = () => {
                               </div>
                             </div>
                             <div className="ml-6 flex flex-col items-end space-y-2">
-                              {app.score !== undefined && (
-                                <div className={`text-xl font-bold rounded-lg px-3 py-2 ${
-                                  app.score >= 80 ? 'text-green-600 bg-green-100' :
-                                  app.score >= 60 ? 'text-yellow-600 bg-yellow-100' :
-                                  'text-red-600 bg-red-100'
-                                }`}>
-                                  {app.score}
+                              {app.score !== undefined ? (
+                                <div className="text-center">
+                                  <p className="text-xs text-gray-500 mb-1">AI Score</p>
+                                  <div className={`text-xl font-bold rounded-lg px-3 py-2 ${
+                                    app.score >= 80 ? 'text-green-600 bg-green-100' :
+                                    app.score >= 60 ? 'text-yellow-600 bg-yellow-100' :
+                                    'text-red-600 bg-red-100'
+                                  }`}>
+                                    {app.score}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-center">
+                                  <p className="text-xs text-gray-400 mb-1">AI Score</p>
+                                  <div className="text-sm font-medium text-gray-500 bg-gray-100 rounded-lg px-4 py-2 border border-gray-200 border-dashed">
+                                    Pending
+                                  </div>
                                 </div>
                               )}
                               <button
@@ -772,29 +858,61 @@ const CouncillorWelfareApplications: React.FC = () => {
                 </div>
               )}
 
-              {/* AI Score */}
+              {/* AI Score and Detailed Analysis */}
               {selectedApplication.score !== undefined && (
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3">AI Assessment</h3>
-                  <div className="flex items-center space-x-4">
-                    <div className={`text-3xl font-bold rounded-lg px-4 py-2 ${
-                      selectedApplication.score >= 80 ? 'text-green-600 bg-green-100' :
-                      selectedApplication.score >= 60 ? 'text-yellow-600 bg-yellow-100' :
-                      'text-red-600 bg-red-100'
-                    }`}>
-                      {selectedApplication.score}/100
-                    </div>
-                    {selectedApplication.justification && (
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-700">{selectedApplication.justification}</p>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-gray-900">AI Detailed Assessment</h3>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm text-gray-500 font-medium">Total Priority Score</span>
+                      <div className={`text-3xl font-bold rounded-lg px-4 py-2 ${
+                        selectedApplication.score >= 80 ? 'text-green-600 bg-green-100 border border-green-200' :
+                        selectedApplication.score >= 60 ? 'text-yellow-600 bg-yellow-100 border border-yellow-200' :
+                        'text-red-600 bg-red-100 border border-red-200'
+                      }`}>
+                        {selectedApplication.score}
+                        <span className="text-lg text-opacity-70 ml-1 font-normal">/100</span>
                       </div>
-                    )}
+                    </div>
                   </div>
+
+                  {selectedApplication.detailedAnalysis && selectedApplication.detailedAnalysis.length > 0 ? (
+                    <div className="space-y-3 mt-4">
+                      <div className="grid grid-cols-12 gap-4 px-4 py-2 bg-gray-100 rounded-lg text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <div className="col-span-8">Identified Factor</div>
+                        <div className="col-span-4 text-right">Score Impact</div>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto pr-2 space-y-2">
+                        {selectedApplication.detailedAnalysis.map((item, idx) => (
+                          <div key={idx} className="grid grid-cols-12 gap-4 px-4 py-3 bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow transition-shadow">
+                            <div className="col-span-8 flex flex-col">
+                              <span className="font-medium text-gray-900">{item.factor}</span>
+                              <span className="text-xs text-gray-500 mt-1">{item.description}</span>
+                            </div>
+                            <div className="col-span-4 flex items-center justify-end">
+                              <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                                item.type === 'positive' ? 'bg-green-100 text-green-700' :
+                                item.type === 'negative' ? 'bg-red-100 text-red-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {item.impact > 0 ? '+' : ''}{item.impact} pts
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 p-4 bg-white rounded-lg border border-blue-100 flex items-start space-x-3">
+                       <i className="fas fa-robot text-blue-500 mt-1"></i>
+                       <p className="text-sm text-blue-800">{selectedApplication.justification || 'Score generated by AI model based on applicant profile.'}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-end space-x-4 pt-6">
+              <div className="flex justify-end space-x-4 pt-6 mt-4 border-t border-gray-100">
                 <button
                   onClick={() => setShowVerificationModal(false)}
                   className="px-6 py-3 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-colors font-medium"

@@ -173,10 +173,11 @@ const AssignComplaint: React.FC<AssignComplaintProps> = ({
                 onClose();
             } else {
                 const error = await response.json();
+                const detailedMsg = error.error ? `\n\nDetails: ${error.error}` : '';
                 Swal.fire({
                     icon: 'error',
                     title: 'Assignment Failed',
-                    text: error.message || 'Failed to assign task',
+                    text: (error.message || 'Failed to assign task') + detailedMsg,
                     confirmButtonText: 'OK'
                 });
             }

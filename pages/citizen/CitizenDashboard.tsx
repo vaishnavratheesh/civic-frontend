@@ -650,7 +650,9 @@ const CitizenDashboard: React.FC = () => {
                         ownsLand: a.personalDetails?.ownsLand || false,
                         landDetails: a.personalDetails?.landDetails || { villageName: '', surveyNumber: '', area: '' },
                         drinkingWaterSource: a.personalDetails?.drinkingWaterSource || '',
-                        hasToilet: a.personalDetails?.hasToilet || false
+                        hasToilet: a.personalDetails?.hasToilet || false,
+                        reviewComments: a.reviewComments || '',
+                        reviewedAt: a.reviewedAt || null
                     };
                 });
                 console.log(`${TAG} mapped`, { count: mapped.length, schemeIds: mapped.map((m:any)=>m.schemeId) });
@@ -1133,6 +1135,12 @@ const CitizenDashboard: React.FC = () => {
                                         {tab.id === 'my-grievances' && pendingVideoRequests > 0 && (
                                             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                                                 {pendingVideoRequests > 9 ? '9+' : pendingVideoRequests}
+                                            </span>
+                                        )}
+                                        {tab.id === 'welfare-schemes' && myApplications.some(a => String(a.status).toLowerCase() === 'approved') && (
+                                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                                             </span>
                                         )}
                                     </button>
@@ -1642,9 +1650,9 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                             <span className="ml-3 text-gray-600">Loading available schemes...</span>
                         </div>
                     </div>
-                ) : schemes.length > 0 ? (
+                ) : schemes.filter(s => !s.endDate || new Date(s.endDate) >= new Date()).length > 0 ? (
                     <div className="grid md:grid-cols-2 gap-4">
-                        {schemes.map(s => (
+                        {schemes.filter(s => !s.endDate || new Date(s.endDate) >= new Date()).map(s => (
                             <div key={s.id} className="bg-gray-50 border border-gray-200 rounded-md p-4">
                                 <div className="flex items-start justify-between mb-2">
                                     <div className="flex items-center gap-2 text-gray-800">
@@ -1723,60 +1731,127 @@ const WelfareSchemesTab: React.FC<{ schemes: WelfareScheme[], applications: Welf
                 {filteredApplications.length > 0 ? (
                     <div className="space-y-4">
                         {filteredApplications.map(app => (
-                            <div key={app.id} className="bg-gray-50 border border-gray-200 rounded-md p-4">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                                                <i className="fas fa-file-alt text-gray-700"></i>
+                            <div key={app.id} className={`border rounded-xl p-5 ${app.status.toLowerCase() === 'approved' ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 shadow-sm' : 'bg-white border-gray-200 hover:shadow-md transition-all'}`}>
+                                <div className="flex flex-col md:flex-row items-start justify-between gap-4">
+                                    <div className="flex-1 w-full">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${app.status.toLowerCase() === 'approved' ? 'bg-emerald-100 text-emerald-600' : app.status.toLowerCase() === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                <i className={`fas ${app.status.toLowerCase() === 'approved' ? 'fa-check-circle' : app.status.toLowerCase() === 'rejected' ? 'fa-times-circle' : 'fa-clock'} text-xl`}></i>
                                             </div>
                                             <div>
-                                                <h4 className="text-base font-semibold text-gray-900">{app.schemeTitle}</h4>
-                                                <p className="text-xs text-gray-600">Score: {app.score}/100</p>
+                                                <h4 className="text-lg font-bold text-gray-900 leading-tight">{app.schemeTitle}</h4>
+                                                <div className="flex flex-wrap items-center gap-3 mt-1">
+                                                    <span className="text-xs text-gray-500 font-medium tracking-wide uppercase">App ID: #{app.id.substring(0, 8)}</span>
+                                                    <span className="text-gray-300">•</span>
+                                                    <span className="text-xs text-gray-500 font-medium">Applied: {new Date(app.createdAt).toLocaleDateString()}</span>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700 mb-2">
-                                            <div>
-                                                <span className="font-medium">Applied:</span> {new Date(app.createdAt).toLocaleDateString()}
+
+                                        {app.status.toLowerCase() === 'approved' && (
+                                            <div className="mb-4 bg-white bg-opacity-60 rounded-lg p-4 border border-emerald-100">
+                                                <h5 className="text-sm font-bold text-emerald-800 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                    <i className="fas fa-certificate"></i> Eligibility Certificate
+                                                </h5>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                                                    <div>
+                                                        <p className="text-gray-500 mb-1">Applicant Name</p>
+                                                        <p className="font-semibold text-gray-900">{app.userName}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-gray-500 mb-1">Ward</p>
+                                                        <p className="font-semibold text-gray-900">Ward {app.ward}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-gray-500 mb-1">Income Category</p>
+                                                        <p className="font-semibold text-gray-900 capitalize">{app.incomeCategory || 'N/A'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-gray-500 mb-1">Approval Date</p>
+                                                        <p className="font-semibold text-gray-900">{app.reviewedAt ? new Date(app.reviewedAt).toLocaleDateString() : new Date().toLocaleDateString()}</p>
+                                                    </div>
+                                                </div>
+                                                {app.reviewComments && (
+                                                    <div className="mt-4 pt-3 border-t border-emerald-100">
+                                                        <p className="text-sm text-emerald-800">
+                                                            <span className="font-semibold mr-2">Official Remarks:</span>
+                                                            "{app.reviewComments}"
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div>
-                                                <span className="font-medium">Total Income:</span> ₹{(app.totalIncome || 0).toLocaleString()}
-                                            </div>
-                                            <div>
-                                                <span className="font-medium">Income Category:</span> {(app.incomeCategory || 'N/A').toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <span className="font-medium">Address:</span> {app.address}
-                                            </div>
-                                        </div>
-                                        {app.justification && (
-                                            <p className="text-gray-700 text-sm">
-                                                <span className="font-medium">Justification:</span> {app.justification}
-                                            </p>
                                         )}
+
+                                        {app.status.toLowerCase() !== 'approved' && (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm text-gray-700 mb-4 bg-gray-50 p-4 rounded-lg">
+                                                <div className="flex justify-between border-b border-gray-200 pb-1">
+                                                    <span className="text-gray-500">Applicant:</span>
+                                                    <span className="font-medium text-gray-900">{app.userName}</span>
+                                                </div>
+                                                <div className="flex justify-between border-b border-gray-200 pb-1">
+                                                    <span className="text-gray-500">Total Income:</span>
+                                                    <span className="font-medium text-gray-900">₹{(app.totalIncome || 0).toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex justify-between border-b border-gray-200 pb-1 sm:border-none sm:pb-0">
+                                                    <span className="text-gray-500">Category:</span>
+                                                    <span className="font-medium text-gray-900 capitalize">{app.incomeCategory || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Panchayath Ward:</span>
+                                                    <span className="font-medium text-gray-900">Ward {app.ward}</span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {app.status.toLowerCase() === 'rejected' && app.reviewComments && (
+                                            <div className="mb-4 bg-red-50 text-red-700 p-3 rounded-lg border border-red-100 text-sm">
+                                                <span className="font-semibold flex items-center gap-2 mb-1">
+                                                    <i className="fas fa-exclamation-circle"></i> Rejection Reason:
+                                                </span>
+                                                <p className="ml-5">{app.reviewComments}</p>
+                                            </div>
+                                        )}
+                                        
+                                        {app.justification && app.status.toLowerCase() === 'pending' && app.score !== undefined && (
+                                            <div className="text-sm text-blue-800 bg-blue-50 p-3 rounded-lg border border-blue-100 mt-2">
+                                                <span className="font-semibold block mb-1">AI Preliminary Analysis:</span>
+                                                {app.justification}
+                                            </div>
+                                        )}
+
                                     </div>
-                                    <div className="flex-shrink-0 flex flex-col gap-2">
-                                        <span className={`px-3 py-1.5 text-xs font-medium rounded-md ${STATUS_COLORS[app.status]}`}>
-                                            {app.status}
-                                        </span>
+                                    <div className="flex md:flex-col items-center justify-between md:justify-start gap-4 shrink-0 w-full md:w-auto border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6">
+                                        <div className="text-center w-full">
+                                            <span className={`inline-block w-full md:w-auto text-center px-4 py-2 font-bold rounded-lg uppercase tracking-wider text-sm ${STATUS_COLORS[app.status] || 'bg-gray-100 text-gray-800'}`}>
+                                                {app.status}
+                                            </span>
+                                            {app.score !== undefined && app.status.toLowerCase() !== 'approved' && app.status.toLowerCase() !== 'rejected' && (
+                                                <div className="mt-3 text-center">
+                                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 border-2 border-blue-200 text-blue-600 font-bold text-lg mb-1">
+                                                        {app.score}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">AI Score</div>
+                                                </div>
+                                            )}
+                                        </div>
                                         <button
                                             onClick={() => generateApplicationPDF(app)}
                                             disabled={printingPDF === app.id}
-                                            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                            className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                                                 printingPDF === app.id
                                                     ? 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed'
-                                                    : 'text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100'
+                                                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:text-blue-600'
                                             }`}
                                         >
                                             {printingPDF === app.id ? (
                                                 <>
                                                     <i className="fas fa-spinner fa-spin"></i>
-                                                    Generating...
+                                                    Wait...
                                                 </>
                                             ) : (
                                                 <>
-                                                    <i className="fas fa-print"></i>
-                                                    Print PDF
+                                                    <i className="fas fa-file-pdf text-red-500"></i>
+                                                    Download PDF
                                                 </>
                                             )}
                                         </button>

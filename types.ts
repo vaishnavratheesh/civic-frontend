@@ -83,6 +83,9 @@ export interface Complaint {
     assignmentNotes?: string;
     progressPhotos?: Array<{ url: string; type: string; uploadedAt: string }>;
     completionPhotos?: Array<{ url: string; type: string; uploadedAt: string }>;
+    paymentRequested?: number;
+    paymentStatus?: 'not_applicable' | 'pending' | 'paid' | 'completed';
+    paymentNotes?: string;
   };
   officerName?: string;
   source: 'user' | 'iot';
@@ -175,6 +178,8 @@ export interface WelfareApplication {
   createdAt: string;
   score?: number;
   justification?: string;
+  reviewComments?: string;
+  reviewedAt?: string;
   documents?: Array<{
     name: string;
     url: string;

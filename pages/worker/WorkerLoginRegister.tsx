@@ -27,7 +27,8 @@ const WorkerLoginRegister: React.FC = () => {
         contact: '',
         ward: '1',
         specialization: '',
-        experience: ''
+        experience: '',
+        employmentType: 'private'
     });
 
     const workerTypes = [
@@ -119,7 +120,7 @@ const WorkerLoginRegister: React.FC = () => {
 
         // Validation
         if (!registerData.name || !registerData.email || !registerData.password || 
-            !registerData.type || !registerData.contact || !registerData.ward) {
+            !registerData.type || !registerData.contact || !registerData.ward || !registerData.employmentType) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Missing Fields',
@@ -161,6 +162,7 @@ const WorkerLoginRegister: React.FC = () => {
                     type: registerData.type,
                     contact: registerData.contact,
                     ward: registerData.ward,
+                    employmentType: registerData.employmentType,
                     specialization: registerData.specialization,
                     experience: registerData.experience ? parseInt(registerData.experience) : 0
                 }
@@ -394,18 +396,35 @@ const WorkerLoginRegister: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Specialization (Optional)
-                                </label>
-                                <input
-                                    type="text"
-                                    name="specialization"
-                                    value={registerData.specialization}
-                                    onChange={handleRegisterChange}
-                                    placeholder="e.g., Pipeline repairs, Road construction"
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Specialization (Optional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="specialization"
+                                        value={registerData.specialization}
+                                        onChange={handleRegisterChange}
+                                        placeholder="e.g., Pipeline repairs, Road construction"
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Employment Type <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="employmentType"
+                                        value={registerData.employmentType}
+                                        onChange={handleRegisterChange}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                        required
+                                    >
+                                        <option value="private">Private Worker</option>
+                                        <option value="government">Government/Panchayath Worker</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

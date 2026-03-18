@@ -101,7 +101,7 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
     
     // Financial Information
     totalIncome: 0,
-    incomeCategory: '',
+    incomeCategory: 'bpl', // Default to BPL (income = 0 is BPL)
     
     // Land Ownership
     ownsLand: false,
@@ -158,11 +158,11 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
 
     // Financial Information
     if (!isPositiveNumber(values.totalIncome)) {
-      errs.totalIncome = 'Enter a valid total income amount.';
+      errs.totalIncome = 'Enter a valid total income amount (0 or more).';
     }
     
-    if (values.totalIncome > 0 && isEmpty(values.incomeCategory)) {
-      errs.incomeCategory = 'Please select APL or BPL based on your income.';
+    if (isEmpty(values.incomeCategory)) {
+      errs.incomeCategory = 'Please select APL or BPL income category.';
     }
 
     // Utilities
@@ -211,10 +211,17 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
 
     try {
       const token = localStorage.getItem('token');
+      console.log('[WelfareApplicationForm] Submitting application', {
+        schemeId,
+        token: !!token,
+        apiUrl: config.API_BASE_URL,
+        formData
+      });
+      
       const fd = new FormData();
       
       // New simplified structure
-      fd.append('personalDetails', JSON.stringify({
+      const personalDetailsPayload = {
         address: formData.address,
         phoneNumber: formData.phoneNumber,
         houseNumber: formData.houseNumber,
@@ -230,16 +237,25 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
         landDetails: formData.landDetails,
         drinkingWaterSource: formData.drinkingWaterSource,
         hasToilet: formData.hasToilet
-      }));
+      };
+      console.log('[WelfareApplicationForm] Personal details:', personalDetailsPayload);
+      
+      fd.append('personalDetails', JSON.stringify(personalDetailsPayload));
 
       // Append required documents with agreed field names: doc_<normalized_name>
       requiredDocuments.forEach(doc => {
         const key = `doc_${doc.name.replace(/\s+/g, '_').toLowerCase()}`;
         const file = docFiles[key];
-        if (file) fd.append(key, file);
+        if (file) {
+          console.log(`[WelfareApplicationForm] Appending document: ${key}`, file);
+          fd.append(key, file);
+        }
       });
 
-      const response = await fetch(`${config.API_BASE_URL}/api/welfare/schemes/${schemeId}/apply`, {
+      const url = `${config.API_BASE_URL}/api/welfare/schemes/${schemeId}/apply`;
+      console.log('[WelfareApplicationForm] Request URL:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -247,15 +263,22 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
         body: fd
       });
 
+      console.log('[WelfareApplicationForm] Response status:', response.status, response.ok);
+      
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit application');
+        console.error('[WelfareApplicationForm] Error response:', errorData);
+        throw new Error(errorData.message || `Failed to submit application (${response.status})`);
       }
 
+      const successData = await response.json();
+      console.log('[WelfareApplicationForm] Success response:', successData);
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMsg = err instanceof Error ? err.message : 'An error occurred';
+      console.error('[WelfareApplicationForm] Submission error:', errorMsg, err);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -466,11 +489,9 @@ const WelfareApplicationForm: React.FC<WelfareApplicationFormProps> = ({
               onChange={(e) => {
                 const income = parseInt(e.target.value) || 0;
                 handleInputChange('totalIncome', income);
-                // Auto-select APL/BPL based on income
-                if (income > 0) {
-                  const category = income <= 120000 ? 'bpl' : 'apl'; // BPL if income <= 1.2 lakh
-                  handleInputChange('incomeCategory', category);
-                }
+                // Auto-select APL/BPL based on income (0 income = BPL)
+                const category = income <= 120000 ? 'bpl' : 'apl';
+                handleInputChange('incomeCategory', category);
               }}
               onBlur={() => handleBlur('totalIncome')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
